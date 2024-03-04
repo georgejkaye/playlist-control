@@ -1,1 +1,4 @@
 .vscode
+.env
+api-secret.txt
+*.secret
