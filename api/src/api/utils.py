@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 
-def read_secret(env_var: str) -> str:
+def get_secret(env_var: str) -> str:
     file = get_env_variable(env_var)
     if os.path.isfile(file):
         with open(file) as f:
