@@ -1,7 +1,32 @@
 from typing import Optional
-from api.access import authorise_access
 from api.structs import Album, Artist, Song
-from spotipy import Spotify
+from api.utils import get_env_variable, get_secret
+from spotipy import Spotify, SpotifyOAuth
+
+scope = [
+    "user-library-read",
+    "user-modify-playback-state",
+    "user-read-currently-playing",
+    "user-read-playback-state",
+]
+
+
+def authorise_access() -> Spotify:
+    client_id = get_env_variable("SPOTIFY_ID")
+    client_secret = get_secret("SPOTIFY_SECRET")
+    redirect_uri = get_env_variable("SPOTIFY_REDIRECT")
+    sp = Spotify(
+        auth_manager=SpotifyOAuth(
+            scope=scope,
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri=redirect_uri,
+        )
+    )
+    user = sp.current_user()
+    if user:
+        print(f"Thank you for authorising, {user['display_name']}!")
+    return sp
 
 
 def get_song_object(raw_song: dict) -> Song:
@@ -53,3 +78,7 @@ def get_songs_from_playlist(sp: Spotify, playlist_id: str) -> list[Song]:
             else:
                 page = sp.next(page)
     return songs
+
+
+if __name__ == "__main__":
+    authorise_access()
