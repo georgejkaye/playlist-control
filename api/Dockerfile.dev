@@ -13,4 +13,6 @@ RUN poetry install --no-root
 COPY src ./src
 RUN poetry install
 
+RUN echo password > /run/secrets/db_password
+
 ENTRYPOINT ["poetry", "run", "python", "src/api/main.py"]
