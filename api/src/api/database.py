@@ -174,3 +174,10 @@ def insert_tracks(tracks: list[Track]):
     execute_many(cur, get_insert_album_track_statement, album_tracks)
     conn.commit()
     conn.close()
+
+
+def delete_all_tracks():
+    (conn, cur) = connect()
+    cur.execute("DELETE FROM Track")
+    conn.commit()
+    conn.close()
