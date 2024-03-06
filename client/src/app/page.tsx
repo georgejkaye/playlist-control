@@ -27,7 +27,7 @@ const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
 }
 
 const Track = (props: { track: Track }) => {
-  return (<div className="flex flex-row justify-center my-2 gap-5">
+  return (<div key={props.track.id} className="flex flex-row justify-center my-2 gap-5">
     <div>
       <img className="rounded-lg" width="50" src={props.track.album.art} alt={`Album art for ${props.track.album.name}`} />
     </div>
@@ -51,16 +51,22 @@ const Home = () => {
   useEffect(() => {
     getQueue(setCurrent, setQueue)
   }, [])
+  useEffect(() => {
+    const interval = setInterval(() => {
+      getQueue(setCurrent, setQueue)
+    }, 5000)
+    return () => clearInterval(interval)
+  })
   return (
     <main>
       {!current ? "" :
-        <div className="mx-auto w-desktop">
+        <div className="mx-8 my-6 desktop:mx-auto desktop:w-desktop">
           <CurrentTrack currentTrack={current} />
           <Queue queue={queue} />
         </div>
       }
     </main>
-  );
+  )
 }
 
 export default Home

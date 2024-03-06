@@ -24,6 +24,15 @@ const config: Config = {
         tablet: `${tabletContentSize}px`,
         mobile: `${mobileContentSize}px`,
       },
+      keyframes: {
+        fadein: {
+          "0%": { opacity: "0%" },
+          "100%": { opacity: "100%" }
+        }
+      },
+      animation: {
+        fadein: "fadein 1s ease-in"
+      }
     },
     plugins: [],
   }
