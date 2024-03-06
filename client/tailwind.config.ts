@@ -1,5 +1,12 @@
 import type { Config } from "tailwindcss";
 
+const buffer = 50
+const minDesktopSize = 1000
+const minTabletSize = 600
+const contentSize = minDesktopSize - buffer
+const tabletContentSize = minTabletSize - buffer
+const mobileContentSize = 400
+
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -7,14 +14,18 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    screens: {
+      desktop: `${minDesktopSize}px`,
+      tablet: `${minTabletSize}px`,
+    },
     extend: {
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+      width: {
+        desktop: `${contentSize}px`,
+        tablet: `${tabletContentSize}px`,
+        mobile: `${mobileContentSize}px`,
       },
     },
-  },
-  plugins: [],
-};
-export default config;
+    plugins: [],
+  }
+}
+export default config
