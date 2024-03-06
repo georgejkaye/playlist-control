@@ -29,9 +29,11 @@ const responseToCurrentTrack = (response: any) => ({
 export const getQueue = async (setCurrent: SetState<CurrentTrack | undefined>, setQueue: SetState<Track[]>) => {
     const endpoint = "/api/queue"
     const response = await axios.get(endpoint)
-    const data = response.data
-    const current = responseToCurrentTrack(data["current"])
-    const queue = response.data["queue"].map(responseToTrack)
-    setCurrent(current)
-    setQueue(queue)
+    if (response.status === 200) {
+        const data = response.data
+        const current = responseToCurrentTrack(data["current"])
+        const queue = data["queue"].map(responseToTrack)
+        setCurrent(current)
+        setQueue(queue)
+    }
 }
