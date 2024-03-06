@@ -70,6 +70,13 @@ async def get_current_track() -> CurrentTrack:
     return track
 
 
+@app.get("/queue", summary="Get the current queue")
+async def get_queue() -> list[Track]:
+    sp = authorise_access()
+    queue = spotify.get_queue(sp)
+    return queue
+
+
 @app.post("/queue", summary="Add a track to the queue")
 async def queue_track(track_id: str) -> Track:
     sp = authorise_access()
