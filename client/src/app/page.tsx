@@ -8,7 +8,7 @@ const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
   return (
     <div className="flex flex-row justify-center my-10 gap-10">
       <div>
-        <img className="rounded-lg" width="200" src={props.currentTrack.track.album.art} alt={`Album art for ${props.currentTrack.track.album}`} />
+        <img className="rounded-lg" width="200" src={props.currentTrack.track.album.art} alt={`Album art for ${props.currentTrack.track.album.name}`} />
       </div>
       <div className="flex-1 flex flex-col justify-center">
         <div className="font-bold text-4xl py-1">
@@ -29,7 +29,7 @@ const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
 const Track = (props: { track: Track }) => {
   return (<div className="flex flex-row justify-center my-2 gap-5">
     <div>
-      <img className="rounded-lg" width="50" src={props.track.album.art} alt={`Album art for ${props.track.album}`} />
+      <img className="rounded-lg" width="50" src={props.track.album.art} alt={`Album art for ${props.track.album.name}`} />
     </div>
     <div className="flex-1 my-auto">
       <div className="text-xl font-bold">{props.track.name}</div>
