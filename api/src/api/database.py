@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 from api.structs import Album, Artist, Track
 
 import psycopg2
@@ -45,8 +45,12 @@ def get_artists_from_agg(artists: list[dict]) -> list[Artist]:
     return [Artist(artist["artist_id"], artist["artist_name"]) for artist in artists]
 
 
-def select_tracks() -> list[Track]:
+def select_tracks(track_ids: Optional[list[str]] = []) -> list[Track]:
     (conn, cur) = connect()
+    if track_ids is None or len(track_ids) == 0:
+        where_statement = ""
+    else:
+        where_statement = "WHERE Track.track_id = ANY(%(ids)s)"
     statement = f"""
         SELECT
             Track.track_id, Track.track_name,
@@ -59,8 +63,9 @@ def select_tracks() -> list[Track]:
         INNER JOIN AlbumTrack ON Track.track_id = AlbumTrack.track_id
         INNER JOIN Album ON AlbumTrack.album_id = Album.album_id
         INNER JOIN ({select_albums_and_artists}) AlbumArtists ON Album.album_id = AlbumArtists.album_id
+        {where_statement}
     """
-    cur.execute(statement)
+    cur.execute(statement, {"ids": track_ids})
     rows = cur.fetchall()
     conn.close()
     tracks = []
