@@ -1,4 +1,21 @@
+networks:
+  internal:
+    external: false
 services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: playlist
+      POSTGRES_DB: playlist
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+    networks:
+      - internal
   api:
     build:
       context: api
@@ -13,10 +30,10 @@ services:
       ADMIN_USER: ${ADMIN_USER}
       ADMIN_PASSWORD_HASHED: /run/secrets/admin_password_hash
       SECRET_KEY: /run/secrets/api_secret
-      DB_HOST: ${DB_HOST}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: /run/secrets/db_passwd
-      DB_NAME: ${DB_NAME}
+      DB_HOST: db
+      DB_USER: playlist
+      DB_PASSWORD: /run/secrets/db_password
+      DB_NAME: playlist
       SPOTIFY_ID: ${SPOTIFY_ID}
       SPOTIFY_SECRET: /run/secrets/spotify_secret
       SPOTIFY_REDIRECT: ${SPOTIFY_REDIRECT}
@@ -26,8 +43,9 @@ services:
     secrets:
       - api_secret
       - admin_password_hash
-      - db_passwd
       - spotify_secret
+    networks:
+      - internal
   # client:
   #   build:
   #     context: client
@@ -53,5 +71,5 @@ secrets:
     file: spotify.secret
   admin_password_hash:
     file: admin.secret
-  db_passwd:
-    file: db.secret
+volumes:
+  pgdata:
