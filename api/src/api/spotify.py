@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 from typing import Optional
 from api.structs import Album, Artist, Track
 from api.utils import get_env_variable, get_secret
@@ -36,11 +37,22 @@ def get_artist_object(raw_artist: dict) -> Artist:
     return Artist(artist_id, artist_name)
 
 
+name_regex = r"(.*)(( - |\())(Radio Mix|Full Length Version|Radio Edit|Deluxe Edition)?((Remastered )?([0-9][0-9][0-9][0-9])?( Remastered( Version)?| Remaster| Mix)?)?(\)?)"
+
+
+def sanitise_name(name: str) -> str:
+    res = re.match(name_regex, name)
+    if res is None:
+        return name
+    else:
+        return res.group(1)
+
+
 def get_track_object(raw_track: dict) -> Track:
     raw_artists = raw_track["artists"]
     artists = [get_artist_object(raw_artist) for raw_artist in raw_artists]
     raw_album = raw_track["album"]
-    album_name = raw_album["name"]
+    album_name = sanitise_name(raw_album["name"])
     album_art = raw_album["images"][0]["url"]
     raw_album_artists = raw_album["artists"]
     album_artists = [
@@ -48,7 +60,7 @@ def get_track_object(raw_track: dict) -> Track:
     ]
     album_id = raw_album["id"]
     album = Album(album_id, album_name, album_artists, album_art)
-    track_name = raw_track["name"]
+    track_name = sanitise_name(raw_track["name"])
     track_duration = raw_track["duration_ms"]
     track_id = raw_track["id"]
     track = Track(track_id, track_name, album, artists, track_duration)
