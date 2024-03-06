@@ -75,10 +75,10 @@ def get_track(sp: Spotify, track_id: str) -> Optional[Track]:
     return None
 
 
-def get_queue(sp: Spotify) -> list[Track]:
+def get_queue(sp: Spotify) -> Optional[list[Track]]:
     queue = sp.queue()
     if queue is None:
-        return []
+        return None
     else:
         raw_queue = queue["queue"]
         tracks = [get_track_object(raw_track) for raw_track in raw_queue]

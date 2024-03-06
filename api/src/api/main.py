@@ -70,11 +70,20 @@ async def get_current_track() -> CurrentTrack:
     return track
 
 
+@dataclass
+class CurrentAndQueue:
+    current: CurrentTrack
+    queue: list[Track]
+
+
 @app.get("/queue", summary="Get the current queue")
-async def get_queue() -> list[Track]:
+async def get_queue() -> CurrentAndQueue:
     sp = authorise_access()
+    current = spotify.get_current_track(sp)
     queue = spotify.get_queue(sp)
-    return queue
+    if current and queue:
+        return CurrentAndQueue(current, queue)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No queue found")
 
 
 @app.post("/queue", summary="Add a track to the queue")
