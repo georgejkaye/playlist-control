@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Annotated, Optional
+from api.database import insert_tracks, select_tracks
 from api.spotify import add_to_queue, authorise_access, get_track
 from api.structs import Track
 from api.utils import get_env_variable
@@ -60,7 +61,21 @@ async def queue_track(track_id: str) -> Track:
     return track
 
 
-# @app.get("/tracks", summary="Get available tracks")
+@app.get("/tracks", summary="Get available tracks")
+async def get_tracks() -> list[Track]:
+    return select_tracks()
+
+
+@app.post("/track", summary="Insert a track")
+async def post_track(track_id: str, token: Annotated[str, Depends(validate_token)]):
+    sp = authorise_access()
+    track = get_track(sp, track_id)
+    if track is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Track id does not exist"
+        )
+    insert_tracks([track])
+
 
 import uvicorn
 
