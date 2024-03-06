@@ -102,39 +102,42 @@ def get_args_statement(cur, tups: set[tuple]) -> str:
 def get_insert_artist_statement(cur, artists: set[tuple[str, str]]) -> str:
     return f"""
             INSERT INTO Artist (artist_id, artist_name) VALUES {get_args_statement(cur, artists)}
-            ON CONFLICT (artist_id) DO NOTHING
+            ON CONFLICT DO NOTHING
     """
 
 
 def get_insert_album_statement(cur, albums: set[tuple[str, str, str]]) -> str:
     return f"""
             INSERT INTO Album (album_id, album_name, album_art) VALUES {get_args_statement(cur, albums)}
-            ON CONFLICT (album_id) DO NOTHING
+            ON CONFLICT DO NOTHING
     """
 
 
 def get_insert_track_statement(cur, tracks: set[tuple[str, str, str]]) -> str:
     return f"""
             INSERT INTO Track (track_id, track_name, track_duration) VALUES {get_args_statement(cur, tracks)}
-            ON CONFLICT (track_id) DO NOTHING
+            ON CONFLICT DO NOTHING
     """
 
 
 def get_insert_album_track_statement(cur, album_tracks: set[tuple[str, str]]):
     return f"""
             INSERT INTO AlbumTrack (album_id, track_id) VALUES {get_args_statement(cur, album_tracks)}
+            ON CONFLICT DO NOTHING;
     """
 
 
 def get_insert_artist_track_statement(cur, artist_tracks: set[tuple[str, str]]):
     return f"""
         INSERT INTO ArtistTrack (artist_id, track_id) VALUES {get_args_statement(cur, artist_tracks)}
+        ON CONFLICT DO NOTHING;
     """
 
 
 def get_insert_album_artist_statement(cur, album_artists: set[tuple[str, str]]):
     return f"""
         INSERT INTO AlbumArtist (album_id, artist_id) VALUES {get_args_statement(cur, album_artists)}
+        ON CONFLICT DO NOTHING;
     """
 
 
