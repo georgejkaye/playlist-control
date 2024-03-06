@@ -76,9 +76,11 @@ def get_tracks_from_playlist_page(sp: Spotify, page: dict) -> list[Track]:
     return [get_track_object(raw_track["track"]) for raw_track in page]
 
 
-def get_tracks_from_playlist(sp: Spotify, playlist_id: str) -> list[Track]:
+def get_tracks_from_playlist(sp: Spotify, playlist_id: str) -> Optional[list[Track]]:
     next_page = True
     page = sp.playlist_tracks(playlist_id)
+    if page is None:
+        return None
     tracks = []
     while next_page:
         if page is not None:
