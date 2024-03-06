@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 from api.structs import Album, Artist, Track
 from api.utils import get_env_variable, get_secret
@@ -54,10 +55,16 @@ def get_track_object(raw_track: dict) -> Track:
     return track
 
 
-def get_current_track(sp: Spotify) -> Optional[Track]:
+@dataclass
+class CurrentTrack:
+    track: Track
+    start: int
+
+
+def get_current_track(sp: Spotify) -> Optional[CurrentTrack]:
     raw_track = sp.current_playback()
     if raw_track is not None:
-        return get_track_object(raw_track["item"])
+        return CurrentTrack(get_track_object(raw_track["item"]), raw_track["timestamp"])
     return None
 
 

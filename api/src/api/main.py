@@ -1,12 +1,16 @@
-from datetime import datetime, timedelta
-from typing import Annotated, Optional
+from dataclasses import dataclass
+import uvicorn
+from datetime import timedelta
+from typing import Annotated
 from api.database import delete_all_tracks, insert_tracks, select_tracks
 from api.spotify import (
+    CurrentTrack,
     add_to_queue,
     authorise_access,
     get_track,
     get_tracks_from_playlist,
 )
+import api.spotify as spotify
 from spotipy.exceptions import SpotifyException
 from api.structs import Track
 from api.utils import get_env_variable
@@ -53,6 +57,17 @@ async def login(
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/current", summary="Get the currently playing track")
+async def get_current_track() -> CurrentTrack:
+    sp = authorise_access()
+    track = spotify.get_current_track(sp)
+    if track is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No track currently playing"
+        )
+    return track
 
 
 @app.post("/queue", summary="Add a track to the queue")
@@ -106,9 +121,6 @@ async def post_playlist(
         )
     delete_all_tracks()
     insert_tracks(tracks)
-
-
-import uvicorn
 
 
 def start():
