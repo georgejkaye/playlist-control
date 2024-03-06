@@ -1,8 +1,5 @@
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Optional
-from api.structs import Track
-from fastapi import HTTPException
+from typing import Any, Callable
+from api.structs import Album, Artist, Track
 
 import psycopg2
 
@@ -25,30 +22,65 @@ def disconnect(conn: Any, cur: Any) -> None:
     cur.close()
 
 
-# def get_tracks() -> list[Track]:
-#     (conn, cur) = connect()
-#     statement = """
-#         SELECT
-#             Track.track_id, Track.track_name,
-#             array_agg(Artist.artist_id), array_agg(Artist.artist_name),
-#             Album.album_id, Album.album_name, Album.album_art, Track.track_duration
-#         FROM Track
-#         INNER JOIN TrackArtist ON Track.track_id = TrackArtist.track_id
-#         INNER JOIN
+select_tracks_and_artists = """
+    SELECT
+        track_id,
+        json_agg(json_build_object('artist_id', Artist.artist_id, 'artist_name', Artist.artist_name)) AS Artists
+    FROM ArtistTrack
+    INNER JOIN Artist ON Artist.artist_id = ArtistTrack.artist_id
+    GROUP BY track_id
+"""
+
+select_albums_and_artists = """
+    SELECT
+        album_id,
+        json_agg(json_build_object('artist_id', Artist.artist_id, 'artist_name', Artist.artist_name)) AS Artists
+    FROM AlbumArtist
+    INNER JOIN Artist ON Artist.artist_id = AlbumArtist.artist_id
+    GROUP BY album_id
+"""
 
 
-#     """
+def get_artists_from_agg(artists: list[dict]) -> list[Artist]:
+    return [Artist(artist["artist_id"], artist["artist_name"]) for artist in artists]
 
 
-def insert_track(tracks: list[Track]):
+def select_tracks() -> list[Track]:
     (conn, cur) = connect()
-    artist_statement = """
-            INSERT INTO Artist (artist_id, artist_name) (%s, %s)
-            WHERE NOT EXISTS (SELECT artist_id FROM Artist WHERE artist_id = ANY (unnest(%(ids)))
+    statement = f"""
+        SELECT
+            Track.track_id, Track.track_name,
+            TrackArtists.artists AS track_artists,
+            Album.album_id, Album.album_name, Album.album_art,
+            AlbumArtists.artists AS album_artists,
+            Track.track_duration
+        FROM Track
+        INNER JOIN ({select_tracks_and_artists}) TrackArtists ON Track.track_id = TrackArtists.track_id
+        INNER JOIN AlbumTrack ON Track.track_id = AlbumTrack.track_id
+        INNER JOIN Album ON AlbumTrack.album_id = Album.album_id
+        INNER JOIN ({select_albums_and_artists}) AlbumArtists ON Album.album_id = AlbumArtists.album_id
     """
-    artists = []
-
-    cur.execute()
-    statement = """
-        INSERT INTO Track (track_id)
-    """
+    cur.execute(statement)
+    rows = cur.fetchall()
+    conn.close()
+    tracks = []
+    for row in rows:
+        (
+            track_id,
+            track_name,
+            track_artists,
+            album_id,
+            album_name,
+            album_art,
+            album_artists,
+            track_duration,
+        ) = row
+        track = Track(
+            track_id,
+            track_name,
+            Album(album_id, album_name, get_artists_from_agg(album_artists), album_art),
+            get_artists_from_agg(track_artists),
+            track_duration,
+        )
+        tracks.append(track)
+    return tracks
