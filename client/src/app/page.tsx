@@ -26,8 +26,8 @@ const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
 
 }
 
-const Track = (props: { track: Track }) => {
-  return (<div key={props.track.id} className="flex flex-row justify-center my-2 gap-5">
+const TrackCard = (props: { track: Track }) => {
+  return (<div key={props.track.id} className="flex flex-row justify-center my-2 gap-5 animate-fadein">
     <div>
       <img className="rounded-lg" width="50" src={props.track.album.art} alt={`Album art for ${props.track.album.name}`} />
     </div>
@@ -41,7 +41,7 @@ const Track = (props: { track: Track }) => {
 
 const Queue = (props: { queue: Track[] }) => {
   return (<div className="flex flex-col">
-    {props.queue.map((track) => <Track track={track} />)}
+    {props.queue.map((track) => <TrackCard track={track} />)}
   </div>)
 }
 
