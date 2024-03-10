@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import uvicorn
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, Optional
 from api.database import delete_all_tracks, insert_tracks, select_tracks
 from api.spotify import (
     CurrentTrack,
@@ -59,6 +59,22 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@dataclass
+class Data:
+    tracks: list[Track]
+    current: Optional[CurrentTrack]
+    queue: Optional[list[Track]]
+
+
+@app.get("/data", summary="Get all the current data")
+async def get_data() -> Data:
+    sp = authorise_access()
+    current = spotify.get_current_track(sp)
+    tracks = select_tracks()
+    queue = spotify.get_queue(sp)
+    return Data(tracks, current, queue)
+
+
 @app.get("/current", summary="Get the currently playing track")
 async def get_current_track() -> CurrentTrack:
     sp = authorise_access()
@@ -87,7 +103,7 @@ async def get_queue() -> CurrentAndQueue:
 
 
 @app.post("/queue", summary="Add a track to the queue")
-async def queue_track(track_id: str) -> Track:
+async def queue_track(track_id: str) -> list[Track]:
     sp = authorise_access()
     track = select_tracks([track_id])
     if len(track) == 0:
@@ -101,12 +117,12 @@ async def queue_track(track_id: str) -> Track:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="No active device found"
         )
-    track = get_track(sp, track_id)
-    if track is None:
+    queue = spotify.get_queue(sp)
+    if queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Track id does not exist"
         )
-    return track
+    return queue
 
 
 @app.get("/tracks", summary="Get available tracks")
