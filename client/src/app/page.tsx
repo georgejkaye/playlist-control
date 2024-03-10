@@ -57,6 +57,19 @@ const Home = () => {
     }, 5000)
     return () => clearInterval(interval)
   })
+  useEffect(() => {
+    if (current) {
+      console.log("Updating song")
+      let startTime = current.start
+      let duration = current.track.duration
+      let endTime = startTime + duration
+      let currentTime = (new Date()).getTime()
+      let timeLeft = endTime - currentTime
+      setTimeout(() => {
+        getQueue(setCurrent, setQueue)
+      }, timeLeft)
+    }
+  }, [current])
   return (
     <main>
       {!current ? "" :
