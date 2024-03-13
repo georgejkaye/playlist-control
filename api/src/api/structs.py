@@ -1,4 +1,19 @@
 from dataclasses import dataclass
+from datetime import datetime
+
+
+@dataclass
+class Playlist:
+    id: str
+    name: str
+    art: str
+
+
+@dataclass
+class Session:
+    id: int
+    name: str
+    playlist: Playlist
 
 
 @dataclass

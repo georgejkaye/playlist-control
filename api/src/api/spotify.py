@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import re
 from typing import Optional
-from api.structs import Album, Artist, Track
+from api.structs import Album, Artist, Playlist, Track
 from api.utils import get_env_variable, get_secret
 from spotipy import Spotify, SpotifyOAuth
 
@@ -103,6 +103,13 @@ def add_to_queue(sp: Spotify, track_id: str):
 
 def get_tracks_from_playlist_page(sp: Spotify, page: dict) -> list[Track]:
     return [get_track_object(raw_track["track"]) for raw_track in page]
+
+
+def get_playlist(sp: Spotify, playlist_id: str) -> Optional[Playlist]:
+    playlist = sp.playlist(playlist_id)
+    if playlist is None:
+        return None
+    return Playlist(playlist["id"], playlist["name"], playlist["images"][0]["url"])
 
 
 def get_tracks_from_playlist(sp: Spotify, playlist_id: str) -> Optional[list[Track]]:

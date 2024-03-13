@@ -1,5 +1,5 @@
 from typing import Any, Callable, Optional
-from api.structs import Album, Artist, Track
+from api.structs import Album, Artist, Playlist, Session, Track
 
 import psycopg2
 
@@ -20,6 +20,25 @@ def connect() -> tuple[Any, Any]:
 def disconnect(conn: Any, cur: Any) -> None:
     conn.close()
     cur.close()
+
+
+def get_session(cur) -> Optional[Session]:
+    statement = "SELECT session_id, session_name, playlist_id FROM Session ORDER BY session_start DESC LIMIT 1"
+    cur.execute(statement)
+    rows = cur.fetchall()
+    if not len(rows) == 1:
+        return None
+    row = rows[0]
+    return Session(row[0], row[1], row[2])
+
+
+def insert_session(conn, cur, session_name: str, playlist: Playlist) -> Session:
+    statement = "INSERT INTO Session(session_name, playlist_id, session_start) VALUES (%(name)s, %(pl)s, NOW()) RETURNING session_id"
+    cur.execute(statement, {"name": session_name, "pl": playlist.id})
+    row = cur.fetchall()[0]
+    session_id = row[0]
+    conn.commit()
+    return Session(session_id, session_name, playlist)
 
 
 select_tracks_and_artists = """
@@ -45,8 +64,7 @@ def get_artists_from_agg(artists: list[dict]) -> list[Artist]:
     return [Artist(artist["artist_id"], artist["artist_name"]) for artist in artists]
 
 
-def select_tracks(track_ids: Optional[list[str]] = []) -> list[Track]:
-    (conn, cur) = connect()
+def select_tracks(cur, track_ids: Optional[list[str]] = []) -> list[Track]:
     if track_ids is None or len(track_ids) == 0:
         where_statement = ""
     else:
@@ -67,7 +85,6 @@ def select_tracks(track_ids: Optional[list[str]] = []) -> list[Track]:
     """
     cur.execute(statement, {"ids": track_ids})
     rows = cur.fetchall()
-    conn.close()
     tracks = []
     for row in rows:
         (
@@ -146,8 +163,7 @@ def execute_many(cur, fn: Callable, tups: set[tuple]):
     cur.execute(statement)
 
 
-def insert_tracks(tracks: list[Track]):
-    (conn, cur) = connect()
+def insert_tracks(conn, cur, tracks: list[Track]):
     artists = set()
     albums = set()
     album_tracks = set()
@@ -173,11 +189,8 @@ def insert_tracks(tracks: list[Track]):
     execute_many(cur, get_insert_artist_track_statement, artist_tracks)
     execute_many(cur, get_insert_album_track_statement, album_tracks)
     conn.commit()
-    conn.close()
 
 
-def delete_all_tracks():
-    (conn, cur) = connect()
+def delete_all_tracks(conn, cur):
     cur.execute("DELETE FROM Track")
     conn.commit()
-    conn.close()

@@ -2,7 +2,15 @@ from dataclasses import dataclass
 import uvicorn
 from datetime import timedelta
 from typing import Annotated, Optional
-from api.database import delete_all_tracks, insert_tracks, select_tracks
+from api.database import (
+    connect,
+    delete_all_tracks,
+    disconnect,
+    get_session,
+    insert_session,
+    insert_tracks,
+    select_tracks,
+)
 from api.spotify import (
     CurrentTrack,
     add_to_queue,
@@ -12,7 +20,7 @@ from api.spotify import (
 )
 import api.spotify as spotify
 from spotipy.exceptions import SpotifyException
-from api.structs import Track
+from api.structs import Session, Track
 from api.utils import get_env_variable
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -61,6 +69,7 @@ async def login(
 
 @dataclass
 class Data:
+    session: Optional[Session]
     tracks: list[Track]
     current: Optional[CurrentTrack]
     queue: Optional[list[Track]]
@@ -69,10 +78,48 @@ class Data:
 @app.get("/data", summary="Get all the current data")
 async def get_data() -> Data:
     sp = authorise_access()
+    (conn, cur) = connect()
+    session = get_session(cur)
     current = spotify.get_current_track(sp)
-    tracks = select_tracks()
     queue = spotify.get_queue(sp)
-    return Data(tracks, current, queue)
+    if session:
+        tracks = select_tracks(cur)
+    else:
+        tracks = []
+    disconnect(conn, cur)
+    return Data(session, tracks, current, queue)
+
+
+@dataclass
+class SessionAndTracks:
+    session: Session
+    tracks: list[Track]
+
+
+@app.post("/session", summary="Set the current session")
+async def post_session(
+    session_name: str,
+    playlist_id: str,
+    token: Annotated[str, Depends(validate_token)],
+) -> SessionAndTracks:
+    (conn, cur) = connect()
+    sp = authorise_access()
+    playlist = spotify.get_playlist(sp, playlist_id)
+    if playlist is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Playlist id does not exist"
+        )
+    session = insert_session(conn, cur, session_name, playlist)
+    tracks = get_tracks_from_playlist(sp, playlist_id)
+    if tracks is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Playlist id does not exist"
+        )
+    delete_all_tracks(conn, cur)
+    insert_tracks(conn, cur, tracks)
+    tracks = select_tracks(cur)
+    disconnect(conn, cur)
+    return SessionAndTracks(session, tracks)
 
 
 @app.get("/current", summary="Get the currently playing track")
@@ -127,7 +174,10 @@ async def queue_track(track_id: str) -> list[Track]:
 
 @app.get("/tracks", summary="Get available tracks")
 async def get_tracks() -> list[Track]:
-    return select_tracks()
+    (conn, cur) = connect()
+    tracks = select_tracks(cur)
+    disconnect(conn, cur)
+    return tracks
 
 
 @app.post("/track", summary="Add a track to the playlist")
@@ -138,7 +188,9 @@ async def post_track(track_id: str, token: Annotated[str, Depends(validate_token
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Track id does not exist"
         )
-    insert_tracks([track])
+    (conn, cur) = connect()
+    insert_tracks(conn, cur, [track])
+    disconnect(conn, cur)
 
 
 @app.post("/playlist", summary="Set the playlist")
@@ -151,8 +203,10 @@ async def post_playlist(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Playlist id does not exist"
         )
-    delete_all_tracks()
-    insert_tracks(tracks)
+    (conn, cur) = connect()
+    delete_all_tracks(conn, cur)
+    insert_tracks(conn, cur, tracks)
+    disconnect(conn, cur)
 
 
 def start():

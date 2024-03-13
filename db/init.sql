@@ -1,3 +1,10 @@
+CREATE TABLE Session (
+    session_id SERIAL PRIMARY KEY,
+    session_name TEXT NOT NULL,
+    playlist_id TEXT NOT NULL,
+    session_start TIMESTAMP WITHOUT TIME ZONE NOT NULL
+);
+
 CREATE TABLE Artist (
     artist_id TEXT PRIMARY KEY,
     artist_name TEXT NOT NULL
