@@ -152,7 +152,9 @@ async def get_queue() -> CurrentAndQueue:
 @app.post("/queue", summary="Add a track to the queue")
 async def queue_track(track_id: str) -> list[Track]:
     sp = authorise_access()
-    track = select_tracks([track_id])
+    (conn, cur) = connect()
+    track = select_tracks(cur, [track_id])
+    disconnect(conn, cur)
     if len(track) == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
