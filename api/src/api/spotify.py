@@ -37,7 +37,7 @@ def get_artist_object(raw_artist: dict) -> Artist:
     return Artist(artist_id, artist_name)
 
 
-name_regex = r"(.*)(( - |\())(Radio Mix|Full Length Version|Radio Edit|Deluxe Edition)?((Remastered )?([0-9][0-9][0-9][0-9])?( Remastered( Version)?| Remaster| Mix)?)?(\)?)"
+name_regex = r"(.+)(( - |\())(Radio Mix|Full Length Version|Radio Edit|Deluxe Edition)?((Remastered )?([0-9][0-9][0-9][0-9])?( Remastered( Version)?| Remaster| Mix)?)?(\)?)"
 
 
 def sanitise_name(name: str) -> str:
