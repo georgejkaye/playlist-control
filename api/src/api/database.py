@@ -1,5 +1,7 @@
 from typing import Any, Callable, Optional
+from api.spotify import get_playlist
 from api.structs import Album, Artist, Playlist, Session, Track
+from spotipy import Spotify
 
 import psycopg2
 
@@ -22,14 +24,17 @@ def disconnect(conn: Any, cur: Any) -> None:
     cur.close()
 
 
-def get_session(cur) -> Optional[Session]:
+def get_session(cur, sp: Spotify) -> Optional[Session]:
     statement = "SELECT session_id, session_name, playlist_id FROM Session ORDER BY session_start DESC LIMIT 1"
     cur.execute(statement)
     rows = cur.fetchall()
     if not len(rows) == 1:
         return None
     row = rows[0]
-    return Session(row[0], row[1], row[2])
+    playlist = get_playlist(sp, row[2])
+    if playlist is None:
+        return None
+    return Session(row[0], row[1], playlist)
 
 
 def insert_session(conn, cur, session_name: str, playlist: Playlist) -> Session:

@@ -15,6 +15,7 @@ from api.spotify import (
     CurrentTrack,
     add_to_queue,
     authorise_access,
+    get_playlist,
     get_track,
     get_tracks_from_playlist,
 )
@@ -79,7 +80,7 @@ class Data:
 async def get_data() -> Data:
     sp = authorise_access()
     (conn, cur) = connect()
-    session = get_session(cur)
+    session = get_session(cur, sp)
     current = spotify.get_current_track(sp)
     queue = spotify.get_queue(sp)
     if session:
