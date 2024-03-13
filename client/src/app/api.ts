@@ -31,6 +31,10 @@ const responseToTrack = (response: any) => ({
   album: responseToAlbum(response["album"]),
   artists: response["artists"].map(responseToArtist),
   duration: response["duration"],
+  queued:
+    response["queued_at"] === null
+      ? undefined
+      : new Date(Date.parse(response["queued_at"])),
 })
 
 const responseToCurrentTrack = (response: any) => ({

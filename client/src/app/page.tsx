@@ -83,13 +83,19 @@ const QueueAdderTrackCard = (props: {
   setAdding: SetState<boolean>
 }) => {
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
-    postQueue(props.track, props.setQueue)
-    props.setAdding(false)
+    if (!props.track.queued) {
+      postQueue(props.track, props.setQueue)
+      props.setAdding(false)
+    }
   }
   return (
     <div
       key={props.track.id}
-      className={`${trackCardStyle} hover:bg-gray-700 cursor-pointer`}
+      className={`${trackCardStyle} ${
+        props.track.queued
+          ? "text-gray-600"
+          : "hover:bg-gray-700 cursor-pointer"
+      }`}
       onClick={onClickCard}
     >
       <div>
@@ -234,6 +240,7 @@ const Home = () => {
       window.scrollTo({ top: 0 })
       setLocked(false)
     } else {
+      getData(setSession, setTracks, setCurrent, setQueue)
       setLocked(true)
     }
   }, [isAdding])
