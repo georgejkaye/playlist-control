@@ -27,7 +27,8 @@ CREATE TABLE AlbumArtist (
 CREATE TABLE Track (
     track_id TEXT PRIMARY KEY,
     track_name TEXT NOT NULL,
-    track_duration INT NOT NULL
+    track_duration INT NOT NULL,
+    queued_at TIMESTAMP WITHOUT TIME ZONE
 );
 
 CREATE TABLE ArtistTrack (

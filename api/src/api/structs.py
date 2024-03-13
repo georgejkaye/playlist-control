@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 
 @dataclass
@@ -37,3 +38,4 @@ class Track:
     album: Album
     artists: list[Artist]
     duration: int
+    queued_at: Optional[datetime] = None

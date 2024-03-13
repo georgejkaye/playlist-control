@@ -80,7 +80,7 @@ def select_tracks(cur, track_ids: Optional[list[str]] = []) -> list[Track]:
             TrackArtists.artists AS track_artists,
             Album.album_id, Album.album_name, Album.album_art,
             AlbumArtists.artists AS album_artists,
-            Track.track_duration
+            Track.track_duration, Track.queued_at
         FROM Track
         INNER JOIN ({select_tracks_and_artists}) TrackArtists ON Track.track_id = TrackArtists.track_id
         INNER JOIN AlbumTrack ON Track.track_id = AlbumTrack.track_id
@@ -101,6 +101,7 @@ def select_tracks(cur, track_ids: Optional[list[str]] = []) -> list[Track]:
             album_art,
             album_artists,
             track_duration,
+            queued_at,
         ) = row
         track = Track(
             track_id,
@@ -108,6 +109,7 @@ def select_tracks(cur, track_ids: Optional[list[str]] = []) -> list[Track]:
             Album(album_id, album_name, get_artists_from_agg(album_artists), album_art),
             get_artists_from_agg(track_artists),
             track_duration,
+            queued_at,
         )
         tracks.append(track)
     return tracks
@@ -198,4 +200,10 @@ def insert_tracks(conn, cur, tracks: list[Track]):
 
 def delete_all_tracks(conn, cur):
     cur.execute("DELETE FROM Track")
+    conn.commit()
+
+
+def update_track_queued(conn, cur, track_id):
+    statement = "UPDATE track SET queued_at = NOW() WHERE track_id = %(id)s"
+    cur.execute(statement, {"id": track_id})
     conn.commit()

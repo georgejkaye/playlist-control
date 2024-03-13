@@ -10,6 +10,7 @@ from api.database import (
     insert_session,
     insert_tracks,
     select_tracks,
+    update_track_queued,
 )
 from api.spotify import (
     CurrentTrack,
@@ -155,18 +156,22 @@ async def queue_track(track_id: str) -> list[Track]:
     sp = authorise_access()
     (conn, cur) = connect()
     track = select_tracks(cur, [track_id])
-    disconnect(conn, cur)
+    print(track)
     if len(track) == 0:
+        disconnect(conn, cur)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Track id does not exist in playlist",
         )
     try:
         add_to_queue(sp, track_id)
+        update_track_queued(conn, cur, track_id)
     except SpotifyException:
+        disconnect(conn, cur)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="No active device found"
         )
+    disconnect(conn, cur)
     queue = spotify.get_queue(sp)
     if queue is None:
         raise HTTPException(
