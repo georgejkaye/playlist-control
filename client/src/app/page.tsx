@@ -11,9 +11,20 @@ import {
 } from "./structs"
 import { getData, getQueue, postQueue } from "./api"
 
+const Header = (props: { session: Session | undefined }) => {
+  return (
+    <div>
+      <div>Playlist control</div>
+      <div className="font-bold  text-3xl">
+        {props.session ? props.session.name : "Spotify"}
+      </div>
+    </div>
+  )
+}
+
 const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
   return (
-    <div className="flex flex-row justify-center my-6 gap-4 desktop:gap-10 mx-1">
+    <div className="flex flex-row items-center justify-center my-6 gap-4 desktop:gap-10 mx-1">
       <div>
         <img
           className="rounded-lg"
@@ -245,6 +256,7 @@ const Home = () => {
         ""
       ) : (
         <div className="mx-4 my-6 desktop:mx-auto desktop:w-desktop">
+          <Header session={session} />
           <CurrentTrack currentTrack={current} />
           {!session ? (
             ""
