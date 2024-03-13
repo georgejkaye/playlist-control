@@ -1,17 +1,19 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
 import {
   CurrentTrack,
+  Playlist,
+  Session,
   SetState,
   Track,
   getMultipleArtistsString,
-} from "./structs";
-import { getData, getQueue, postQueue } from "./api";
+} from "./structs"
+import { getData, getQueue, postQueue } from "./api"
 
 const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
   return (
-    <div className="flex flex-row justify-center my-6 gap-10 mx-1">
+    <div className="flex flex-row justify-center my-6 gap-4 desktop:gap-10 mx-1">
       <div>
         <img
           className="rounded-lg"
@@ -30,10 +32,10 @@ const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
         <div className="py-1">{props.currentTrack.track.album.name}</div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-const trackCardStyle = "rounded-lg flex flex-row justify-center my-1 p-1 gap-5";
+const trackCardStyle = "rounded-lg flex flex-row justify-center my-1 p-1 gap-5"
 
 const TrackCard = (props: { track: Track }) => {
   return (
@@ -51,8 +53,8 @@ const TrackCard = (props: { track: Track }) => {
         <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const Queue = (props: { queue: Track[] }) => {
   return (
@@ -61,18 +63,18 @@ const Queue = (props: { queue: Track[] }) => {
         <TrackCard track={track} />
       ))}
     </div>
-  );
-};
+  )
+}
 
 const QueueAdderTrackCard = (props: {
-  track: Track;
-  setQueue: SetState<Track[]>;
-  setAdding: SetState<boolean>;
+  track: Track
+  setQueue: SetState<Track[]>
+  setAdding: SetState<boolean>
 }) => {
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
-    postQueue(props.track, props.setQueue);
-    props.setAdding(false);
-  };
+    postQueue(props.track, props.setQueue)
+    props.setAdding(false)
+  }
   return (
     <div
       key={props.track.id}
@@ -92,25 +94,45 @@ const QueueAdderTrackCard = (props: {
         <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-const defaultTracksToShow = 50;
+const QueueingFromCard = (props: { playlist: Playlist }) => {
+  return (
+    <div className="flex flex-row items-center mb-4 gap-4">
+      <div>
+        <img
+          className="rounded-lg mr-4"
+          width="100"
+          src={props.playlist.art}
+          alt={`Playlist art for ${props.playlist.name}`}
+        />
+      </div>
+      <div>
+        <div>Queueing from</div>
+        <div className="text-2xl font-bold">{props.playlist.name}</div>
+      </div>
+    </div>
+  )
+}
+
+const defaultTracksToShow = 50
 const bigButtonStyle =
-  "rounded-lg bg-gray-700 p-4 my-4 font-bold text-2xl cursor-pointer hover:bg-gray-600";
+  "rounded-lg bg-gray-700 p-4 my-4 font-bold text-2xl cursor-pointer hover:bg-gray-600"
 
 const QueueAdder = (props: {
-  isAdding: boolean;
-  setAdding: SetState<boolean>;
-  tracks: Track[];
-  setCurrent: SetState<CurrentTrack | undefined>;
-  setQueue: SetState<Track[]>;
+  session: Session
+  isAdding: boolean
+  setAdding: SetState<boolean>
+  tracks: Track[]
+  setCurrent: SetState<CurrentTrack | undefined>
+  setQueue: SetState<Track[]>
 }) => {
   const [filteredTracks, setFilteredTracks] = useState<Track[]>(
     props.tracks.sort((t1, t2) => t1.name.localeCompare(t2.name))
-  );
-  const [filterText, setFilterText] = useState("");
-  const [tracksToShow, setTracksToShow] = useState(100);
+  )
+  const [filterText, setFilterText] = useState("")
+  const [tracksToShow, setTracksToShow] = useState(100)
   useEffect(() => {
     setFilteredTracks(
       props.tracks
@@ -123,18 +145,18 @@ const QueueAdder = (props: {
             track.album.name.toLowerCase().includes(filterText.toLowerCase())
         )
         .sort((t1, t2) => t1.name.localeCompare(t2.name))
-    );
-  }, [filterText]);
+    )
+  }, [filterText])
   useEffect(() => {
-    setFilterText("");
-    setTracksToShow(defaultTracksToShow);
-  }, [props.isAdding]);
+    setFilterText("")
+    setTracksToShow(defaultTracksToShow)
+  }, [props.isAdding])
   const onChangeFilterText = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setFilterText(e.target.value);
+    setFilterText(e.target.value)
   const onClickAdd = (e: React.MouseEvent<HTMLDivElement>) =>
-    props.setAdding(!props.isAdding);
+    props.setAdding(!props.isAdding)
   const onClickMore = (e: React.MouseEvent<HTMLDivElement>) =>
-    setTracksToShow(tracksToShow + defaultTracksToShow);
+    setTracksToShow(tracksToShow + defaultTracksToShow)
   return (
     <div className="m-1">
       <div className={bigButtonStyle} onClick={onClickAdd}>
@@ -144,6 +166,7 @@ const QueueAdder = (props: {
         ""
       ) : (
         <div>
+          <QueueingFromCard playlist={props.session.playlist} />
           <div className="flex">
             <input
               className="rounded-lg text-black mb-4 flex-1 p-4 text-lg"
@@ -172,48 +195,50 @@ const QueueAdder = (props: {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
 const Home = () => {
-  const [current, setCurrent] = useState<CurrentTrack | undefined>(undefined);
-  const [queue, setQueue] = useState<Track[]>([]);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [isAdding, setAdding] = useState(false);
-  const [isLocked, setLocked] = useState(false);
+  const [current, setCurrent] = useState<CurrentTrack | undefined>(undefined)
+  const [session, setSession] = useState<Session | undefined>(undefined)
+  const [queue, setQueue] = useState<Track[]>([])
+  const [tracks, setTracks] = useState<Track[]>([])
+  const [isAdding, setAdding] = useState(false)
+  const [isLocked, setLocked] = useState(false)
   useEffect(() => {
-    getData(setTracks, setCurrent, setQueue);
-    console.log(tracks);
-  }, []);
+    getData(setSession, setTracks, setCurrent, setQueue)
+    console.log(tracks)
+    console.log(session)
+  }, [])
   useEffect(() => {
     const interval = setInterval(() => {
       if (!isLocked) {
-        getQueue(setCurrent, setQueue);
+        getQueue(setCurrent, setQueue)
       }
-    }, 5000);
-    return () => clearInterval(interval);
-  });
+    }, 5000)
+    return () => clearInterval(interval)
+  })
   useEffect(() => {
     if (!isAdding) {
-      window.scrollTo({ top: 0 });
-      setLocked(false);
+      window.scrollTo({ top: 0 })
+      setLocked(false)
     } else {
-      setLocked(true);
+      setLocked(true)
     }
-  }, [isAdding]);
+  }, [isAdding])
   useEffect(() => {
     if (current) {
-      console.log("Updating song");
-      let startTime = current.start;
-      let duration = current.track.duration;
-      let endTime = startTime + duration;
-      let currentTime = new Date().getTime();
-      let timeLeft = endTime - currentTime;
+      console.log("Updating song")
+      let startTime = current.start
+      let duration = current.track.duration
+      let endTime = startTime + duration
+      let currentTime = new Date().getTime()
+      let timeLeft = endTime - currentTime
       setTimeout(() => {
-        getQueue(setCurrent, setQueue);
-      }, timeLeft);
+        getQueue(setCurrent, setQueue)
+      }, timeLeft)
     }
-  }, [current]);
+  }, [current])
   return (
     <main>
       {!current ? (
@@ -221,18 +246,23 @@ const Home = () => {
       ) : (
         <div className="mx-4 my-6 desktop:mx-auto desktop:w-desktop">
           <CurrentTrack currentTrack={current} />
-          <QueueAdder
-            isAdding={isAdding}
-            setAdding={setAdding}
-            tracks={tracks}
-            setCurrent={setCurrent}
-            setQueue={setQueue}
-          />
+          {!session ? (
+            ""
+          ) : (
+            <QueueAdder
+              session={session}
+              isAdding={isAdding}
+              setAdding={setAdding}
+              tracks={tracks}
+              setCurrent={setCurrent}
+              setQueue={setQueue}
+            />
+          )}
           {isAdding ? "" : <Queue queue={queue} />}
         </div>
       )}
     </main>
-  );
-};
+  )
+}
 
-export default Home;
+export default Home
