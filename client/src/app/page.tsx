@@ -24,7 +24,7 @@ const Header = (props: { session: Session | undefined }) => {
 
 const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
   return (
-    <div className="flex flex-row items-center justify-center my-6 gap-4 desktop:gap-10 mx-1">
+    <div className="flex flex-col desktop:flex-row desktop:items-center justify-center my-6 gap-4 desktop:gap-10 mx-1">
       <div>
         <img
           className="rounded-lg"
