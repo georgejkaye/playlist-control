@@ -9,7 +9,84 @@ import {
   Track,
   getMultipleArtistsString,
 } from "./structs"
-import { getData, getQueue, postQueue } from "./api"
+import { getData, getQueue, login, postQueue } from "./api"
+
+const TopBar = (props: {
+  token: string | undefined
+  isAdminPanel: boolean
+  setAdminPanel: SetState<boolean>
+}) => {
+  const onClickButton = (e: React.MouseEvent<HTMLButtonElement>) => {
+    props.setAdminPanel(!props.isAdminPanel)
+  }
+  return (
+    <div className="p-4 bg-accent-blue flex flex-row">
+      <div className="text-xl font-bold flex-1">Kayelist Controller</div>
+      <button
+        className="cursor-pointer hover:underline"
+        onClick={onClickButton}
+      >
+        {props.token ? "Settings" : "Login"}
+      </button>
+    </div>
+  )
+}
+
+const AdminPanel = (props: {
+  token: string | undefined
+  setToken: SetState<string | undefined>
+  setSession: SetState<Session | undefined>
+}) => {
+  const [userText, setUserText] = useState("")
+  const [passwordText, setPasswordText] = useState("")
+  const [error, setError] = useState("")
+  const onLogin = () => {
+    login(userText, passwordText, props.setToken, setError)
+  }
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      onLogin()
+    }
+  }
+  const onUserTextChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setUserText(e.target.value)
+  const onPasswordTextChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setPasswordText(e.target.value)
+  const onClickLogin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    onLogin()
+  }
+  return (
+    <div>
+      {!props.token ? (
+        <div className="flex flex-col justify-start align-start items-start">
+          <h2 className="text-2xl font-bold">Login</h2>
+          <input
+            onChange={onUserTextChange}
+            onKeyDown={onInputKeyDown}
+            type="text"
+            placeholder="User"
+            className="p-4 my-2 text-black w-60"
+          ></input>
+          <input
+            onChange={onPasswordTextChange}
+            onKeyDown={onInputKeyDown}
+            type="password"
+            placeholder="Password"
+            className="p-4 my-2 text-black w-60"
+          ></input>
+          <button
+            onClick={onClickLogin}
+            className="p-2 my-2 bg-accent-blue rounded hover:underline font-2xl"
+          >
+            Login
+          </button>
+        </div>
+      ) : (
+        <div>Settings </div>
+      )}
+    </div>
+  )
+}
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -222,6 +299,8 @@ const Home = () => {
   const [tracks, setTracks] = useState<Track[]>([])
   const [isAdding, setAdding] = useState(false)
   const [isLocked, setLocked] = useState(false)
+  const [token, setToken] = useState<string | undefined>(undefined)
+  const [isAdminPanel, setAdminPanel] = useState(false)
   useEffect(() => {
     getData(setSession, setTracks, setCurrent, setQueue)
     console.log(tracks)
@@ -259,26 +338,41 @@ const Home = () => {
   }, [current])
   return (
     <main>
+      <TopBar
+        token={token}
+        isAdminPanel={isAdminPanel}
+        setAdminPanel={setAdminPanel}
+      />
       <div className="mx-4 my-6 desktop:mx-auto desktop:w-desktop">
-        <Header session={session} />
-        {!current ? (
-          ""
+        {isAdminPanel ? (
+          <AdminPanel
+            token={token}
+            setToken={setToken}
+            setSession={setSession}
+          />
         ) : (
           <div>
-            <CurrentTrack currentTrack={current} />
-            {!session ? (
+            <Header session={session} />
+            {!current ? (
               ""
             ) : (
-              <QueueAdder
-                session={session}
-                isAdding={isAdding}
-                setAdding={setAdding}
-                tracks={tracks}
-                setCurrent={setCurrent}
-                setQueue={setQueue}
-              />
+              <div>
+                <CurrentTrack currentTrack={current} />
+                {!session ? (
+                  ""
+                ) : (
+                  <QueueAdder
+                    session={session}
+                    isAdding={isAdding}
+                    setAdding={setAdding}
+                    tracks={tracks}
+                    setCurrent={setCurrent}
+                    setQueue={setQueue}
+                  />
+                )}
+                {isAdding ? "" : <Queue queue={queue} />}
+              </div>
             )}
-            {isAdding ? "" : <Queue queue={queue} />}
           </div>
         )}
       </div>

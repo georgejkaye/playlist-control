@@ -94,3 +94,34 @@ export const postQueue = async (track: Track, setQueue: SetState<Track[]>) => {
     setQueue(queue)
   }
 }
+
+export const login = async (
+  username: string,
+  password: string,
+  setToken: SetState<string | undefined>,
+  setError: SetState<string>
+) => {
+  const endpoint = "/api/token"
+  let data = new FormData()
+  data.append("username", username)
+  data.append("password", password)
+  data.append("grant_type", "")
+  data.append("client_id", "")
+  data.append("client_secret", "")
+  if (username === "") {
+    setError("Username cannot be empty")
+  } else if (password === "") {
+    setError("Password cannot be empty")
+  } else {
+    try {
+      let response = await axios.post(endpoint, data)
+      let responseData = response.data
+      setToken(responseData.access_token)
+      return 0
+    } catch (err) {
+      console.log(err)
+      setError("Could not log in...")
+      return 1
+    }
+  }
+}

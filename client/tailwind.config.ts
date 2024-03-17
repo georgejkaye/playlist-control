@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss";
+import type { Config } from "tailwindcss"
 
 const buffer = 50
 const minDesktopSize = 1000
@@ -27,14 +27,17 @@ const config: Config = {
       keyframes: {
         fadein: {
           "0%": { opacity: "0%" },
-          "100%": { opacity: "100%" }
-        }
+          "100%": { opacity: "100%" },
+        },
       },
       animation: {
-        fadein: "fadein 1s ease-in"
-      }
+        fadein: "fadein 1s ease-in",
+      },
+      colors: {
+        "accent-blue": "#0f0765",
+      },
     },
     plugins: [],
-  }
+  },
 }
 export default config
