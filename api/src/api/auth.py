@@ -61,15 +61,21 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 async def validate_token(
     token: Annotated[Optional[str], Depends(oauth2_scheme)]
 ) -> Optional[bool]:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     if token:
-        credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
         try:
-            jwt.decode(token, get_secret_key(), algorithms=[ALGORITHM])
+            payload = jwt.decode(token, get_secret_key(), algorithms=[ALGORITHM])
+            username: str | None = payload.get("sub")
+            print(username)
+            if username is None:
+                raise credentials_exception
+            if not username == get_env_variable("ADMIN_USER"):
+                raise credentials_exception
             return True
         except JWTError:
             raise credentials_exception
-    return None
+    raise credentials_exception
