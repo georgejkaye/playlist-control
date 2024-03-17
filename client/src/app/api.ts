@@ -1,4 +1,4 @@
-import axios from "axios"
+import axios, { AxiosError } from "axios"
 import { CurrentTrack, Session, SetState, Track } from "./structs"
 
 const responseToPlaylist = (response: any) => ({
@@ -42,6 +42,14 @@ const responseToCurrentTrack = (response: any) => ({
   start: response["start"],
 })
 
+const getHeaders = (token: string | undefined) =>
+  !token
+    ? { accept: "application/json" }
+    : {
+        accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      }
+
 export const getData = async (
   setSession: SetState<Session | undefined>,
   setTracks: SetState<Track[]>,
@@ -84,10 +92,12 @@ export const getQueue = async (
 
 export const postQueue = async (track: Track, setQueue: SetState<Track[]>) => {
   const endpoint = "/api/queue"
-  const params = {
-    track_id: track.id,
+  const config = {
+    params: {
+      track_id: track.id,
+    },
   }
-  const response = await axios.post(endpoint, null, { params })
+  const response = await axios.post(endpoint, null, config)
   if (response.status === 200) {
     const data = response.data
     const queue = data.map(responseToTrack)
@@ -110,12 +120,15 @@ export const login = async (
   data.append("client_secret", "")
   if (username === "") {
     setError("Username cannot be empty")
+    return 1
   } else if (password === "") {
     setError("Password cannot be empty")
+    return 1
   } else {
     try {
       let response = await axios.post(endpoint, data)
       let responseData = response.data
+      console.log(responseData.access_token)
       setToken(responseData.access_token)
       return 0
     } catch (err) {
@@ -124,4 +137,47 @@ export const login = async (
       return 1
     }
   }
+}
+
+export const postPlaylist = async (
+  token: string,
+  sessionName: string,
+  playlistId: string,
+  setError: SetState<string>,
+  setSession: SetState<Session | undefined>,
+  setTracks: SetState<Track[]>
+) => {
+  const endpoint = "/api/session"
+  const config = {
+    headers: getHeaders(token),
+    params: {
+      session_name: sessionName,
+      playlist_id: playlistId,
+    },
+  }
+  try {
+    let response = await axios.post(endpoint, null, config)
+    let data = response.data
+    let session = responseToSession(data["session"])
+    let tracks = data["tracks"].map(responseToTrack)
+    setSession(session)
+    setTracks(tracks)
+    return 0
+  } catch (err) {
+    if (err instanceof AxiosError && err.response) {
+      if (err.response.status === 404) {
+        setError("Could not find playlist")
+      } else {
+        setError("Something went wrong")
+      }
+      return 1
+    }
+  }
+}
+export const stopSession = async (token: string, sessionId: number) => {
+  const endpoint = `/api/session/${sessionId}`
+  const config = {
+    headers: getHeaders(token),
+  }
+  await axios.delete(endpoint, config)
 }

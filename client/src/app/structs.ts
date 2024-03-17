@@ -9,7 +9,7 @@ export interface Playlist {
 }
 
 export interface Session {
-  id: string
+  id: number
   name: string
   playlist: Playlist
 }

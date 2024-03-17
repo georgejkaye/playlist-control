@@ -28,7 +28,9 @@ CREATE TABLE Track (
     track_id TEXT PRIMARY KEY,
     track_name TEXT NOT NULL,
     track_duration INT NOT NULL,
-    queued_at TIMESTAMP WITHOUT TIME ZONE
+    queued_at TIMESTAMP WITHOUT TIME ZONE,
+    session_id INT NOT NULL,
+    CONSTRAINT fk_session_id FOREIGN KEY(session_id) REFERENCES session(session_id) ON DELETE CASCADE
 );
 
 CREATE TABLE ArtistTrack (

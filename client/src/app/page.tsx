@@ -9,7 +9,15 @@ import {
   Track,
   getMultipleArtistsString,
 } from "./structs"
-import { getData, getQueue, login, postQueue } from "./api"
+import {
+  getData,
+  getQueue,
+  login,
+  postPlaylist,
+  postQueue,
+  stopSession,
+} from "./api"
+import { ColorRing } from "react-loader-spinner"
 
 const TopBar = (props: {
   token: string | undefined
@@ -32,21 +40,20 @@ const TopBar = (props: {
   )
 }
 
-const AdminPanel = (props: {
-  token: string | undefined
-  setToken: SetState<string | undefined>
-  setSession: SetState<Session | undefined>
-}) => {
+const LoginPanel = (props: { setToken: SetState<string | undefined> }) => {
   const [userText, setUserText] = useState("")
   const [passwordText, setPasswordText] = useState("")
   const [error, setError] = useState("")
-  const onLogin = () => {
-    login(userText, passwordText, props.setToken, setError)
-  }
-  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      onLogin()
+  const [isLoading, setLoading] = useState(false)
+  const onLogin = async () => {
+    setError("")
+    setLoading(true)
+    const result = await login(userText, passwordText, props.setToken, setError)
+    setLoading(false)
+    if (result === 0) {
+      setUserText("")
     }
+    setPasswordText("")
   }
   const onUserTextChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setUserText(e.target.value)
@@ -55,34 +62,206 @@ const AdminPanel = (props: {
   const onClickLogin = (e: React.MouseEvent<HTMLButtonElement>) => {
     onLogin()
   }
+  const onLoginInputKeyDown = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      onLogin()
+    }
+  }
   return (
-    <div>
-      {!props.token ? (
-        <div className="flex flex-col justify-start align-start items-start">
-          <h2 className="text-2xl font-bold">Login</h2>
-          <input
-            onChange={onUserTextChange}
-            onKeyDown={onInputKeyDown}
-            type="text"
-            placeholder="User"
-            className="p-4 my-2 text-black w-60"
-          ></input>
-          <input
-            onChange={onPasswordTextChange}
-            onKeyDown={onInputKeyDown}
-            type="password"
-            placeholder="Password"
-            className="p-4 my-2 text-black w-60"
-          ></input>
+    <div className="flex flex-col justify-start align-start items-start">
+      <h2 className="text-2xl font-bold">Login</h2>
+      <input
+        autoFocus
+        onChange={onUserTextChange}
+        onKeyDown={onLoginInputKeyDown}
+        value={userText}
+        type="text"
+        placeholder="User"
+        className="p-4 my-2 text-black w-60 rounded"
+      />
+      <input
+        onChange={onPasswordTextChange}
+        onKeyDown={onLoginInputKeyDown}
+        value={passwordText}
+        type="password"
+        placeholder="Password"
+        className="p-4 my-2 text-black w-60 rounded"
+      />
+      {isLoading ? (
+        <ColorRing
+          visible={true}
+          height="80"
+          width="80"
+          ariaLabel="color-ring-loading"
+          wrapperStyle={{}}
+          wrapperClass="color-ring-wrapper"
+          colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+        />
+      ) : (
+        <div className="flex flex-row">
           <button
             onClick={onClickLogin}
-            className="p-2 my-2 bg-accent-blue rounded hover:underline font-2xl"
+            className="p-2 my-2 bg-accent-blue rounded hover:underline font-2xl font-bold"
           >
             Login
           </button>
+          {error === "" ? (
+            ""
+          ) : (
+            <div className="mx-2 my-2 p-2 bg-red-700 rounded font-bold">
+              {error}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const SettingsPanel = (props: {
+  token: string
+  setToken: SetState<string | undefined>
+  session: Session | undefined
+  setSession: SetState<Session | undefined>
+  setTracks: SetState<Track[]>
+}) => {
+  const [sessionNameText, setSessionNameText] = useState("")
+  const [playlistText, setPlaylistText] = useState("")
+  const [error, setError] = useState("")
+  const [isLoadingSession, setLoadingSession] = useState(false)
+  const onPlaylistSubmit = async () => {
+    setLoadingSession(true)
+    let result = await postPlaylist(
+      props.token,
+      sessionNameText,
+      playlistText,
+      setError,
+      props.setSession,
+      props.setTracks
+    )
+    if (result === 0) {
+      setPlaylistText("")
+      setSessionNameText("")
+    }
+    setLoadingSession(false)
+  }
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      onPlaylistSubmit()
+    }
+  }
+  const onClickPlaylistSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
+    onPlaylistSubmit()
+  }
+  const onSessionNameTextChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setSessionNameText(e.target.value)
+  const onPlaylistTextChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setPlaylistText(e.target.value)
+  const onClickLogout = (e: React.MouseEvent<HTMLButtonElement>) => {
+    props.setToken("")
+  }
+
+  const onClickStopSession = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (props.session) {
+      setLoadingSession(true)
+      stopSession(props.token, props.session.id)
+      props.setSession(undefined)
+      setLoadingSession(false)
+    }
+  }
+  return (
+    <div>
+      <h2 className="text-2xl font-bold">Settings</h2>
+      <button
+        onClick={onClickLogout}
+        className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+      >
+        Logout
+      </button>
+      {isLoadingSession ? (
+        <ColorRing
+          visible={true}
+          height="80"
+          width="80"
+          ariaLabel="color-ring-loading"
+          wrapperStyle={{}}
+          wrapperClass="color-ring-wrapper"
+          colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+        />
+      ) : props.session ? (
+        <div>
+          <h3 className="text-xl font-bold">Current session</h3>
+          <div>{props.session.name}</div>
+          <button
+            onClick={onClickStopSession}
+            className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+          >
+            Stop session
+          </button>
         </div>
       ) : (
-        <div>Settings </div>
+        <div>
+          <h3 className="text-xl font-bold">Playlist select</h3>
+          <div className="flex flex-col my-4 gap-4">
+            <div>Session name</div>
+            <input
+              type="text"
+              className="p-4 text-black rounded"
+              value={sessionNameText}
+              onChange={onSessionNameTextChange}
+              onKeyDown={onInputKeyDown}
+            />
+            <div>Playlist URL</div>
+            <input
+              type="text"
+              className="p-4 text-black rounded"
+              value={playlistText}
+              onChange={onPlaylistTextChange}
+              onKeyDown={onInputKeyDown}
+            />
+            <div className="flex flex-row">
+              <button
+                onClick={onClickPlaylistSubmit}
+                className="p-2 my-2 bg-accent-blue rounded hover:underline font-2xl font-bold"
+              >
+                Submit
+              </button>
+              {error === "" ? (
+                ""
+              ) : (
+                <div className="mx-2 my-2 p-2 bg-red-700 rounded font-bold">
+                  {error}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const AdminPanel = (props: {
+  token: string | undefined
+  setToken: SetState<string | undefined>
+  session: Session | undefined
+  setSession: SetState<Session | undefined>
+  setTracks: SetState<Track[]>
+}) => {
+  return (
+    <div>
+      {!props.token ? (
+        <LoginPanel setToken={props.setToken} />
+      ) : (
+        <SettingsPanel
+          token={props.token}
+          setToken={props.setToken}
+          session={props.session}
+          setSession={props.setSession}
+          setTracks={props.setTracks}
+        />
       )}
     </div>
   )
@@ -91,10 +270,11 @@ const AdminPanel = (props: {
 const Header = (props: { session: Session | undefined }) => {
   return (
     <div>
-      <div>Playlist control</div>
-      <div className="font-bold  text-3xl">
-        {props.session ? props.session.name : "Spotify"}
-      </div>
+      {!props.session ? (
+        ""
+      ) : (
+        <div className="font-bold  text-3xl">{props.session.name}</div>
+      )}
     </div>
   )
 }
@@ -348,7 +528,9 @@ const Home = () => {
           <AdminPanel
             token={token}
             setToken={setToken}
+            session={session}
             setSession={setSession}
+            setTracks={setTracks}
           />
         ) : (
           <div>
