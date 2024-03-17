@@ -106,7 +106,10 @@ def get_tracks_from_playlist_page(sp: Spotify, page: dict) -> list[Track]:
 
 
 def get_playlist(sp: Spotify, playlist_id: str) -> Optional[Playlist]:
-    playlist = sp.playlist(playlist_id)
+    try:
+        playlist = sp.playlist(playlist_id)
+    except:
+        playlist = None
     if playlist is None:
         return None
     return Playlist(playlist["id"], playlist["name"], playlist["images"][0]["url"])

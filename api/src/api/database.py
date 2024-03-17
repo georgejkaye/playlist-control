@@ -46,6 +46,12 @@ def insert_session(conn, cur, session_name: str, playlist: Playlist) -> Session:
     return Session(session_id, session_name, playlist)
 
 
+def remove_session(conn, cur, session_id: int):
+    statement = "DELETE FROM Session WHERE session_id = %(id)s"
+    cur.execute(statement, {"id": session_id})
+    conn.commit()
+
+
 select_tracks_and_artists = """
     SELECT
         track_id,

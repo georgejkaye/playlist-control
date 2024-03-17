@@ -9,6 +9,7 @@ from api.database import (
     get_session,
     insert_session,
     insert_tracks,
+    remove_session,
     select_tracks,
     update_track_queued,
 )
@@ -126,6 +127,15 @@ async def post_session(
     return SessionAndTracks(session, tracks)
 
 
+@app.delete("/session/{session_id}", summary="End the current session")
+async def delete_session(
+    session_id: int, token: Annotated[str, Depends(validate_token)]
+):
+    (conn, cur) = connect()
+    remove_session(conn, cur, session_id)
+    disconnect(conn, cur)
+
+
 @app.get("/current", summary="Get the currently playing track")
 async def get_current_track() -> CurrentTrack:
     sp = authorise_access()
@@ -200,22 +210,6 @@ async def post_track(track_id: str, token: Annotated[str, Depends(validate_token
         )
     (conn, cur) = connect()
     insert_tracks(conn, cur, [track])
-    disconnect(conn, cur)
-
-
-@app.post("/playlist", summary="Set the playlist")
-async def post_playlist(
-    playlist_id: str, token: Annotated[str, Depends(validate_token)]
-):
-    sp = authorise_access()
-    tracks = get_tracks_from_playlist(sp, playlist_id)
-    if tracks is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Playlist id does not exist"
-        )
-    (conn, cur) = connect()
-    delete_all_tracks(conn, cur)
-    insert_tracks(conn, cur, tracks)
     disconnect(conn, cur)
 
 
