@@ -259,27 +259,29 @@ const Home = () => {
   }, [current])
   return (
     <main>
-      {!current ? (
-        ""
-      ) : (
-        <div className="mx-4 my-6 desktop:mx-auto desktop:w-desktop">
-          <Header session={session} />
-          <CurrentTrack currentTrack={current} />
-          {!session ? (
-            ""
-          ) : (
-            <QueueAdder
-              session={session}
-              isAdding={isAdding}
-              setAdding={setAdding}
-              tracks={tracks}
-              setCurrent={setCurrent}
-              setQueue={setQueue}
-            />
-          )}
-          {isAdding ? "" : <Queue queue={queue} />}
-        </div>
-      )}
+      <div className="mx-4 my-6 desktop:mx-auto desktop:w-desktop">
+        <Header session={session} />
+        {!current ? (
+          ""
+        ) : (
+          <div>
+            <CurrentTrack currentTrack={current} />
+            {!session ? (
+              ""
+            ) : (
+              <QueueAdder
+                session={session}
+                isAdding={isAdding}
+                setAdding={setAdding}
+                tracks={tracks}
+                setCurrent={setCurrent}
+                setQueue={setQueue}
+              />
+            )}
+            {isAdding ? "" : <Queue queue={queue} />}
+          </div>
+        )}
+      </div>
     </main>
   )
 }

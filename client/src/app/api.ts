@@ -56,7 +56,9 @@ export const getData = async (
     const session =
       data["session"] === null ? undefined : responseToSession(data["session"])
     const tracks = data["tracks"].map(responseToTrack)
-    const current = responseToCurrentTrack(data["current"])
+    const current = !data["current"]
+      ? undefined
+      : responseToCurrentTrack(data["current"])
     const queue = data["queue"].map(responseToTrack)
     setSession(session)
     setTracks(tracks)
