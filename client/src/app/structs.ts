@@ -4,8 +4,10 @@ export type SetState<T> = Dispatch<SetStateAction<T>>
 
 export interface Playlist {
   id: string
+  url: string
   name: string
   art: string
+  tracks: number
 }
 
 export interface Session {

@@ -1,10 +1,12 @@
 import axios, { AxiosError } from "axios"
-import { CurrentTrack, Session, SetState, Track } from "./structs"
+import { CurrentTrack, Playlist, Session, SetState, Track } from "./structs"
 
 const responseToPlaylist = (response: any) => ({
   id: response["id"],
+  url: response["url"],
   name: response["name"],
   art: response["art"],
+  tracks: response["tracks"],
 })
 
 const responseToSession = (response: any) => ({
@@ -148,6 +150,7 @@ export const postPlaylist = async (
   setTracks: SetState<Track[]>
 ) => {
   const endpoint = "/api/session"
+  console.log(playlistId)
   const config = {
     headers: getHeaders(token),
     params: {
@@ -180,4 +183,15 @@ export const stopSession = async (token: string, sessionId: number) => {
     headers: getHeaders(token),
   }
   await axios.delete(endpoint, config)
+}
+export const getPlaylists = async (setPlaylists: SetState<Playlist[]>) => {
+  const endpoint = "/api/playlists"
+  try {
+    let response = await axios.get(endpoint)
+    let data = response.data
+    let playlists = data.map(responseToPlaylist)
+    setPlaylists(playlists)
+  } catch (err) {
+    setPlaylists([])
+  }
 }

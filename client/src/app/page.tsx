@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   CurrentTrack,
   Playlist,
@@ -11,6 +11,7 @@ import {
 } from "./structs"
 import {
   getData,
+  getPlaylists,
   getQueue,
   login,
   postPlaylist,
@@ -18,6 +19,8 @@ import {
   stopSession,
 } from "./api"
 import { ColorRing } from "react-loader-spinner"
+import Image from "next/image"
+import cd from "../../public/cd.webp"
 
 const TopBar = (props: {
   token: string | undefined
@@ -120,6 +123,68 @@ const LoginPanel = (props: { setToken: SetState<string | undefined> }) => {
   )
 }
 
+const CustomPlaylistCard = (props: { onSubmit: (text: string) => void }) => {
+  const [customPlaylistText, setCustomPlaylistText] = useState("")
+  const onCustomPlaylistTextChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setCustomPlaylistText(e.target.value)
+  }
+  const onCustomPlaylistKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      props.onSubmit(customPlaylistText)
+    }
+  }
+  const onClickSubmitButton = (e: React.MouseEvent<HTMLButtonElement>) => {
+    props.onSubmit(customPlaylistText)
+  }
+  return (
+    <div className="p-4 rounded-xl w-full flex flex-col desktop:flex-row align-center items-center gap-4">
+      <Image
+        className="rounded-xl mr-2"
+        src={cd}
+        alt="Picture of a CD"
+        width={100}
+      />
+      <input
+        type="text"
+        placeholder="Playlist URL"
+        className="flex-1 p-4 text-black rounded"
+        value={customPlaylistText}
+        onChange={onCustomPlaylistTextChange}
+        onKeyDown={onCustomPlaylistKeyDown}
+      />
+      <button
+        onClick={onClickSubmitButton}
+        className="p-2 m4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+      >
+        Submit
+      </button>
+    </div>
+  )
+}
+
+const PlaylistCard = (props: {
+  playlist: Playlist
+  onClickPlaylist: () => void
+}) => {
+  const onClickPlaylist = (e: React.MouseEvent<HTMLDivElement>) => {
+    props.onClickPlaylist()
+  }
+  return (
+    <div
+      className="p-4 cursor-pointer rounded-xl hover:bg-accent-blue flex flex-row items-center w-full gap-5"
+      onClick={onClickPlaylist}
+    >
+      <img className="rounded-xl" src={props.playlist.art} width={100} />
+      <div className="font-bold text-xl">{props.playlist.name}</div>
+      <div>{props.playlist.tracks} tracks</div>
+    </div>
+  )
+}
+
 const SettingsPanel = (props: {
   token: string
   setToken: SetState<string | undefined>
@@ -127,16 +192,20 @@ const SettingsPanel = (props: {
   setSession: SetState<Session | undefined>
   setTracks: SetState<Track[]>
 }) => {
+  const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [sessionNameText, setSessionNameText] = useState("")
   const [playlistText, setPlaylistText] = useState("")
   const [error, setError] = useState("")
   const [isLoadingSession, setLoadingSession] = useState(false)
-  const onPlaylistSubmit = async () => {
+  useEffect(() => {
+    getPlaylists(setPlaylists)
+  }, [])
+  const onPlaylistSubmit = async (sessionName: string, playlistURL: string) => {
     setLoadingSession(true)
     let result = await postPlaylist(
       props.token,
-      sessionNameText,
-      playlistText,
+      sessionName,
+      playlistURL,
       setError,
       props.setSession,
       props.setTracks
@@ -149,11 +218,11 @@ const SettingsPanel = (props: {
   }
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      onPlaylistSubmit()
+      onPlaylistSubmit(sessionNameText, playlistText)
     }
   }
   const onClickPlaylistSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
-    onPlaylistSubmit()
+    onPlaylistSubmit(sessionNameText, playlistText)
   }
   const onSessionNameTextChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setSessionNameText(e.target.value)
@@ -162,7 +231,9 @@ const SettingsPanel = (props: {
   const onClickLogout = (e: React.MouseEvent<HTMLButtonElement>) => {
     props.setToken("")
   }
-
+  const onClickPlaylistCard = (p: Playlist) => {
+    onPlaylistSubmit(sessionNameText, p.url)
+  }
   const onClickStopSession = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (props.session) {
       setLoadingSession(true)
@@ -205,36 +276,24 @@ const SettingsPanel = (props: {
         <div>
           <h3 className="text-xl font-bold">Playlist select</h3>
           <div className="flex flex-col my-4 gap-4">
-            <div>Session name</div>
             <input
               type="text"
               className="p-4 text-black rounded"
+              placeholder="Session name"
               value={sessionNameText}
               onChange={onSessionNameTextChange}
               onKeyDown={onInputKeyDown}
             />
-            <div>Playlist URL</div>
-            <input
-              type="text"
-              className="p-4 text-black rounded"
-              value={playlistText}
-              onChange={onPlaylistTextChange}
-              onKeyDown={onInputKeyDown}
-            />
-            <div className="flex flex-row">
-              <button
-                onClick={onClickPlaylistSubmit}
-                className="p-2 my-2 bg-accent-blue rounded hover:underline font-2xl font-bold"
-              >
-                Submit
-              </button>
-              {error === "" ? (
-                ""
-              ) : (
-                <div className="mx-2 my-2 p-2 bg-red-700 rounded font-bold">
-                  {error}
-                </div>
-              )}
+            <div className="flex flex-row flex-wrap">
+              <CustomPlaylistCard
+                onSubmit={(text) => onPlaylistSubmit(sessionNameText, text)}
+              />
+              {playlists.map((p) => (
+                <PlaylistCard
+                  playlist={p}
+                  onClickPlaylist={() => onClickPlaylistCard(p)}
+                />
+              ))}
             </div>
           </div>
         </div>
