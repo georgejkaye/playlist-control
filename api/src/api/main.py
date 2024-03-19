@@ -208,19 +208,6 @@ async def get_tracks() -> list[Track]:
     return tracks
 
 
-@app.post("/track", summary="Add a track to the playlist")
-async def post_track(track_id: str, token: Annotated[str, Depends(validate_token)]):
-    sp = authorise_access()
-    track = get_track(sp, track_id)
-    if track is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Track id does not exist"
-        )
-    (conn, cur) = connect()
-    insert_tracks(conn, cur, [track])
-    disconnect(conn, cur)
-
-
 def start():
     if get_env_variable("API_ENV") == "prod":
         reload = False
