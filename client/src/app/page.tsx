@@ -406,21 +406,28 @@ const Queue = (props: { queue: Track[] }) => {
 }
 
 const QueueAdderTrackCard = (props: {
-  track: Track
+  track: QueueItem
   setQueue: SetState<Track[]>
+  tracks: Track[]
+  setTracks: SetState<Track[]>
   setAdding: SetState<boolean>
 }) => {
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!props.track.queued) {
-      postQueue(props.track, props.setQueue)
+    if (props.track.queueable) {
+      postQueue(
+        props.track.track,
+        props.tracks,
+        props.setTracks,
+        props.setQueue
+      )
       props.setAdding(false)
     }
   }
   return (
     <div
-      key={props.track.id}
+      key={props.track.track.id}
       className={`${trackCardStyle} ${
-        props.track.queued
+        !props.track.queueable
           ? "text-gray-600"
           : "hover:bg-gray-700 cursor-pointer"
       }`}
@@ -430,13 +437,13 @@ const QueueAdderTrackCard = (props: {
         <img
           className="rounded-lg"
           width="52"
-          src={props.track.album.art}
-          alt={`Album art for ${props.track.album.name}`}
+          src={props.track.track.album.art}
+          alt={`Album art for ${props.track.track.album.name}`}
         />
       </div>
       <div className="flex-1 my-auto">
-        <div className="text-xl font-bold">{props.track.name}</div>
-        <div>{getMultipleArtistsString(props.track.artists)}</div>
+        <div className="text-xl font-bold">{props.track.track.name}</div>
+        <div>{getMultipleArtistsString(props.track.track.artists)}</div>
       </div>
     </div>
   )
@@ -465,20 +472,28 @@ const defaultTracksToShow = 50
 const bigButtonStyle =
   "rounded-lg bg-gray-700 p-4 my-4 font-bold text-2xl cursor-pointer hover:bg-gray-600"
 
+interface QueueItem {
+  track: Track
+  queueable: boolean
+}
+
 const QueueAdder = (props: {
   session: Session
   isAdding: boolean
   setAdding: SetState<boolean>
   tracks: Track[]
+  setTracks: SetState<Track[]>
   setCurrent: SetState<CurrentTrack | undefined>
   setQueue: SetState<Track[]>
 }) => {
-  const [filteredTracks, setFilteredTracks] = useState<Track[]>(
-    props.tracks.sort((t1, t2) => t1.name.localeCompare(t2.name))
+  const [filteredTracks, setFilteredTracks] = useState<QueueItem[]>(
+    props.tracks
+      .sort((t1, t2) => t1.name.localeCompare(t2.name))
+      .map((t) => ({ track: t, queueable: t.queued === undefined }))
   )
   const [filterText, setFilterText] = useState("")
   const [tracksToShow, setTracksToShow] = useState(100)
-  useEffect(() => {
+  const updateFilteredTracks = () => {
     setFilteredTracks(
       props.tracks
         .filter(
@@ -490,8 +505,12 @@ const QueueAdder = (props: {
             track.album.name.toLowerCase().includes(filterText.toLowerCase())
         )
         .sort((t1, t2) => t1.name.localeCompare(t2.name))
+        .map((t) => ({ track: t, queueable: t.queued === undefined }))
     )
-  }, [filterText])
+  }
+  useEffect(() => {
+    updateFilteredTracks()
+  }, [filterText, props.tracks])
   useEffect(() => {
     setFilterText("")
     setTracksToShow(defaultTracksToShow)
@@ -525,6 +544,8 @@ const QueueAdder = (props: {
             {filteredTracks.slice(0, tracksToShow).map((track) => (
               <QueueAdderTrackCard
                 track={track}
+                tracks={props.tracks}
+                setTracks={props.setTracks}
                 setQueue={props.setQueue}
                 setAdding={props.setAdding}
               />
@@ -546,6 +567,7 @@ const QueueAdder = (props: {
 const Home = () => {
   const [current, setCurrent] = useState<CurrentTrack | undefined>(undefined)
   const [session, setSession] = useState<Session | undefined>(undefined)
+  const [queued, setQueued] = useState<Track[]>([])
   const [queue, setQueue] = useState<Track[]>([])
   const [tracks, setTracks] = useState<Track[]>([])
   const [isAdding, setAdding] = useState(false)
@@ -554,8 +576,6 @@ const Home = () => {
   const [isAdminPanel, setAdminPanel] = useState(false)
   useEffect(() => {
     getData(setSession, setTracks, setCurrent, setQueue)
-    console.log(tracks)
-    console.log(session)
   }, [])
   useEffect(() => {
     const interval = setInterval(() => {
@@ -576,7 +596,6 @@ const Home = () => {
   }, [isAdding])
   useEffect(() => {
     if (current) {
-      console.log("Updating song")
       let startTime = current.start
       let duration = current.track.duration
       let endTime = startTime + duration
@@ -619,6 +638,7 @@ const Home = () => {
                     isAdding={isAdding}
                     setAdding={setAdding}
                     tracks={tracks}
+                    setTracks={setTracks}
                     setCurrent={setCurrent}
                     setQueue={setQueue}
                   />

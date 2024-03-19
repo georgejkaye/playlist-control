@@ -62,7 +62,6 @@ export const getData = async (
   const response = await axios.get(endpoint)
   if (response.status === 200) {
     const data = response.data
-    console.log(data)
     const session =
       data["session"] === null ? undefined : responseToSession(data["session"])
     const tracks = data["tracks"].map(responseToTrack)
@@ -92,7 +91,12 @@ export const getQueue = async (
   }
 }
 
-export const postQueue = async (track: Track, setQueue: SetState<Track[]>) => {
+export const postQueue = async (
+  track: Track,
+  tracks: Track[],
+  setTracks: SetState<Track[]>,
+  setQueue: SetState<Track[]>
+) => {
   const endpoint = "/api/queue"
   const config = {
     params: {
@@ -103,8 +107,10 @@ export const postQueue = async (track: Track, setQueue: SetState<Track[]>) => {
     const response = await axios.post(endpoint, null, config)
     if (response.status === 200) {
       const data = response.data
-      const queue = data.map(responseToTrack)
+      const queued = responseToTrack(data["queued"])
+      const queue = data["queue"].map(responseToTrack)
       setQueue(queue)
+      setTracks(tracks.map((t) => (t.id !== track.id ? t : queued)))
     }
   } catch (err) {
     if (err instanceof AxiosError && err.response) {
@@ -138,11 +144,9 @@ export const login = async (
     try {
       let response = await axios.post(endpoint, data)
       let responseData = response.data
-      console.log(responseData.access_token)
       setToken(responseData.access_token)
       return 0
     } catch (err) {
-      console.log(err)
       setError("Could not log in...")
       return 1
     }
@@ -158,7 +162,6 @@ export const postPlaylist = async (
   setTracks: SetState<Track[]>
 ) => {
   const endpoint = "/api/session"
-  console.log(playlistId)
   const config = {
     headers: getHeaders(token),
     params: {
