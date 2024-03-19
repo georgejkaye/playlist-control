@@ -8,7 +8,17 @@ const nextConfig = {
             }
         ]
     },
-    output: "standalone"
+    output: "standalone",
+    images: {
+        remotePatterns: [{
+            protocol: "https",
+            hostname: "image-cdn-**.spotifycdn.com",
+            pathname: "/image/*"
+        }, {
+            protocol: "https",
+            hostname: "mosaic.scdn.co"
+        }]
+    }
 }
 
 export default nextConfig

@@ -37,7 +37,7 @@ const TopBar = (props: {
         className="cursor-pointer hover:underline"
         onClick={onClickButton}
       >
-        {props.token ? "Settings" : "Login"}
+        {props.isAdminPanel ? "Back" : props.token ? "Settings" : "Login"}
       </button>
     </div>
   )
@@ -244,7 +244,7 @@ const SettingsPanel = (props: {
   }
   return (
     <div>
-      <h2 className="text-2xl font-bold">Settings</h2>
+      <h2 className="my-4 text-4xl font-bold">Settings</h2>
       <button
         onClick={onClickLogout}
         className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
@@ -259,12 +259,24 @@ const SettingsPanel = (props: {
           ariaLabel="color-ring-loading"
           wrapperStyle={{}}
           wrapperClass="color-ring-wrapper"
-          colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+          colors={["#0f0765", "#0f0765", "#0f0765", "#0f0765", "#0f0765"]}
         />
       ) : props.session ? (
         <div>
-          <h3 className="text-xl font-bold">Current session</h3>
-          <div>{props.session.name}</div>
+          <h3 className="text-3xl font-bold my-4">Current session</h3>
+          <div className="flex flex-row items-center gap-4">
+            <Image
+              className="rounded-xl"
+              src={props.session.playlist.art}
+              alt={`Playlist art for ${props.session.playlist.name}`}
+              width={100}
+              height={100}
+            />
+            <div className="flex flex-col">
+              <div className="font-bold text-xl">{props.session.name}</div>
+              <div>{props.session.playlist.name}</div>
+            </div>
+          </div>
           <button
             onClick={onClickStopSession}
             className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
