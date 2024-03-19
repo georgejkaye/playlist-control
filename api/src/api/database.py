@@ -143,9 +143,9 @@ def get_insert_album_statement(cur, albums: set[tuple[str, str, str]]) -> str:
     """
 
 
-def get_insert_track_statement(cur, tracks: set[tuple[str, str, str]]) -> str:
+def get_insert_track_statement(cur, tracks: set[tuple[str, str, str, str]]) -> str:
     return f"""
-            INSERT INTO Track (track_id, track_name, track_duration) VALUES {get_args_statement(cur, tracks)}
+            INSERT INTO Track (track_id, track_name, track_duration, session_id) VALUES {get_args_statement(cur, tracks)}
             ON CONFLICT DO NOTHING
     """
 
@@ -176,7 +176,7 @@ def execute_many(cur, fn: Callable, tups: set[tuple]):
     cur.execute(statement)
 
 
-def insert_tracks(conn, cur, tracks: list[Track]):
+def insert_tracks(conn, cur, tracks: list[Track], session_id: int):
     artists = set()
     albums = set()
     album_tracks = set()
@@ -194,7 +194,7 @@ def insert_tracks(conn, cur, tracks: list[Track]):
         for artist in track.artists:
             artists.add((artist.id, artist.name))
             artist_tracks.add((artist.id, track.id))
-        track_tuples.add((track.id, track.name, track.duration))
+        track_tuples.add((track.id, track.name, track.duration, session_id))
     execute_many(cur, get_insert_artist_statement, artists)
     execute_many(cur, get_insert_album_statement, albums)
     execute_many(cur, get_insert_track_statement, track_tuples)

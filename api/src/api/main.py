@@ -121,7 +121,7 @@ async def post_session(
             status_code=status.HTTP_404_NOT_FOUND, detail="Playlist id does not exist"
         )
     delete_all_tracks(conn, cur)
-    insert_tracks(conn, cur, tracks)
+    insert_tracks(conn, cur, tracks, session.id)
     tracks = select_tracks(cur)
     disconnect(conn, cur)
     return SessionAndTracks(session, tracks)
