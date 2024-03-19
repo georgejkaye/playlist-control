@@ -171,8 +171,14 @@ async def get_queue() -> CurrentAndQueue:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No queue found")
 
 
+@dataclass
+class QueuedAndQueue:
+    queued: Track
+    queue: list[Track]
+
+
 @app.post("/queue", summary="Add a track to the queue")
-async def queue_track(track_id: str) -> list[Track]:
+async def queue_track(track_id: str) -> QueuedAndQueue:
     sp = authorise_access()
     (conn, cur) = connect()
     tracks = select_tracks(cur, [track_id])
@@ -191,7 +197,7 @@ async def queue_track(track_id: str) -> list[Track]:
         )
     try:
         add_to_queue(sp, track_id)
-        update_track_queued(conn, cur, track_id)
+        new_track = update_track_queued(conn, cur, track)
     except SpotifyException:
         disconnect(conn, cur)
         raise HTTPException(
@@ -203,7 +209,7 @@ async def queue_track(track_id: str) -> list[Track]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Track id does not exist"
         )
-    return queue
+    return QueuedAndQueue(new_track, queue)
 
 
 @app.get("/tracks", summary="Get available tracks")

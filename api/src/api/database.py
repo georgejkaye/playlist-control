@@ -209,7 +209,13 @@ def delete_all_tracks(conn, cur):
     conn.commit()
 
 
-def update_track_queued(conn, cur, track_id):
-    statement = "UPDATE track SET queued_at = NOW() WHERE track_id = %(id)s"
-    cur.execute(statement, {"id": track_id})
+def update_track_queued(conn, cur, track: Track):
+    statement = (
+        "UPDATE track SET queued_at = NOW() WHERE track_id = %(id)s RETURNING queued_at"
+    )
+    cur.execute(statement, {"id": track.id})
+    queued_at = cur.fetchall()[0][0]
     conn.commit()
+    return Track(
+        track.id, track.name, track.album, track.artists, track.duration, queued_at
+    )
