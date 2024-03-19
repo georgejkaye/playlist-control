@@ -53,7 +53,10 @@ def get_track_object(raw_track: dict) -> Track:
     artists = [get_artist_object(raw_artist) for raw_artist in raw_artists]
     raw_album = raw_track["album"]
     album_name = sanitise_name(raw_album["name"])
-    album_art = raw_album["images"][0]["url"]
+    if len(raw_album["images"]) > 0:
+        album_art = raw_album["images"][0]["url"]
+    else:
+        album_art = ""
     raw_album_artists = raw_album["artists"]
     album_artists = [
         get_artist_object(raw_album_artist) for raw_album_artist in raw_album_artists
