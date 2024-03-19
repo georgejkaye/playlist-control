@@ -175,13 +175,19 @@ async def get_queue() -> CurrentAndQueue:
 async def queue_track(track_id: str) -> list[Track]:
     sp = authorise_access()
     (conn, cur) = connect()
-    track = select_tracks(cur, [track_id])
-    print(track)
-    if len(track) == 0:
+    tracks = select_tracks(cur, [track_id])
+    if len(tracks) == 0:
         disconnect(conn, cur)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Track id does not exist in playlist",
+        )
+    track = tracks[0]
+    if track.queued_at is not None:
+        disconnect(conn, cur)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Track has already been queued",
         )
     try:
         add_to_queue(sp, track_id)

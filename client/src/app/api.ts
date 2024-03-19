@@ -99,11 +99,19 @@ export const postQueue = async (track: Track, setQueue: SetState<Track[]>) => {
       track_id: track.id,
     },
   }
-  const response = await axios.post(endpoint, null, config)
-  if (response.status === 200) {
-    const data = response.data
-    const queue = data.map(responseToTrack)
-    setQueue(queue)
+  try {
+    const response = await axios.post(endpoint, null, config)
+    if (response.status === 200) {
+      const data = response.data
+      const queue = data.map(responseToTrack)
+      setQueue(queue)
+    }
+  } catch (err) {
+    if (err instanceof AxiosError && err.response) {
+      if (err.response.status !== 400) {
+        throw err
+      }
+    }
   }
 }
 
