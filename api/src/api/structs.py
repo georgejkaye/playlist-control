@@ -6,8 +6,10 @@ from typing import Optional
 @dataclass
 class Playlist:
     id: str
+    url: str
     name: str
     art: str
+    tracks: int
 
 
 @dataclass

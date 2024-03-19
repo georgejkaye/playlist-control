@@ -23,7 +23,7 @@ from api.spotify import (
 )
 import api.spotify as spotify
 from spotipy.exceptions import SpotifyException
-from api.structs import Session, Track
+from api.structs import Playlist, Session, Track
 from api.utils import get_env_variable
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -99,6 +99,14 @@ async def get_data() -> Data:
 class SessionAndTracks:
     session: Session
     tracks: list[Track]
+
+
+@app.get("/playlists", summary="Get available playlists")
+async def get_playlists() -> list[Playlist]:
+    sp = authorise_access()
+    playlists = spotify.get_all_playlists(sp)
+    sorted_playlists = sorted(playlists, key=lambda p: p.name)
+    return sorted_playlists
 
 
 @app.post("/session", summary="Set the current session")

@@ -102,7 +102,25 @@ def add_to_queue(sp: Spotify, track_id: str):
 
 
 def get_tracks_from_playlist_page(sp: Spotify, page: dict) -> list[Track]:
-    return [get_track_object(raw_track["track"]) for raw_track in page]
+    tracks = [get_track_object(raw_track["track"]) for raw_track in page]
+    return list(filter(lambda t: len(t.name) > 0, tracks))
+
+
+def get_playlist_object(raw: dict) -> Playlist:
+    return Playlist(
+        raw["id"],
+        raw["external_urls"]["spotify"],
+        raw["name"],
+        raw["images"][0]["url"],
+        raw["tracks"]["total"],
+    )
+
+
+def get_all_playlists(sp: Spotify) -> list[Playlist]:
+    raw_playlists = sp.current_user_playlists()
+    if raw_playlists is None:
+        return []
+    return [get_playlist_object(raw) for raw in raw_playlists["items"]]
 
 
 def get_playlist(sp: Spotify, playlist_id: str) -> Optional[Playlist]:
@@ -112,7 +130,7 @@ def get_playlist(sp: Spotify, playlist_id: str) -> Optional[Playlist]:
         playlist = None
     if playlist is None:
         return None
-    return Playlist(playlist["id"], playlist["name"], playlist["images"][0]["url"])
+    return get_playlist_object(playlist)
 
 
 def get_tracks_from_playlist(sp: Spotify, playlist_id: str) -> Optional[list[Track]]:
