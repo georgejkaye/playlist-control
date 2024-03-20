@@ -175,6 +175,7 @@ const PlaylistCard = (props: {
   }
   return (
     <div
+      key={props.playlist.id}
       className="p-4 cursor-pointer rounded-xl hover:bg-accent-blue flex flex-row items-center w-full gap-5"
       onClick={onClickPlaylist}
     >
