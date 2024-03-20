@@ -125,7 +125,9 @@ def get_args_statement(cur, tups: set[tuple]) -> str:
     columns = len(list(tups)[0])
     percents = ["%s" for i in range(0, columns)]
     placeholders = f"({','.join(percents)})"
-    args_str = ",".join(cur.mogrify(placeholders, x).decode("utf-8") for x in tups)
+    args_str = ",".join(
+        cur.mogrify(placeholders, x).decode("utf-8", errors="replace") for x in tups
+    )
     return args_str
 
 
