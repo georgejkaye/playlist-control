@@ -544,6 +544,7 @@ const QueueAdder = (props: {
           <QueueingFromCard playlist={props.session.playlist} />
           <div className="flex">
             <input
+              autoFocus
               className="rounded-lg text-black mb-4 flex-1 p-4 text-lg"
               type="text"
               value={filterText}
