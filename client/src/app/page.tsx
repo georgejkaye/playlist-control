@@ -179,7 +179,12 @@ const PlaylistCard = (props: {
       className="p-4 cursor-pointer rounded-xl hover:bg-accent-blue flex flex-row items-center w-full gap-5"
       onClick={onClickPlaylist}
     >
-      <img className="rounded-xl" src={props.playlist.art} width={100} />
+      <Image
+        className="rounded-xl"
+        src={props.playlist.art}
+        width={100}
+        height={100}
+      />
       <div className="font-bold text-xl">{props.playlist.name}</div>
       <div>{props.playlist.tracks} tracks</div>
     </div>
@@ -355,9 +360,10 @@ const CurrentTrack = (props: { currentTrack: CurrentTrack }) => {
   return (
     <div className="flex flex-col desktop:flex-row desktop:items-center justify-center my-6 gap-4 desktop:gap-10 mx-1">
       <div>
-        <img
+        <Image
           className="rounded-lg"
-          width="200"
+          width={200}
+          height={200}
           src={props.currentTrack.track.album.art}
           alt={`Album art for ${props.currentTrack.track.album.name}`}
         />
@@ -381,9 +387,9 @@ const TrackCard = (props: { track: Track }) => {
   return (
     <div key={props.track.id} className={trackCardStyle}>
       <div>
-        <img
+        <Image
           className="rounded-lg"
-          width="50"
+          width={50}
           src={props.track.album.art}
           alt={`Album art for ${props.track.album.name}`}
         />
@@ -435,9 +441,10 @@ const QueueAdderTrackCard = (props: {
       onClick={onClickCard}
     >
       <div>
-        <img
+        <Image
           className="rounded-lg"
-          width="52"
+          width={52}
+          height={52}
           src={props.track.track.album.art}
           alt={`Album art for ${props.track.track.album.name}`}
         />
@@ -454,9 +461,10 @@ const QueueingFromCard = (props: { playlist: Playlist }) => {
   return (
     <div className="flex flex-row items-center mb-4 gap-4">
       <div>
-        <img
+        <Image
           className="rounded-lg mr-4"
-          width="100"
+          width={100}
+          height={100}
           src={props.playlist.art}
           alt={`Playlist art for ${props.playlist.name}`}
         />
@@ -511,7 +519,7 @@ const QueueAdder = (props: {
   }
   useEffect(() => {
     updateFilteredTracks()
-  }, [filterText, props.tracks])
+  }, [filterText, props.tracks, updateFilteredTracks])
   useEffect(() => {
     setFilterText("")
     setTracksToShow(defaultTracksToShow)
