@@ -594,7 +594,7 @@ const Home = () => {
       if (!isLocked) {
         getData(setSession, setTracks, setCurrent, setQueue)
       }
-    }, 5000)
+    }, 30000)
     return () => clearInterval(interval)
   })
   useEffect(() => {
