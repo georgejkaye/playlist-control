@@ -176,7 +176,6 @@ const PlaylistCard = (props: {
   }
   return (
     <div
-      key={props.playlist.id}
       className="p-4 cursor-pointer rounded-xl hover:bg-accent-blue flex flex-row items-center w-full gap-5"
       onClick={onClickPlaylist}
     >
@@ -185,6 +184,7 @@ const PlaylistCard = (props: {
         src={props.playlist.art}
         width={100}
         height={100}
+        alt={`Art for playlist ${props.playlist.name}`}
       />
       <div className="font-bold text-xl">{props.playlist.name}</div>
       <div>{props.playlist.tracks} tracks</div>
@@ -309,6 +309,7 @@ const SettingsPanel = (props: {
               />
               {playlists.map((p) => (
                 <PlaylistCard
+                  key={p.id}
                   playlist={p}
                   onClickPlaylist={() => onClickPlaylistCard(p)}
                 />
@@ -386,7 +387,7 @@ const trackCardStyle = "rounded-lg flex flex-row justify-center my-1 p-1 gap-5"
 
 const TrackCard = (props: { track: Track }) => {
   return (
-    <div key={props.track.id} className={trackCardStyle}>
+    <div className={trackCardStyle}>
       <div>
         <Image
           className="rounded-lg"
@@ -408,7 +409,7 @@ const Queue = (props: { queue: Track[] }) => {
   return (
     <div className="flex flex-col">
       {props.queue.map((track) => (
-        <TrackCard track={track} />
+        <TrackCard key={track.id} track={track} />
       ))}
     </div>
   )
@@ -434,7 +435,6 @@ const QueueAdderTrackCard = (props: {
   }
   return (
     <div
-      key={props.track.track.id}
       className={`${trackCardStyle} ${
         !props.track.queueable
           ? "text-gray-600"
@@ -521,7 +521,7 @@ const QueueAdder = (props: {
   }
   useEffect(() => {
     updateFilteredTracks()
-  }, [filterText, props.tracks, updateFilteredTracks])
+  }, [filterText, props.tracks])
   useEffect(() => {
     setFilterText("")
     setTracksToShow(defaultTracksToShow)
@@ -554,6 +554,7 @@ const QueueAdder = (props: {
           <div>
             {filteredTracks.slice(0, tracksToShow).map((track) => (
               <QueueAdderTrackCard
+                key={track.track.id}
                 track={track}
                 tracks={props.tracks}
                 setTracks={props.setTracks}
