@@ -73,7 +73,7 @@ services:
 secrets:
   api_secret:
     file: api.secret
-  client_secret:
+  spotify_secret:
     file: spotify.secret
   admin_password_hash:
     file: admin.secret
