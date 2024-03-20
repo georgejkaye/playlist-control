@@ -147,6 +147,7 @@ const CustomPlaylistCard = (props: { onSubmit: (text: string) => void }) => {
         src={cd}
         alt="Picture of a CD"
         width={100}
+        height={100}
       />
       <input
         type="text"
@@ -390,6 +391,7 @@ const TrackCard = (props: { track: Track }) => {
         <Image
           className="rounded-lg"
           width={50}
+          height={50}
           src={props.track.album.art}
           alt={`Album art for ${props.track.album.name}`}
         />
