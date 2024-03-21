@@ -46,18 +46,31 @@ services:
       - spotify_secret
     networks:
       - internal
+  server:
+    build:
+      context: server
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+    volumes:
+      - ./server/src:/app/src
+      - ./server/node_modules:/app/node_modules
   client:
     build:
       context: client
       dockerfile: Dockerfile.dev
       args:
-        API_URL: "http://api:${API_PORT}"
         CLIENT_PORT: ${CLIENT_PORT}
+        API_URL: "http://api:${API_PORT}"
+        SERVER_URL: "http://server:${SERVER_PORT}"
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      API_URL: "http://api:${API_PORT}"
       CLIENT_PORT: ${CLIENT_PORT}
+      API_URL: "http://api:${API_PORT}"
+      SERVER_URL: "http://server:${SERVER_PORT}"
     depends_on:
       - api
     volumes:

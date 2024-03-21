@@ -21,6 +21,7 @@ import {
 import { ColorRing } from "react-loader-spinner"
 import Image from "next/image"
 import cd from "../../public/cd.webp"
+import { socket } from "./socket"
 
 const TopBar = (props: {
   token: string | undefined
@@ -408,8 +409,8 @@ const TrackCard = (props: { track: Track }) => {
 const Queue = (props: { queue: Track[] }) => {
   return (
     <div className="flex flex-col">
-      {props.queue.map((track) => (
-        <TrackCard key={track.id} track={track} />
+      {props.queue.map((track, i) => (
+        <TrackCard key={`${track.id}-${i}`} track={track} />
       ))}
     </div>
   )
@@ -578,6 +579,7 @@ const QueueAdder = (props: {
 }
 
 const Home = () => {
+  const [isConnected, setIsConnected] = useState(socket.connected)
   const [current, setCurrent] = useState<CurrentTrack | undefined>(undefined)
   const [session, setSession] = useState<Session | undefined>(undefined)
   const [queued, setQueued] = useState<Track[]>([])
@@ -588,7 +590,20 @@ const Home = () => {
   const [token, setToken] = useState<string | undefined>(undefined)
   const [isAdminPanel, setAdminPanel] = useState(false)
   useEffect(() => {
-    getData(setSession, setTracks, setCurrent, setQueue)
+    // getData(setSession, setTracks, setCurrent, setQueue)
+    const onConnect = () => {
+      setIsConnected(true)
+    }
+    const onDisconnect = () => {
+      setIsConnected(false)
+    }
+    socket.on("connect", onConnect)
+    socket.on("disconnect", onDisconnect)
+    socket.on("update", () => console.log("HELLO!"))
+    return () => {
+      socket.off("connect", onConnect)
+      socket.off("disconnect", onDisconnect)
+    }
   }, [])
   useEffect(() => {
     const interval = setInterval(() => {
