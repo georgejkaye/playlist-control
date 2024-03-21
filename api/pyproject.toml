@@ -17,6 +17,8 @@ requests = "^2.31.0"
 spotipy = "^2.23.0"
 python-multipart = "^0.0.9"
 typing-extensions = "^4.10.0"
+python-socketio = "^5.11.1"
+aiohttp = "^3.9.3"
 
 [tool.poetry.group.dev.dependencies]
 types-python-jose = "^3.3.4.8"
