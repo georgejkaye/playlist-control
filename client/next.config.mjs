@@ -3,12 +3,12 @@ const nextConfig = {
     async rewrites() {
         return [
             {
-                source: "/server/:path*",
-                destination: `${process.env.SERVER_URL}/:path*`
-            },
-            {
                 source: "/api/:path*",
                 destination: `${process.env.API_URL}/:path*`
+            },
+            {
+                source: "/server/:path*",
+                destination: `${process.env.SERVER_URL}/:path*`
             },
         ]
     },
@@ -25,6 +25,12 @@ const nextConfig = {
             protocol: "https",
             hostname: "i.scdn.co",
             pathname: "/image/*"
+        }, {
+            hostname: "blend-playlist-covers.spotifycdn.com"
+        }, {
+            hostname: "lineup-images.scdn.co"
+        }, {
+            hostname: "wrapped-images.spotifycdn.com"
         }]
     }
 }
