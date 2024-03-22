@@ -51,8 +51,10 @@ services:
       context: client
       dockerfile: Dockerfile.prod
       args:
-        API_URL: "http://api:${API_PORT}"
-        CLIENT_PORT: ${CLIENT_PORT}
+      CLIENT_PORT: ${CLIENT_PORT}
+      API_URL: "http://api:${API_PORT}"
+      SERVER_URL: "http://server:${SERVER_PORT}"
+      NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:

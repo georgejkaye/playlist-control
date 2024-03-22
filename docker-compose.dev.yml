@@ -52,11 +52,16 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
+      - 5001:5001
     environment:
       SERVER_PORT: ${SERVER_PORT}
+      SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
+      SPOTIFY_SECRET: /run/secrets/spotify_secret
     volumes:
       - ./server/src:/app/src
       - ./server/node_modules:/app/node_modules
+    secrets:
+      - spotify_secret
   client:
     build:
       context: client
@@ -71,6 +76,7 @@ services:
       CLIENT_PORT: ${CLIENT_PORT}
       API_URL: "http://api:${API_PORT}"
       SERVER_URL: "http://server:${SERVER_PORT}"
+      NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
     depends_on:
       - api
     volumes:
