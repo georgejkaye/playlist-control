@@ -34,7 +34,7 @@ services:
       DB_USER: playlist
       DB_PASSWORD: /run/secrets/db_password
       DB_NAME: playlist
-      SPOTIFY_ID: ${SPOTIFY_ID}
+      SPOTIFY_ID: ${SPOTIFY_APP_ID}
       SPOTIFY_SECRET: /run/secrets/spotify_secret
       SPOTIFY_REDIRECT: ${SPOTIFY_REDIRECT}
     volumes:

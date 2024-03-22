@@ -50,7 +50,7 @@ services:
     build:
       context: client
       dockerfile: Dockerfile.prod
-      args:
+    args:
       CLIENT_PORT: ${CLIENT_PORT}
       API_URL: "http://api:${API_PORT}"
       SERVER_URL: "http://server:${SERVER_PORT}"
