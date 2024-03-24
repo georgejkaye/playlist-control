@@ -9,6 +9,8 @@ ENV CLIENT_URL ${CLIENT_URL}
 ARG SERVER_URL
 ENV SERVER_URL ${SERVER_URL}
 
+ENV NEXT_SHARP_PATH=/app/node_modules/sharp
+
 WORKDIR /app
 COPY ./package.json .
 RUN yarn
