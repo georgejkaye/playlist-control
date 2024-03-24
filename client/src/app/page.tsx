@@ -22,6 +22,7 @@ import { ColorRing } from "react-loader-spinner"
 import Image from "next/image"
 import cd from "../../public/cd.webp"
 import { socket } from "./socket"
+import { SpotifyApi } from "@spotify/web-api-ts-sdk"
 
 const TopBar = (props: {
   token: string | undefined
@@ -58,6 +59,18 @@ const LoginPanel = (props: { setToken: SetState<string | undefined> }) => {
       setUserText("")
     }
     setPasswordText("")
+    let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
+    console.log("SSSA")
+    console.log(clientId)
+    if (clientId) {
+      console.log("SSS")
+      SpotifyApi.performUserAuthorization(
+        clientId,
+        "http://localhost:3000",
+        ["user-read-private"],
+        "/server/callback"
+      )
+    }
   }
   const onUserTextChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setUserText(e.target.value)
