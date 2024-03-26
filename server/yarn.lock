@@ -32,6 +32,11 @@
   resolved "https://registry.yarnpkg.com/@socket.io/component-emitter/-/component-emitter-3.1.0.tgz#96116f2a912e0c02817345b3c10751069920d553"
   integrity sha512-+9jVqKhRSpsc591z5vX+X5Yyw+he/HCB4iQ/RYxw35CEPaY1gnsNE43nf9n9AaYjAQrTiI/mOwKUKdUs9vf7Xg==
 
+"@spotify/web-api-ts-sdk@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@spotify/web-api-ts-sdk/-/web-api-ts-sdk-1.2.0.tgz#45850e456451451ce1ee311f0f7322c58d8f99b0"
+  integrity sha512-JUaebva3Ohwo5I5tuTqyW/FKGOMbb40YevJMySAOINRxP7qQ/AMjBzfJx0zeO6yS+wAPfQSoGNsZaUggHw8vsA==
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.9.tgz#df4907fc07a886922637b15e02d4cebc4c0021b2"
@@ -1140,6 +1145,11 @@ ts-node@^10.9.2:
     make-error "^1.1.1"
     v8-compile-cache-lib "^3.0.1"
     yn "3.1.1"
+
+ts-postgres@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/ts-postgres/-/ts-postgres-2.0.1.tgz#69b5c2387675dfdb4442a9b3e12ec36afc1c0a95"
+  integrity sha512-tN8bDZpy82yP0xW9BGRT4cYgRlTy+dKfMeCaf8fcQ6Ddd7RSIczjr8Bsp/vMzs0AjI8FA5RXNjFUa3+UDUDzCA==
 
 type-is@~1.6.18:
   version "1.6.18"

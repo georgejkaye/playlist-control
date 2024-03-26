@@ -10,7 +10,7 @@ services:
       POSTGRES_DB: playlist
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "5000:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
@@ -57,11 +57,17 @@ services:
       SERVER_PORT: ${SERVER_PORT}
       SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
       SPOTIFY_SECRET: /run/secrets/spotify_secret
+      DB_HOST: db
+      DB_USER: playlist
+      DB_PASSWORD: /run/secrets/db_password
+      DB_NAME: playlist
     volumes:
       - ./server/src:/app/src
       - ./server/node_modules:/app/node_modules
     secrets:
       - spotify_secret
+    networks:
+      - internal
   client:
     build:
       context: client
