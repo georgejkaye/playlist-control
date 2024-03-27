@@ -597,6 +597,10 @@ const Home = () => {
     const onDisconnect = () => {
       setIsConnected(false)
     }
+    const token = localStorage.getItem("token")
+    if (token) {
+      setToken(token)
+    }
     socket.on("connect", onConnect)
     socket.on("disconnect", onDisconnect)
     socket.on("update", () => console.log("HELLO!"))
@@ -635,6 +639,14 @@ const Home = () => {
       }, timeLeft)
     }
   }, [current])
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("token", token)
+      console.log("The token is", localStorage.getItem("token"))
+    } else {
+      localStorage.removeItem("token")
+    }
+  }, [token])
   return (
     <main>
       <TopBar
