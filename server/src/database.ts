@@ -1,13 +1,15 @@
 import { readFileSync } from "fs"
 import { Client, connect } from "ts-postgres"
-import { Track } from "./structs"
+import { Track } from "./structs.js"
+import { getSecret } from "./utils.js"
 
-const DB_HOST = process.env.DB_HOST || ""
-const DB_USER = process.env.DB_USER || ""
+const DB_HOST = process.env.DB_HOST || "georgejkaye.com"
+const DB_USER = process.env.DB_USER || "playlist"
 const DB_PORT = process.env.DB_PORT || "5432"
-const DB_NAME = process.env.DB_NAME || ""
-const DB_PASSWORD_FILE = process.env.DB_PASSWORD || ""
-const DB_PASSWORD = readFileSync(DB_PASSWORD_FILE, "utf8").replace("\n", "")
+const DB_NAME = process.env.DB_NAME || "playlist"
+const DB_PASSWORD_FILE = process.env.DB_PASSWORD || "db.secret"
+
+const DB_PASSWORD = await getSecret(DB_PASSWORD_FILE)
 
 var client: Client
 

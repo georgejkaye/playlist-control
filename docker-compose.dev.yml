@@ -61,11 +61,16 @@ services:
       DB_USER: playlist
       DB_PASSWORD: /run/secrets/db_password
       DB_NAME: playlist
+      ADMIN_USER: ${ADMIN_USER}
+      ADMIN_PASSWORD_HASHED: /run/secrets/admin_password_hash
+      SECRET_KEY: /run/secrets/api_secret
     volumes:
       - ./server/src:/app/src
       - ./server/node_modules:/app/node_modules
     secrets:
       - spotify_secret
+      - admin_password_hash
+      - api_secret
     networks:
       - internal
   client:
@@ -90,6 +95,8 @@ services:
       - ./client/node_modules:/app/node_modules
     networks:
       - internal
+    secrets:
+      - admin_password_hash
 secrets:
   api_secret:
     file: api.secret
