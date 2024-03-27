@@ -29,7 +29,6 @@ app.get("/", (req, res) => {
 })
 
 app.post("/token", multer().single("file"), async (req, res) => {
-  console.log("User is trying to authenticate")
   const body = req.body
   let username = body.username
   let password = body.password
@@ -40,7 +39,6 @@ app.post("/token", multer().single("file"), async (req, res) => {
       .header({ "WWW-Authenticate": "Bearer" })
       .send("Invalid credentials")
   } else {
-    console.log("valid!")
     let token = await generateToken(username)
     res.send({
       access_token: token,
@@ -50,13 +48,12 @@ app.post("/token", multer().single("file"), async (req, res) => {
 })
 
 app.get("/test", (req, res) => {
-  verifyToken(req.body["token"], (err, dec) => {
-    // @ts-ignore
-    if (dec && dec["sub"] === "admin") {
-      console.log("Yes!")
-    }
-  })
+  const decoded: any = verifyToken(req.body.token)
+  if (decoded.sub === "admin") {
+    console.log("Yes!")
+  }
 })
+
 const server = app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`)
 })

@@ -1,5 +1,5 @@
 import { getSecret, getSecretSync } from "./utils.js"
-import bcrypt from "bcrypt"
+import bcrypt from "bcryptjs"
 import jwt, { SignCallback, VerifyCallback } from "jsonwebtoken"
 
 export const tokenExpiresMinutes = 30
@@ -54,5 +54,15 @@ export const generateToken = (user: string) =>
     )
   })
 
-export const verifyToken = async (token: string, callbackFn: VerifyCallback) =>
-  jwt.verify(token, secretKey, callbackFn)
+export const verifyToken = async (token: string) =>
+  new Promise((resolve, reject) => {
+    jwt.verify(token, secretKey, (error, decoded) => {
+      if (error) {
+        reject(error)
+      } else if (decoded) {
+        resolve(decoded)
+      } else {
+        reject(false)
+      }
+    })
+  })
