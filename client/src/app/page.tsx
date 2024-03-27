@@ -17,6 +17,7 @@ import {
   postPlaylist,
   postQueue,
   stopSession,
+  testToken,
 } from "./api"
 import { ColorRing } from "react-loader-spinner"
 import Image from "next/image"
@@ -600,6 +601,7 @@ const Home = () => {
     socket.on("connect", onConnect)
     socket.on("disconnect", onDisconnect)
     socket.on("update", () => console.log("HELLO!"))
+    socket.on("data", (data) => console.log(data))
     return () => {
       socket.off("connect", onConnect)
       socket.off("disconnect", onDisconnect)

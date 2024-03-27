@@ -127,7 +127,7 @@ export const login = async (
   setToken: SetState<string | undefined>,
   setError: SetState<string>
 ) => {
-  const endpoint = "/api/token"
+  const endpoint = "/server/token"
   let data = new FormData()
   data.append("username", username)
   data.append("password", password)
@@ -145,12 +145,20 @@ export const login = async (
       let response = await axios.post(endpoint, data)
       let responseData = response.data
       setToken(responseData.access_token)
+      testToken(responseData.access_token)
       return 0
     } catch (err) {
       setError("Could not log in...")
       return 1
     }
   }
+}
+
+export const testToken = async (token: string) => {
+  const config = {
+    headers: getHeaders(token),
+  }
+  axios.post("/server/test", null, config)
 }
 
 export const postPlaylist = async (
