@@ -31,6 +31,8 @@ const nextConfig = {
             hostname: "lineup-images.scdn.co"
         }, {
             hostname: "wrapped-images.spotifycdn.com"
+        }, {
+            hostname: "newjams-images.scdn.co"
         }]
     }
 }

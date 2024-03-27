@@ -88,6 +88,7 @@ services:
       API_URL: "http://api:${API_PORT}"
       SERVER_URL: "http://server:${SERVER_PORT}"
       NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
+      NEXT_PUBLIC_CLIENT_URL: "http://localhost:${CLIENT_PORT}"
     depends_on:
       - api
     volumes:

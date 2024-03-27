@@ -2,6 +2,11 @@ import { Dispatch, SetStateAction } from "react"
 
 export type SetState<T> = Dispatch<SetStateAction<T>>
 
+export interface SpotifyUser {
+  name: string
+  art: string
+}
+
 export interface Playlist {
   id: string
   url: string
