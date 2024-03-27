@@ -145,20 +145,12 @@ export const login = async (
       let response = await axios.post(endpoint, data)
       let responseData = response.data
       setToken(responseData.access_token)
-      testToken(responseData.access_token)
       return 0
     } catch (err) {
       setError("Could not log in...")
       return 1
     }
   }
-}
-
-export const testToken = async (token: string) => {
-  const config = {
-    headers: getHeaders(token),
-  }
-  axios.post("/server/test", null, config)
 }
 
 export const postPlaylist = async (

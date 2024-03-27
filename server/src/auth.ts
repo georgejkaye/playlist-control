@@ -1,10 +1,10 @@
 import { getSecret, getSecretSync } from "./utils.js"
 import bcrypt from "bcryptjs"
-import jwt, { SignCallback, VerifyCallback } from "jsonwebtoken"
+import jwt, { JwtPayload, SignCallback, VerifyCallback } from "jsonwebtoken"
 
 export const tokenExpiresMinutes = 30
 
-const adminUser = process.env.ADMIN_USER || "admin"
+export const adminUser = process.env.ADMIN_USER || "admin"
 const adminPasswordHashedFile =
   process.env.ADMIN_PASSWORD_HASHED || "admin.secret"
 const adminPasswordHashed = await getSecret(adminPasswordHashedFile)
@@ -55,7 +55,7 @@ export const generateToken = (user: string) =>
   })
 
 export const verifyToken = async (token: string) =>
-  new Promise((resolve, reject) => {
+  new Promise<string | JwtPayload>((resolve, reject) => {
     jwt.verify(token, secretKey, (error, decoded) => {
       if (error) {
         reject(error)

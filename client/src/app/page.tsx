@@ -17,7 +17,6 @@ import {
   postPlaylist,
   postQueue,
   stopSession,
-  testToken,
 } from "./api"
 import { ColorRing } from "react-loader-spinner"
 import Image from "next/image"

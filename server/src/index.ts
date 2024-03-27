@@ -6,6 +6,7 @@ import multer from "multer"
 
 import { getTracks } from "./database.js"
 import {
+  adminUser,
   authenticateUser,
   generateToken,
   tokenExpiresMinutes,
@@ -47,10 +48,18 @@ app.post("/token", multer().single("file"), async (req, res) => {
   }
 })
 
-app.get("/test", (req, res) => {
-  const decoded: any = verifyToken(req.body.token)
-  if (decoded.sub === "admin") {
-    console.log("Yes!")
+app.use("/auth", async (req, res, next) => {
+  let authorizationHeader = req.header("Authorization")
+  if (!authorizationHeader) {
+    res.status(401).send("Authorization failed")
+  } else {
+    let token = authorizationHeader.split(" ")[1]
+    let decoded = await verifyToken(token)
+    if (decoded["sub"] !== adminUser) {
+      res.status(401).send("Authorization failed")
+    } else {
+      next()
+    }
   }
 })
 
