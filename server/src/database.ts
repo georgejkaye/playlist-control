@@ -65,7 +65,6 @@ export const getAuthData = async (username: string) => {
       var accessToken: string = row.get("access_token")
       let refreshToken: string = row.get("refresh_token")
       let expiresAt: Date = row.get("expires_at")
-      console.log(expiresAt)
       if (expiresAt < new Date()) {
         let tokens = await refreshTokens(refreshToken)
         if (!tokens) {
@@ -123,7 +122,6 @@ export const getTracks = async (trackIds: String[]) => {
 
 export const updateTokens = async (username: string, tokens: SpotifyTokens) => {
   let user = await getSpotifyUser(tokens.access)
-  console.log(user)
   if (user) {
     const queryText = `
       UPDATE LocalUser

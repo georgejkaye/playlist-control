@@ -40,7 +40,6 @@ app.post("/token", multer().single("file"), async (req, res) => {
   } else {
     let token = await generateToken(username)
     let user = await getAuthData(username)
-    console.log(user)
     res.send({
       access_token: token,
       token_type: "bearer",
@@ -77,9 +76,7 @@ app.use("/auth", async (req, res, next) => {
 
 app.get("/auth/data", async (req, res) => {
   let username = res.locals["user"]
-  console.log("Logged in as", username)
   let spotifyUserData = await getAuthData(username)
-  console.log(spotifyUserData)
   res.send(spotifyUserData)
 })
 
