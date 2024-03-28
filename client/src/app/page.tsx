@@ -10,20 +10,8 @@ import {
   Track,
   getMultipleArtistsString,
 } from "./structs"
-import {
-  getData,
-  getPlaylists,
-  getQueue,
-  login,
-  postPlaylist,
-  postQueue,
-  stopSession,
-} from "./api"
-import { ColorRing } from "react-loader-spinner"
+import { getData, getQueue, postQueue } from "./api"
 import Image from "next/image"
-import { socket } from "./socket"
-import { SpotifyApi } from "@spotify/web-api-ts-sdk"
-import TopBar from "./components/bar"
 import { UserContext } from "./context"
 
 const Header = (props: { session: Session | undefined }) => {

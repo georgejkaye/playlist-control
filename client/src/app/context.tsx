@@ -1,9 +1,8 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useEffect, useState } from "react"
 import { SetState, SpotifyUser } from "./structs"
 import TopBar from "./components/bar"
-import { useRouter } from "next/router"
 import { usePathname } from "next/navigation"
 import { socket } from "./socket"
 import { getSpotifyUserFromServer } from "./api"

@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { UserContextWrapper } from "./context"
-import { useState } from "react"
 
 const inter = Inter({ subsets: ["latin"] })
 

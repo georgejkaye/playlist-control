@@ -1,6 +1,5 @@
 "use client"
 
-import { SpotifyApi } from "@spotify/web-api-ts-sdk"
 import { useState, useEffect, useContext } from "react"
 import { ColorRing } from "react-loader-spinner"
 import {
@@ -13,8 +12,6 @@ import {
 import { SetState, Playlist, SpotifyUser, Session, Track } from "../structs"
 import crypto from "crypto"
 import querystring from "query-string"
-
-import TopBar from "../components/bar"
 import Image from "next/image"
 
 import cd from "../../../public/cd.webp"
