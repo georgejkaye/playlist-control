@@ -1,3 +1,9 @@
+export interface SpotifyUser {
+  name: string
+  image: string
+  id: string
+}
+
 export interface Playlist {
   id: string
   url: string
