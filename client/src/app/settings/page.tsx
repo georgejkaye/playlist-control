@@ -3,18 +3,27 @@
 import { SpotifyApi } from "@spotify/web-api-ts-sdk"
 import { useState, useEffect, useContext } from "react"
 import { ColorRing } from "react-loader-spinner"
-import { login, getPlaylists, postPlaylist, stopSession } from "../api"
+import {
+  login,
+  getPlaylists,
+  postPlaylist,
+  stopSession,
+  sendAuthCode,
+} from "../api"
 import { SetState, Playlist, SpotifyUser, Session, Track } from "../structs"
+import crypto from "crypto"
+import querystring from "query-string"
 
 import TopBar from "../components/bar"
 import Image from "next/image"
 
 import cd from "../../../public/cd.webp"
-import { AppContext } from "../context"
-import { useRouter } from "next/navigation"
+import { UserContext } from "../context"
+import { useRouter, useSearchParams } from "next/navigation"
 
 const LoginPanel = (props: { setToken: SetState<string | undefined> }) => {
-  const { token, setToken } = useContext(AppContext)
+  const { token, setToken, spotifyUser, setSpotifyUser } =
+    useContext(UserContext)
   const [userText, setUserText] = useState("")
   const [passwordText, setPasswordText] = useState("")
   const [error, setError] = useState("")
@@ -22,8 +31,13 @@ const LoginPanel = (props: { setToken: SetState<string | undefined> }) => {
   const onLogin = async () => {
     setError("")
     setLoading(true)
-    console.log(userText, passwordText)
-    const result = await login(userText, passwordText, setToken, setError)
+    const result = await login(
+      userText,
+      passwordText,
+      setToken,
+      setSpotifyUser,
+      setError
+    )
     setLoading(false)
     if (result === 0) {
       setUserText("")
@@ -174,15 +188,36 @@ const SettingsPanel = (props: {
   setSession: SetState<Session | undefined>
   setTracks: SetState<Track[]>
 }) => {
-  const { token, setToken } = useContext(AppContext)
+  const { token, setToken, spotifyUser, setSpotifyUser } =
+    useContext(UserContext)
+  const params = useSearchParams()
   const router = useRouter()
+  const [spotifyAuthenticated, setSpotifyAuthenticated] = useState(false)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [sessionNameText, setSessionNameText] = useState("")
   const [playlistText, setPlaylistText] = useState("")
   const [error, setError] = useState("")
   const [isLoadingSession, setLoadingSession] = useState(false)
+  let clientURL = `${process.env.NEXT_PUBLIC_CLIENT_URL}/settings`
+  let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
   useEffect(() => {
     getPlaylists(setPlaylists)
+    let ignore = false
+    const state = localStorage.getItem("state")
+    const code = params.get("code")
+    const stateParam = params.get("state")
+    const sendSpotifyAuth = async () => {
+      if (!ignore && !spotifyUser && token && code && state === stateParam) {
+        let user = await sendAuthCode(token, code)
+        if (user) {
+          setSpotifyUser(user)
+        }
+      }
+    }
+    sendSpotifyAuth()
+    return () => {
+      ignore = true
+    }
   }, [])
   const onPlaylistSubmit = async (sessionName: string, playlistURL: string) => {
     setLoadingSession(true)
@@ -228,36 +263,70 @@ const SettingsPanel = (props: {
     }
   }
   const onClickSpotify = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    let clientURL = `${process.env.NEXT_PUBLIC_CLIENT_URL}/settings`
-    let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
-    console.log(clientURL, clientId)
-    if (clientURL && clientId) {
-      const api = SpotifyApi.withUserAuthorization(clientId, clientURL, [
-        "playlist-read-private",
-        "user-read-currently-playing",
-      ])
-      api.authenticate()
+    let redirectURI = clientURL
+    const generateRandomString = () => {
+      return new Promise<string>((resolve, reject) => {
+        crypto.randomBytes(60, (err, buffer) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(buffer.toString("hex"))
+          }
+        })
+      })
     }
+    let state = await generateRandomString()
+    localStorage.setItem("state", state)
+    let scopes = "playlist-read-private user-read-currently-playing"
+    router.push(
+      "https://accounts.spotify.com/authorize?" +
+        querystring.stringify({
+          response_type: "code",
+          client_id: clientId,
+          scope: scopes,
+          redirect_uri: redirectURI,
+          state: state,
+        })
+    )
+  }
+  const onClickDeauthoriseSpotify = (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    setSpotifyUser(undefined)
   }
   return (
     <div>
       <h2 className="my-4 text-4xl font-bold">Settings</h2>
-      <button
-        onClick={onClickLogout}
-        className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
-      >
-        Logout
-      </button>
+      <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+        <div>Logged in as admin</div>
+        <button
+          onClick={onClickLogout}
+          className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+        >
+          Logout
+        </button>
+      </div>
       <div>
-        {!props.user ? (
-          <button
-            onClick={onClickSpotify}
-            className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
-          >
-            Authenticate with Spotify
-          </button>
+        {!spotifyUser ? (
+          <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+            <div>Not authenticated with Spotify</div>
+            <button
+              onClick={onClickSpotify}
+              className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+            >
+              Authenticate with Spotify
+            </button>
+          </div>
         ) : (
-          <div>Authenticated with Spotify as {props.user.name}</div>
+          <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+            <div>Authenticated with Spotify as {spotifyUser.name}</div>
+            <button
+              onClick={onClickDeauthoriseSpotify}
+              className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+            >
+              Deauthorise
+            </button>
+          </div>
         )}
       </div>
       {isLoadingSession ? (
@@ -332,7 +401,7 @@ const AdminPanel = (props: {
   setSession: SetState<Session | undefined>
   setTracks: SetState<Track[]>
 }) => {
-  let { token } = useContext(AppContext)
+  let { token } = useContext(UserContext)
   return (
     <div>
       {!token ? (

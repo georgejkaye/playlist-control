@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { AppContextWrapper } from "./context"
+import { UserContextWrapper } from "./context"
 import { useState } from "react"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -19,7 +19,7 @@ const RootLayout = ({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AppContextWrapper>{children}</AppContextWrapper>
+        <UserContextWrapper>{children}</UserContextWrapper>
       </body>
     </html>
   )

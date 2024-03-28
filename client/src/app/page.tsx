@@ -24,7 +24,7 @@ import Image from "next/image"
 import { socket } from "./socket"
 import { SpotifyApi } from "@spotify/web-api-ts-sdk"
 import TopBar from "./components/bar"
-import { AppContext } from "./context"
+import { UserContext } from "./context"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -261,7 +261,6 @@ const Home = () => {
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | undefined>(
     undefined
   )
-  const [isConnected, setIsConnected] = useState(socket.connected)
   const [current, setCurrent] = useState<CurrentTrack | undefined>(undefined)
   const [session, setSession] = useState<Session | undefined>(undefined)
   const [queued, setQueued] = useState<Track[]>([])
@@ -269,24 +268,10 @@ const Home = () => {
   const [tracks, setTracks] = useState<Track[]>([])
   const [isAdding, setAdding] = useState(false)
   const [isLocked, setLocked] = useState(false)
-  const { token, setToken } = useContext(AppContext)
+  const { token, setToken } = useContext(UserContext)
   const [isAdminPanel, setAdminPanel] = useState(false)
   useEffect(() => {
     // getData(setSession, setTracks, setCurrent, setQueue)
-    const onConnect = () => {
-      setIsConnected(true)
-    }
-    const onDisconnect = () => {
-      setIsConnected(false)
-    }
-    socket.on("connect", onConnect)
-    socket.on("disconnect", onDisconnect)
-    socket.on("update", () => console.log("HELLO!"))
-    socket.on("data", (data) => console.log(data))
-    return () => {
-      socket.off("connect", onConnect)
-      socket.off("disconnect", onDisconnect)
-    }
   }, [])
   useEffect(() => {
     const interval = setInterval(() => {
