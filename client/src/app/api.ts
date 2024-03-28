@@ -1,5 +1,12 @@
 import axios, { AxiosError } from "axios"
-import { CurrentTrack, Playlist, Session, SetState, Track } from "./structs"
+import {
+  CurrentTrack,
+  Playlist,
+  Session,
+  SetState,
+  SpotifyUser,
+  Track,
+} from "./structs"
 
 const responseToPlaylist = (response: any) => ({
   id: response["id"],
@@ -125,6 +132,7 @@ export const login = async (
   username: string,
   password: string,
   setToken: SetState<string | undefined>,
+  setSpotifyUser: SetState<SpotifyUser | undefined>,
   setError: SetState<string>
 ) => {
   const endpoint = "/server/token"
@@ -145,6 +153,7 @@ export const login = async (
       let response = await axios.post(endpoint, data)
       let responseData = response.data
       setToken(responseData.access_token)
+      setSpotifyUser(responseData.user)
       return 0
     } catch (err) {
       setError("Could not log in...")
@@ -204,5 +213,41 @@ export const getPlaylists = async (setPlaylists: SetState<Playlist[]>) => {
     setPlaylists(playlists)
   } catch (err) {
     setPlaylists([])
+  }
+}
+
+export const sendAuthCode = async (token: string, code: string) => {
+  const endpoint = `/server/auth/spotify`
+  const config = {
+    headers: getHeaders(token),
+  }
+  try {
+    let response = await axios.post(endpoint, { code: code }, config)
+    let data = response.data
+    return {
+      name: data.name,
+      image: data.image,
+      id: data.id,
+    }
+  } catch (e) {
+    return undefined
+  }
+}
+
+export const getSpotifyUserFromServer = async (token: string) => {
+  const endpoint = `/server/auth/data`
+  const config = {
+    headers: getHeaders(token),
+  }
+  try {
+    let response = await axios.get(endpoint, config)
+    let data = response.data
+    return {
+      name: data.name,
+      image: data.image,
+      id: data.id,
+    }
+  } catch (e) {
+    return undefined
   }
 }
