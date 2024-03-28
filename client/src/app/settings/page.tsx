@@ -126,7 +126,7 @@ const CustomPlaylistCard = (props: { onSubmit: (text: string) => void }) => {
     props.onSubmit(customPlaylistText)
   }
   return (
-    <div className="p-4 rounded-xl w-full flex flex-col desktop:flex-row align-center items-center gap-4">
+    <div className="p-4 rounded-xl w-full flex flex-row align-center items-center gap-4">
       <Image
         className="rounded-xl mr-2"
         src={cd}
@@ -134,20 +134,22 @@ const CustomPlaylistCard = (props: { onSubmit: (text: string) => void }) => {
         width={100}
         height={100}
       />
-      <input
-        type="text"
-        placeholder="Playlist URL"
-        className="flex-1 p-4 text-black rounded"
-        value={customPlaylistText}
-        onChange={onCustomPlaylistTextChange}
-        onKeyDown={onCustomPlaylistKeyDown}
-      />
-      <button
-        onClick={onClickSubmitButton}
-        className="p-2 m4 bg-accent-blue rounded hover:underline font-2xl font-bold"
-      >
-        Submit
-      </button>
+      <div className="w-full flex flex-row gap-5 items-center">
+        <input
+          type="text"
+          placeholder="Playlist URL"
+          className="w-10/12 flex-1 p-4 text-black rounded"
+          value={customPlaylistText}
+          onChange={onCustomPlaylistTextChange}
+          onKeyDown={onCustomPlaylistKeyDown}
+        />
+        <button
+          onClick={onClickSubmitButton}
+          className="p-2 bg-accent-blue rounded hover:underline font-2xl font-bold"
+        >
+          Submit
+        </button>
+      </div>
     </div>
   )
 }
