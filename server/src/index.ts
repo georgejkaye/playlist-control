@@ -7,12 +7,17 @@ import multer from "multer"
 import {
   checkUserExists,
   discardTokens,
+  getAccessToken,
   getAuthData,
   getTracks,
   updateTokens,
 } from "./database.js"
 import { authenticateUser, generateToken, verifyToken } from "./auth.js"
-import { exchangeAccessCodeForTokens, getSpotifyUser } from "./spotify.js"
+import {
+  exchangeAccessCodeForTokens,
+  getCurrentTrack,
+  getSpotifyUser,
+} from "./spotify.js"
 
 dotenv.config()
 
@@ -115,12 +120,26 @@ const io = new Server(server, {
   },
 })
 
+const getData = async () => {
+  let token = await getAccessToken("admin")
+  if (!token) {
+    return undefined
+  }
+  console.log(token)
+  const tracks = await getTracks([])
+  const currentTrack = await getCurrentTrack(token)
+  console.log(currentTrack)
+  return { currentTrack }
+}
+
 io.on("connection", async (socket) => {
   console.log("A user connected")
-  const tracks = await getTracks([])
-  socket.emit("data", tracks)
+  let data = await getData()
+  socket.emit("data", data)
 })
 
-setInterval(() => {
+setInterval(async () => {
   io.emit("update", "Hello!")
+  let data = await getData()
+  io.emit("data", data)
 }, 10000)
