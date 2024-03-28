@@ -48,7 +48,7 @@ export const getPasswordHash = async (username: string) => {
   }
 }
 
-export const getAuthData = async (username: string) => {
+export const getTokens = async (username: string) => {
   const queryText =
     "SELECT spotify_id, access_token, refresh_token, expires_at FROM LocalUser WHERE user_name = $1"
   const query = { text: queryText }
@@ -62,22 +62,36 @@ export const getAuthData = async (username: string) => {
     if (!spotifyId) {
       return undefined
     } else {
-      var accessToken: string = row.get("access_token")
-      let refreshToken: string = row.get("refresh_token")
-      let expiresAt: Date = row.get("expires_at")
-      if (expiresAt < new Date()) {
-        let tokens = await refreshTokens(refreshToken)
-        if (!tokens) {
-          return undefined
-        } else {
-          await updateTokens(username, tokens)
-          accessToken = tokens.access
-        }
+      var tokens
+      var access: string = row.get("access_token")
+      let refresh: string = row.get("refresh_token")
+      let expires: Date = row.get("expires_at")
+      console.log("Expires at", expires)
+      if (expires < new Date()) {
+        tokens = await refreshTokens(refresh)
+      } else {
+        tokens = { access, refresh, expires }
       }
-      let user = await getSpotifyUser(accessToken)
-      return user
+      return tokens
     }
   }
+}
+
+export const getAccessToken = async (username: string) => {
+  let tokens = await getTokens(username)
+  if (!tokens) {
+    return undefined
+  }
+  return tokens.access
+}
+
+export const getAuthData = async (username: string) => {
+  let token = await getAccessToken(username)
+  if (!token) {
+    return undefined
+  }
+  let user = getSpotifyUser(token)
+  return user
 }
 
 const selectTracksAndArtists = `
