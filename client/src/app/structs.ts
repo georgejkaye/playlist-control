@@ -4,7 +4,8 @@ export type SetState<T> = Dispatch<SetStateAction<T>>
 
 export interface SpotifyUser {
   name: string
-  art: string
+  image: string
+  id: string
 }
 
 export interface Playlist {
