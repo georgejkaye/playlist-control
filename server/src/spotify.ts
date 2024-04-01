@@ -123,20 +123,115 @@ const responseToTrack = (raw: any) => {
   return { id, name, album, artists, duration }
 }
 
-export const getCurrentTrack = async (accessToken: string) => {
-  const url = getApiURLFromEndpoint("/me/player/currently-playing")
+const responseToPlaylist = (raw: any) => {
+  let id = raw.id
+  let name = raw.name
+  let art = raw.images[0].url
+  let url = raw.external_urls.spotify
+  let tracks = raw.tracks.total
+  return { id, url, name, art, tracks }
+}
+
+const executeGetRequest = async <T>(
+  accessToken: string,
+  endpoint: string,
+  dataCallback: (data: any) => T
+) => {
+  const url = getApiURLFromEndpoint(endpoint)
   const headers = getAuthHeader(accessToken)
   try {
     let response = await axios.get(url, { headers })
     let data = response.data
-    let item = data.item
-    if (item) {
-      let track = responseToTrack(item)
-      return track
-    } else {
-      return undefined
-    }
+    return dataCallback(data)
   } catch (e) {
+    let err = e as AxiosError
+    console.log(`${err.status}: ${err.message}`)
     return undefined
   }
+}
+
+const executePaginatedRequest = async <T, U>(
+  accessToken: string,
+  endpoint: string,
+  outerCallback: (data: any, dataArray: U[]) => T,
+  pageCallback: (dataArray: U[], data: any) => string | undefined
+) => {
+  const url = getApiURLFromEndpoint(endpoint)
+  const headers = getAuthHeader(accessToken)
+  try {
+    var next: string | undefined = url
+    let pages = []
+    let pageData: U[] = []
+    while (next) {
+      let response = await axios.get(next, { headers })
+      let data = response.data
+      pages.push(data)
+      next = pageCallback(pageData, data)
+    }
+    return outerCallback(pages, pageData)
+  } catch (e) {
+    let err = e as AxiosError
+    console.log(`${err.status}: ${err.message}`)
+    return undefined
+  }
+}
+
+export const getCurrentTrack = async (accessToken: string) => {
+  return executeGetRequest(
+    accessToken,
+    "/me/player/currently-playing",
+    (data) => {
+      let item = data.item
+      if (item) {
+        let track = responseToTrack(item)
+        return track
+      } else {
+        return undefined
+      }
+    }
+  )
+}
+
+export const getPlaylists = async (accessToken: string) => {
+  let playlists = await executePaginatedRequest(
+    accessToken,
+    "/me/playlists",
+    (pages, pageData) => pageData,
+    (dataArray, data) => {
+      let items = data.items
+      for (let item of items) {
+        dataArray.push(responseToPlaylist(item))
+      }
+      return items.next ? items.next : undefined
+    }
+  )
+  return playlists
+}
+
+export const getPlaylistDetails = async (
+  accessToken: string,
+  playlistId: string
+) => {
+  let playlist = await executePaginatedRequest(
+    accessToken,
+    `/playlists/${playlistId}`,
+    (pages, pageData) => {
+      let first = pages[0]
+      let id = first.id
+      let art = first.images[0].url
+      let name = first.name
+      let url = first.external_urls.spotify
+      let tracks = pageData
+      return { id, url, name, art, tracks }
+    },
+    (array, data) => {
+      let tracks = data.tracks.items
+      for (let track of tracks) {
+        array.push(responseToTrack(track))
+      }
+      return tracks.next ? tracks.next : undefined
+    }
+  )
+  console.log(playlist)
+  return playlist
 }

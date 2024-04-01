@@ -16,6 +16,8 @@ import { authenticateUser, generateToken, verifyToken } from "./auth.js"
 import {
   exchangeAccessCodeForTokens,
   getCurrentTrack,
+  getPlaylistDetails,
+  getPlaylists,
   getSpotifyUser,
 } from "./spotify.js"
 
@@ -54,8 +56,13 @@ app.post("/token", multer().single("file"), async (req, res) => {
 })
 
 const getUserFromToken = async (token: string) => {
-  let decoded = await verifyToken(token)
-  return decoded["sub"]
+  try {
+    let decoded = await verifyToken(token)
+    return decoded["sub"]
+  } catch (e) {
+    console.log(e)
+    return undefined
+  }
 }
 
 app.use("/auth", async (req, res, next) => {
@@ -109,6 +116,32 @@ app.delete("/auth/spotify", async (req, res) => {
   res.sendStatus(200)
 })
 
+app.use("/auth/spotify", async (req, res, next) => {
+  let user = res.locals["user"]
+  let token = await getAccessToken(user)
+  if (!token) {
+    res.status(401).send("No spotify access token")
+  } else {
+    res.locals["spotify"] = token
+    next()
+  }
+})
+
+app.get("/auth/spotify/playlists", async (req, res) => {
+  let token = res.locals["spotify"]
+  let playlists = await getPlaylists(token)
+  res.send(playlists)
+})
+
+app.post("/auth/spotify/session", async (req, res) => {
+  let user = res.locals["user"]
+  let token = res.locals["spotify"]
+  let playlistId = req.body.playlist_id
+  let name = req.body.session_name
+  let playlist = await getPlaylistDetails(token, playlistId)
+  let session = await createSession(user, name, playlist)
+})
+
 const server = app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`)
 })
@@ -125,10 +158,8 @@ const getData = async () => {
   if (!token) {
     return undefined
   }
-  console.log(token)
   const tracks = await getTracks([])
   const currentTrack = await getCurrentTrack(token)
-  console.log(currentTrack)
   return { currentTrack }
 }
 

@@ -1,5 +1,5 @@
 import { Client, connect } from "ts-postgres"
-import { Track } from "./structs.js"
+import { Playlist, Track } from "./structs.js"
 import { getSecret } from "./utils.js"
 import { SpotifyTokens, getSpotifyUser, refreshTokens } from "./spotify.js"
 
@@ -66,7 +66,6 @@ export const getTokens = async (username: string) => {
       var access: string = row.get("access_token")
       let refresh: string = row.get("refresh_token")
       let expires: Date = row.get("expires_at")
-      console.log("Expires at", expires)
       if (expires < new Date()) {
         tokens = await refreshTokens(refresh)
       } else {
@@ -164,4 +163,27 @@ export const discardTokens = async (username: string) => {
   `
   const query = { text: queryText }
   await client.query(query, [username])
+}
+
+const makeParameters = (params: string[][]) => {
+  let columnCount = params[0].length
+  return params
+    .map((row, rowNo) =>
+      row.map((col, colNo) => `$${rowNo * columnCount + colNo}`).join(",")
+    )
+    .join(",")
+}
+
+export const createSession = async (
+  username: string,
+  sessionName: string,
+  playlist: Playlist
+) => {
+  const queryText = `
+    INSERT INTO LocalUser(session_name, playlist_id, session_start)
+    VALUES ($2, $3, NOW())
+    WHERE username = $1"
+  `
+  const query = { text: queryText }
+  await client.query(query, [username, sessionName, playlist.id])
 }
