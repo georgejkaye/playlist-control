@@ -9,6 +9,7 @@ CREATE TABLE LocalUser (
     expires_at TIMESTAMP WITH TIME ZONE,
     session_name TEXT,
     playlist_id TEXT
+    session_start TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TABLE Artist (
