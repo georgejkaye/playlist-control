@@ -1,7 +1,7 @@
 import axios, { AxiosError } from "axios"
 import {
   CurrentTrack,
-  Playlist,
+  PlaylistOverview,
   Session,
   SetState,
   SpotifyUser,
@@ -170,7 +170,7 @@ export const postPlaylist = async (
   setSession: SetState<Session | undefined>,
   setTracks: SetState<Track[]>
 ) => {
-  const endpoint = "/api/session"
+  const endpoint = "/server/auth/spotify/session"
   const config = {
     headers: getHeaders(token),
     params: {
@@ -204,10 +204,16 @@ export const stopSession = async (token: string, sessionId: number) => {
   }
   await axios.delete(endpoint, config)
 }
-export const getPlaylists = async (setPlaylists: SetState<Playlist[]>) => {
-  const endpoint = "/api/playlists"
+export const getPlaylists = async (
+  token: string,
+  setPlaylists: SetState<PlaylistOverview[]>
+) => {
+  const endpoint = "/server/auth/spotify/playlists"
+  const config = {
+    headers: getHeaders(token),
+  }
   try {
-    let response = await axios.get(endpoint)
+    let response = await axios.get(endpoint, config)
     let data = response.data
     let playlists = data.map(responseToPlaylist)
     setPlaylists(playlists)

@@ -3,7 +3,7 @@
 import React, { useContext, useEffect, useState } from "react"
 import {
   CurrentTrack,
-  Playlist,
+  PlaylistOverview,
   Session,
   SetState,
   SpotifyUser,
@@ -127,7 +127,7 @@ const QueueAdderTrackCard = (props: {
   )
 }
 
-const QueueingFromCard = (props: { playlist: Playlist }) => {
+const QueueingFromCard = (props: { playlist: PlaylistOverview }) => {
   return (
     <div className="flex flex-row items-center mb-4 gap-4">
       <div>

@@ -9,7 +9,13 @@ import {
   stopSession,
   sendAuthCode,
 } from "../api"
-import { SetState, Playlist, SpotifyUser, Session, Track } from "../structs"
+import {
+  SetState,
+  PlaylistOverview,
+  SpotifyUser,
+  Session,
+  Track,
+} from "../structs"
 import crypto from "crypto"
 import querystring from "query-string"
 import Image from "next/image"
@@ -155,7 +161,7 @@ const CustomPlaylistCard = (props: { onSubmit: (text: string) => void }) => {
 }
 
 const PlaylistCard = (props: {
-  playlist: Playlist
+  playlist: PlaylistOverview
   onClickPlaylist: () => void
 }) => {
   const onClickPlaylist = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -192,7 +198,7 @@ const SettingsPanel = (props: {
   const params = useSearchParams()
   const router = useRouter()
   const [spotifyAuthenticated, setSpotifyAuthenticated] = useState(false)
-  const [playlists, setPlaylists] = useState<Playlist[]>([])
+  const [playlists, setPlaylists] = useState<PlaylistOverview[]>([])
   const [sessionNameText, setSessionNameText] = useState("")
   const [playlistText, setPlaylistText] = useState("")
   const [error, setError] = useState("")
@@ -200,20 +206,22 @@ const SettingsPanel = (props: {
   let clientURL = `${process.env.NEXT_PUBLIC_CLIENT_URL}/settings`
   let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
   useEffect(() => {
-    getPlaylists(setPlaylists)
     let ignore = false
-    const state = localStorage.getItem("state")
-    const code = params.get("code")
-    const stateParam = params.get("state")
-    const sendSpotifyAuth = async () => {
-      if (!ignore && !spotifyUser && token && code && state === stateParam) {
-        let user = await sendAuthCode(token, code)
-        if (user) {
-          setSpotifyUser(user)
+    if (token) {
+      getPlaylists(token, setPlaylists)
+      const state = localStorage.getItem("state")
+      const code = params.get("code")
+      const stateParam = params.get("state")
+      const sendSpotifyAuth = async () => {
+        if (!ignore && !spotifyUser && token && code && state === stateParam) {
+          let user = await sendAuthCode(token, code)
+          if (user) {
+            setSpotifyUser(user)
+          }
         }
       }
+      sendSpotifyAuth()
     }
-    sendSpotifyAuth()
     return () => {
       ignore = true
     }
@@ -250,7 +258,7 @@ const SettingsPanel = (props: {
     setToken(undefined)
     router.replace("/")
   }
-  const onClickPlaylistCard = (p: Playlist) => {
+  const onClickPlaylistCard = (p: PlaylistOverview) => {
     onPlaylistSubmit(sessionNameText, p.url)
   }
   const onClickStopSession = (e: React.MouseEvent<HTMLButtonElement>) => {
