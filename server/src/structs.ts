@@ -9,6 +9,14 @@ export interface Playlist {
   url: string
   name: string
   art: string
+  tracks: Track[]
+}
+
+export interface PlaylistOverview {
+  id: string
+  url: string
+  name: string
+  art: string
   tracks: number
 }
 

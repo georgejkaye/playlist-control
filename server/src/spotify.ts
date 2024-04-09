@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosResponse } from "axios"
 import { getSecret } from "./utils.js"
+import { Playlist, PlaylistOverview, Track } from "./structs.js"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
@@ -193,7 +194,10 @@ export const getCurrentTrack = async (accessToken: string) => {
 }
 
 export const getPlaylists = async (accessToken: string) => {
-  let playlists = await executePaginatedRequest(
+  let playlists = await executePaginatedRequest<
+    PlaylistOverview[],
+    PlaylistOverview
+  >(
     accessToken,
     "/me/playlists",
     (pages, pageData) => pageData,
@@ -212,7 +216,7 @@ export const getPlaylistDetails = async (
   accessToken: string,
   playlistId: string
 ) => {
-  let playlist = await executePaginatedRequest(
+  let playlist = await executePaginatedRequest<Playlist, Track>(
     accessToken,
     `/playlists/${playlistId}`,
     (pages, pageData) => {
