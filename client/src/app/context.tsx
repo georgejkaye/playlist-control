@@ -40,7 +40,6 @@ export const AppContextWrapper = (
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | undefined>(
     undefined
   )
-  const [isConnected, setIsConnected] = useState(socket.connected)
   const [session, setSession] = useState<Session | undefined>(undefined)
   const [tracks, setTracks] = useState<Track[]>([])
   const path = usePathname()
@@ -72,20 +71,6 @@ export const AppContextWrapper = (
     const token = localStorage.getItem("token")
     if (token !== null) {
       initToken(token)
-    }
-    const onConnect = () => {
-      setIsConnected(true)
-    }
-    const onDisconnect = () => {
-      setIsConnected(false)
-    }
-    socket.on("connect", onConnect)
-    socket.on("disconnect", onDisconnect)
-    socket.on("update", () => console.log("HELLO!"))
-    socket.on("data", (data) => console.log(data))
-    return () => {
-      socket.off("connect", onConnect)
-      socket.off("disconnect", onDisconnect)
     }
   }, [])
   useEffect(() => {

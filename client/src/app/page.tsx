@@ -13,6 +13,7 @@ import {
 import { getData, getQueue, postQueue } from "./api"
 import Image from "next/image"
 import { AppContext } from "./context"
+import { socket } from "./socket"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -26,7 +27,7 @@ const Header = (props: { session: Session | undefined }) => {
   )
 }
 
-const CurrentTrackCard = (props: { currentTrack: CurrentTrack }) => {
+const CurrentTrackCard = (props: { currentTrack: Track }) => {
   return (
     <div className="flex flex-col desktop:flex-row desktop:items-center justify-center my-6 gap-4 desktop:gap-10 mx-1">
       <div>
@@ -34,18 +35,16 @@ const CurrentTrackCard = (props: { currentTrack: CurrentTrack }) => {
           className="rounded-lg"
           width={200}
           height={200}
-          src={props.currentTrack.track.album.art}
-          alt={`Album art for ${props.currentTrack.track.album.name}`}
+          src={props.currentTrack.album.art}
+          alt={`Album art for ${props.currentTrack.album.name}`}
         />
       </div>
       <div className="flex-1 flex flex-col justify-center">
-        <div className="font-bold text-4xl py-1">
-          {props.currentTrack.track.name}
-        </div>
+        <div className="font-bold text-4xl py-1">{props.currentTrack.name}</div>
         <div className="text-lg py-2 text-2xl">
-          {getMultipleArtistsString(props.currentTrack.track.artists)}
+          {getMultipleArtistsString(props.currentTrack.artists)}
         </div>
-        <div className="py-1">{props.currentTrack.track.album.name}</div>
+        <div className="py-1">{props.currentTrack.album.name}</div>
       </div>
     </div>
   )
@@ -162,7 +161,7 @@ const QueueAdder = (props: {
   setAdding: SetState<boolean>
   tracks: Track[]
   setTracks: SetState<Track[]>
-  setCurrent: SetState<CurrentTrack | undefined>
+  setCurrent: SetState<Track | undefined>
   setQueue: SetState<Track[]>
 }) => {
   const [filteredTracks, setFilteredTracks] = useState<QueueItem[]>(
@@ -246,39 +245,31 @@ const QueueAdder = (props: {
 }
 
 const Home = () => {
-  const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | undefined>(
-    undefined
-  )
-  const [current, setCurrent] = useState<CurrentTrack | undefined>(undefined)
+  const [current, setCurrent] = useState<Track | undefined>(undefined)
   const [session, setSession] = useState<Session | undefined>(undefined)
   const [queued, setQueued] = useState<Track[]>([])
   const [queue, setQueue] = useState<Track[]>([])
   const [tracks, setTracks] = useState<Track[]>([])
   const [isAdding, setAdding] = useState(false)
-  const [isLocked, setLocked] = useState(false)
-  const { token, setToken } = useContext(AppContext)
-  const [isAdminPanel, setAdminPanel] = useState(false)
+  const [isConnected, setIsConnected] = useState(socket.connected)
   useEffect(() => {
-    if (!isAdding) {
-      window.scrollTo({ top: 0 })
-      setLocked(false)
-    } else {
-      getData(setSession, setTracks, setCurrent, setQueue)
-      setLocked(true)
+    const onConnect = () => {
+      setIsConnected(true)
     }
-  }, [isAdding])
-  useEffect(() => {
-    if (current) {
-      let startTime = current.start
-      let duration = current.track.duration
-      let endTime = startTime + duration
-      let currentTime = new Date().getTime()
-      let timeLeft = endTime - currentTime
-      setTimeout(() => {
-        getQueue(setCurrent, setQueue)
-      }, timeLeft)
+    const onDisconnect = () => {
+      setIsConnected(false)
     }
-  }, [current])
+    socket.on("connect", onConnect)
+    socket.on("disconnect", onDisconnect)
+    socket.on("data", (data) => {
+      let current = data.currentTrack
+      setCurrent(current === null ? undefined : current)
+    })
+    return () => {
+      socket.off("connect", onConnect)
+      socket.off("disconnect", onDisconnect)
+    }
+  })
   return (
     <div>
       <Header session={session} />
