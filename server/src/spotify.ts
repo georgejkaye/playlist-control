@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from "axios"
 import { getSecret } from "./utils.js"
 import { Playlist, PlaylistOverview, Track } from "./structs.js"
+import { updateTokens } from "./database.js"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
@@ -25,14 +26,16 @@ const getTokensFromTokenResponse = (now: Date, response: AxiosResponse) => {
   return tokens
 }
 
+const getSpotifyHeaders = () => ({
+  "content-type": "application/x-www-form-urlencoded",
+  Authorization:
+    "Basic " +
+    Buffer.from(SPOTIFY_CLIENT_ID + ":" + SPOTIFY_SECRET).toString("base64"),
+})
+
 export const exchangeAccessCodeForTokens = async (code: string) => {
   const now = new Date()
-  const headers = {
-    "content-type": "application/x-www-form-urlencoded",
-    Authorization:
-      "Basic " +
-      Buffer.from(SPOTIFY_CLIENT_ID + ":" + SPOTIFY_SECRET).toString("base64"),
-  }
+  const headers = getSpotifyHeaders()
   const params = new URLSearchParams({
     grant_type: "authorization_code",
     code: code,
@@ -48,20 +51,24 @@ export const exchangeAccessCodeForTokens = async (code: string) => {
   }
 }
 
-export const refreshTokens = async (refreshToken: string) => {
+export const refreshTokens = async (username: string, refreshToken: string) => {
   const now = new Date()
-  const headers = {
-    "Content-Type": "application/x-www-form-urlencoded",
-  }
-  const params = new URLSearchParams({
+  const headers = getSpotifyHeaders()
+  const params = {
     grant_type: "refresh_token",
     refresh_token: refreshToken,
-    client_id: SPOTIFY_CLIENT_ID,
-  })
+  }
   try {
-    let response = await axios.post(SPOTIFY_TOKEN_URL, params, { headers })
-    return getTokensFromTokenResponse(now, response)
+    let response = await axios.post(SPOTIFY_TOKEN_URL, null, {
+      headers,
+      params,
+    })
+    let tokens = getTokensFromTokenResponse(now, response)
+    updateTokens(username, tokens)
+    return tokens
   } catch (e) {
+    let err = e as AxiosError
+    console.log(err.response?.status)
     return undefined
   }
 }

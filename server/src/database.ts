@@ -67,7 +67,7 @@ export const getTokens = async (username: string) => {
       let refresh: string = row.get("refresh_token")
       let expires: Date = row.get("expires_at")
       if (expires < new Date()) {
-        tokens = await refreshTokens(refresh)
+        tokens = await refreshTokens(username, refresh)
       } else {
         tokens = { access, refresh, expires }
       }
