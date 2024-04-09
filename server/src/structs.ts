@@ -21,7 +21,6 @@ export interface PlaylistOverview {
 }
 
 export interface Session {
-  id: number
   name: string
   playlist: Playlist
 }

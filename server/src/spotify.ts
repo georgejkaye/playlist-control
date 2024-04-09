@@ -231,11 +231,10 @@ export const getPlaylistDetails = async (
     (array, data) => {
       let tracks = data.tracks.items
       for (let track of tracks) {
-        array.push(responseToTrack(track))
+        array.push(responseToTrack(track.track))
       }
       return tracks.next ? tracks.next : undefined
     }
   )
-  console.log(playlist)
   return playlist
 }

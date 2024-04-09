@@ -1,5 +1,5 @@
 import { Client, connect } from "ts-postgres"
-import { Playlist, Track } from "./structs.js"
+import { Playlist, Session, Track } from "./structs.js"
 import { getSecret } from "./utils.js"
 import { SpotifyTokens, getSpotifyUser, refreshTokens } from "./spotify.js"
 
@@ -174,16 +174,22 @@ const makeParameters = (params: string[][]) => {
     .join(",")
 }
 
-export const createSession = async (
-  username: string,
-  sessionName: string,
-  playlist: Playlist
-) => {
+export const createSession = async (username: string, session: Session) => {
   const queryText = `
-    INSERT INTO LocalUser(session_name, playlist_id, session_start)
-    VALUES ($2, $3, NOW())
-    WHERE username = $1"
+    UPDATE LocalUser
+    SET session_name = $2, playlist_id = $3, session_start = NOW()
+    WHERE user_name = $1
   `
   const query = { text: queryText }
-  await client.query(query, [username, sessionName, playlist.id])
+  client.query(query, [username, session.name, session.playlist.id])
+}
+
+export const deleteSession = async (username: string) => {
+  const queryText = `
+    UPDATE LocalUser
+    SET session_name = '', playlist_id = '', session_start = NULL
+    WHERE user_name = $1
+  `
+  const query = { text: queryText }
+  client.query(query, [username])
 }

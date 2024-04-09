@@ -6,6 +6,8 @@ import multer from "multer"
 
 import {
   checkUserExists,
+  createSession,
+  deleteSession,
   discardTokens,
   getAccessToken,
   getAuthData,
@@ -136,10 +138,26 @@ app.get("/auth/spotify/playlists", async (req, res) => {
 app.post("/auth/spotify/session", async (req, res) => {
   let user = res.locals["user"]
   let token = res.locals["spotify"]
-  let playlistId = req.body.playlist_id
-  let name = req.body.session_name
-  let playlist = await getPlaylistDetails(token, playlistId)
-  let session = await createSession(user, name, playlist)
+  let playlistId = req.query.playlist_id
+  let name = req.query.session_name
+  if (typeof playlistId !== "string" || typeof name !== "string") {
+    res.status(400).send("Query parameters must be string")
+  } else {
+    let playlist = await getPlaylistDetails(token, playlistId)
+    if (playlist) {
+      let session = { name, playlist }
+      createSession(user, session)
+      res.send(session)
+    } else {
+      res.status(404).send("Playlist not found")
+    }
+  }
+})
+
+app.delete("/auth/spotify/session", async (req, res) => {
+  let user = res.locals["user"]
+  deleteSession(user)
+  res.send(200)
 })
 
 const server = app.listen(port, () => {
