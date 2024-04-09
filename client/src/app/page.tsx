@@ -83,27 +83,27 @@ const Queue = (props: { queue: Track[] }) => {
 }
 
 const QueueAdderTrackCard = (props: {
-  track: QueueItem
+  track: Track
   setQueue: SetState<Track[]>
   tracks: Track[]
   setTracks: SetState<Track[]>
   setAdding: SetState<boolean>
 }) => {
+  const { queuedTracks } = useContext(AppContext)
+  const [isQueueable, setQueueable] = useState(queuedTracks.has(props.track.id))
+  useEffect(() => {
+    setQueueable(queuedTracks.has(props.track.id))
+  }, [queuedTracks])
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (props.track.queueable) {
-      postQueue(
-        props.track.track,
-        props.tracks,
-        props.setTracks,
-        props.setQueue
-      )
+    if (isQueueable) {
+      postQueue(props.track, props.tracks, props.setTracks, props.setQueue)
       props.setAdding(false)
     }
   }
   return (
     <div
       className={`${trackCardStyle} ${
-        !props.track.queueable
+        !queuedTracks.has(props.track.id)
           ? "text-gray-600"
           : "hover:bg-gray-700 cursor-pointer"
       }`}
@@ -114,13 +114,13 @@ const QueueAdderTrackCard = (props: {
           className="rounded-lg"
           width={52}
           height={52}
-          src={props.track.track.album.art}
-          alt={`Album art for ${props.track.track.album.name}`}
+          src={props.track.album.art}
+          alt={`Album art for ${props.track.album.name}`}
         />
       </div>
       <div className="flex-1 my-auto">
-        <div className="text-xl font-bold">{props.track.track.name}</div>
-        <div>{getMultipleArtistsString(props.track.track.artists)}</div>
+        <div className="text-xl font-bold">{props.track.name}</div>
+        <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
     </div>
   )
@@ -164,10 +164,8 @@ const QueueAdder = (props: {
   setCurrent: SetState<Track | undefined>
   setQueue: SetState<Track[]>
 }) => {
-  const [filteredTracks, setFilteredTracks] = useState<QueueItem[]>(
-    props.tracks
-      .sort((t1, t2) => t1.name.localeCompare(t2.name))
-      .map((t) => ({ track: t, queueable: t.queued === undefined }))
+  const [filteredTracks, setFilteredTracks] = useState<Track[]>(
+    props.tracks.sort((t1, t2) => t1.name.localeCompare(t2.name))
   )
   const [filterText, setFilterText] = useState("")
   const [tracksToShow, setTracksToShow] = useState(100)
@@ -183,7 +181,6 @@ const QueueAdder = (props: {
             track.album.name.toLowerCase().includes(filterText.toLowerCase())
         )
         .sort((t1, t2) => t1.name.localeCompare(t2.name))
-        .map((t) => ({ track: t, queueable: t.queued === undefined }))
     )
   }
   useEffect(() => {
@@ -222,7 +219,7 @@ const QueueAdder = (props: {
           <div>
             {filteredTracks.slice(0, tracksToShow).map((track) => (
               <QueueAdderTrackCard
-                key={track.track.id}
+                key={track.id}
                 track={track}
                 tracks={props.tracks}
                 setTracks={props.setTracks}
@@ -245,33 +242,9 @@ const QueueAdder = (props: {
 }
 
 const Home = () => {
-  const [current, setCurrent] = useState<Track | undefined>(undefined)
-  const [session, setSession] = useState<Session | undefined>(undefined)
-  const [queued, setQueued] = useState<Track[]>([])
-  const [queue, setQueue] = useState<Track[]>([])
-  const [tracks, setTracks] = useState<Track[]>([])
+  const { session, setCurrent, current, setQueue, queue, tracks, setTracks } =
+    useContext(AppContext)
   const [isAdding, setAdding] = useState(false)
-  const [isConnected, setIsConnected] = useState(socket.connected)
-  useEffect(() => {
-    const onConnect = () => {
-      setIsConnected(true)
-    }
-    const onDisconnect = () => {
-      setIsConnected(false)
-    }
-    socket.on("connect", onConnect)
-    socket.on("disconnect", onDisconnect)
-    socket.on("data", (data) => {
-      let current = data.current
-      let queue = data.queue
-      setCurrent(current)
-      setQueue(queue)
-    })
-    return () => {
-      socket.off("connect", onConnect)
-      socket.off("disconnect", onDisconnect)
-    }
-  })
   return (
     <div>
       <Header session={session} />

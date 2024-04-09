@@ -16,6 +16,12 @@ interface AppData {
   setSession: SetState<Session | undefined>
   tracks: Track[]
   setTracks: SetState<Track[]>
+  queue: Track[]
+  setQueue: SetState<Track[]>
+  current: Track | undefined
+  setCurrent: SetState<Track | undefined>
+  queuedTracks: Set<string>
+  setQueuedTracks: SetState<Set<string>>
 }
 
 const defaultAppData: AppData = {
@@ -27,6 +33,12 @@ const defaultAppData: AppData = {
   setSession: () => {},
   tracks: [],
   setTracks: () => {},
+  queue: [],
+  setQueue: () => {},
+  current: undefined,
+  setCurrent: () => {},
+  queuedTracks: new Set(),
+  setQueuedTracks: () => {},
 }
 
 export const AppContext = createContext(defaultAppData)
@@ -42,6 +54,10 @@ export const AppContextWrapper = (
   )
   const [session, setSession] = useState<Session | undefined>(undefined)
   const [tracks, setTracks] = useState<Track[]>([])
+  const [current, setCurrent] = useState<Track | undefined>(undefined)
+  const [queue, setQueue] = useState<Track[]>([])
+  const [queuedTracks, setQueuedTracks] = useState<Set<string>>(new Set())
+  const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
   const value: AppData = {
     token,
@@ -52,6 +68,12 @@ export const AppContextWrapper = (
     setSession,
     tracks,
     setTracks,
+    queue,
+    setQueue,
+    current,
+    setCurrent,
+    queuedTracks,
+    setQueuedTracks,
   }
   useEffect(() => {
     const initToken = async (token: string) => {
@@ -71,6 +93,26 @@ export const AppContextWrapper = (
     const token = localStorage.getItem("token")
     if (token !== null) {
       initToken(token)
+    }
+    const onConnect = () => {
+      setIsConnected(true)
+    }
+    const onDisconnect = () => {
+      setIsConnected(false)
+    }
+    socket.on("connect", onConnect)
+    socket.on("disconnect", onDisconnect)
+    socket.on("data", (data) => {
+      let current = data.current
+      let queue = data.queue
+      let queueds = data.queueds
+      setQueuedTracks(new Set(queueds))
+      setCurrent(current)
+      setQueue(queue)
+    })
+    return () => {
+      socket.off("connect", onConnect)
+      socket.off("disconnect", onDisconnect)
     }
   }, [])
   useEffect(() => {
