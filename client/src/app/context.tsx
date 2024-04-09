@@ -29,12 +29,12 @@ const defaultAppData: AppData = {
   setTracks: () => {},
 }
 
-export const UserContext = createContext(defaultAppData)
+export const AppContext = createContext(defaultAppData)
 
-interface UserContextProps {}
+interface AppContextProps {}
 
-export const UserContextWrapper = (
-  props: React.PropsWithChildren<UserContextProps>
+export const AppContextWrapper = (
+  props: React.PropsWithChildren<AppContextProps>
 ) => {
   const [token, setToken] = useState<string | undefined>(undefined)
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | undefined>(
@@ -96,7 +96,7 @@ export const UserContextWrapper = (
     }
   }, [token])
   return (
-    <UserContext.Provider value={value}>
+    <AppContext.Provider value={value}>
       <TopBar
         isAdminPanel={path === "/settings"}
         isLoggedIn={token !== undefined}
@@ -106,6 +106,6 @@ export const UserContextWrapper = (
           {props.children}
         </div>
       </main>
-    </UserContext.Provider>
+    </AppContext.Provider>
   )
 }

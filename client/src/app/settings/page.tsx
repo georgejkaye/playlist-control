@@ -21,11 +21,11 @@ import querystring from "query-string"
 import Image from "next/image"
 
 import cd from "../../../public/cd.webp"
-import { UserContext } from "../context"
+import { AppContext } from "../context"
 import { useRouter, useSearchParams } from "next/navigation"
 
 const LoginPanel = () => {
-  const { setToken, setSpotifyUser } = useContext(UserContext)
+  const { setToken, setSpotifyUser } = useContext(AppContext)
   const [userText, setUserText] = useState("")
   const [passwordText, setPasswordText] = useState("")
   const [error, setError] = useState("")
@@ -194,7 +194,7 @@ const SettingsPanel = () => {
     setSession,
     tracks,
     setTracks,
-  } = useContext(UserContext)
+  } = useContext(AppContext)
   const params = useSearchParams()
   const router = useRouter()
   const [spotifyAuthenticated, setSpotifyAuthenticated] = useState(false)
@@ -415,7 +415,7 @@ const SettingsPanel = () => {
 }
 
 const AdminPanel = (props: {}) => {
-  let { token } = useContext(UserContext)
+  let { token } = useContext(AppContext)
   return <div>{!token ? <LoginPanel /> : <SettingsPanel />}</div>
 }
 

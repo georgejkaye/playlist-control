@@ -12,7 +12,7 @@ import {
 } from "./structs"
 import { getData, getQueue, postQueue } from "./api"
 import Image from "next/image"
-import { UserContext } from "./context"
+import { AppContext } from "./context"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -256,7 +256,7 @@ const Home = () => {
   const [tracks, setTracks] = useState<Track[]>([])
   const [isAdding, setAdding] = useState(false)
   const [isLocked, setLocked] = useState(false)
-  const { token, setToken } = useContext(UserContext)
+  const { token, setToken } = useContext(AppContext)
   const [isAdminPanel, setAdminPanel] = useState(false)
   useEffect(() => {
     if (!isAdding) {
