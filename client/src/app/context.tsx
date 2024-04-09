@@ -5,7 +5,7 @@ import { SetState, SpotifyUser } from "./structs"
 import TopBar from "./components/bar"
 import { usePathname } from "next/navigation"
 import { socket } from "./socket"
-import { getSpotifyUserFromServer } from "./api"
+import { getAuthData } from "./api"
 
 interface AppData {
   token: string | undefined
@@ -35,17 +35,25 @@ export const UserContextWrapper = (
   const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
   const value: AppData = { token, setToken, spotifyUser, setSpotifyUser }
-  const getSpotifyUser = async (token: string) => {
-    let user = await getSpotifyUserFromServer(token)
-    if (user) {
-      setSpotifyUser(user)
-    }
-  }
   useEffect(() => {
+    const initToken = async (token: string) => {
+      let data = await getAuthData(token)
+      console.log("The data is", data)
+      if (data) {
+        setToken(token)
+        if (data.user) {
+          setSpotifyUser(data.user)
+        }
+      } else {
+        alert("Invalid token")
+        setToken(undefined)
+        setSpotifyUser(undefined)
+        localStorage.removeItem("token")
+      }
+    }
     const token = localStorage.getItem("token")
-    if (token) {
-      setToken(token)
-      getSpotifyUser(token)
+    if (token !== null) {
+      initToken(token)
     }
     const onConnect = () => {
       setIsConnected(true)

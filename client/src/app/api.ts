@@ -240,7 +240,7 @@ export const sendAuthCode = async (token: string, code: string) => {
   }
 }
 
-export const getSpotifyUserFromServer = async (token: string) => {
+export const getAuthData = async (token: string) => {
   const endpoint = `/server/auth/data`
   const config = {
     headers: getHeaders(token),
@@ -248,10 +248,16 @@ export const getSpotifyUserFromServer = async (token: string) => {
   try {
     let response = await axios.get(endpoint, config)
     let data = response.data
+    let user = !data
+      ? undefined
+      : {
+          name: data.name,
+          image: data.image,
+          id: data.id,
+        }
+
     return {
-      name: data.name,
-      image: data.image,
-      id: data.id,
+      user,
     }
   } catch (e) {
     return undefined

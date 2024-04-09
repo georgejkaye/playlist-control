@@ -208,24 +208,38 @@ const SettingsPanel = (props: {
   useEffect(() => {
     let ignore = false
     if (token) {
-      getPlaylists(token, setPlaylists)
       const state = localStorage.getItem("state")
       const code = params.get("code")
       const stateParam = params.get("state")
-      const sendSpotifyAuth = async () => {
-        if (!ignore && !spotifyUser && token && code && state === stateParam) {
-          let user = await sendAuthCode(token, code)
-          if (user) {
-            setSpotifyUser(user)
-          }
+      const sendSpotifyAuth = async (code: string) => {
+        console.log("sending auth")
+        let user = await sendAuthCode(token, code)
+        console.log("Checks okay")
+        if (user) {
+          console.log("user")
+          setSpotifyUser(user)
+          console.log("Getting the playlists")
+          getPlaylists(token, setPlaylists)
         }
       }
-      sendSpotifyAuth()
+      if (!ignore && !spotifyUser && token && code && state === stateParam) {
+        sendSpotifyAuth(code)
+      }
+      if (spotifyUser) {
+        getPlaylists(token, setPlaylists)
+      }
     }
     return () => {
       ignore = true
     }
   }, [])
+  useEffect(() => {
+    if (!spotifyUser || !token) {
+      setPlaylists([])
+    } else {
+      getPlaylists(token, setPlaylists)
+    }
+  }, [spotifyUser])
   const onPlaylistSubmit = async (sessionName: string, playlistURL: string) => {
     setLoadingSession(true)
     let result = await postPlaylist(

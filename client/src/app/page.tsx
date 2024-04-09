@@ -259,17 +259,6 @@ const Home = () => {
   const { token, setToken } = useContext(UserContext)
   const [isAdminPanel, setAdminPanel] = useState(false)
   useEffect(() => {
-    // getData(setSession, setTracks, setCurrent, setQueue)
-  }, [])
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isLocked) {
-        getData(setSession, setTracks, setCurrent, setQueue)
-      }
-    }, 30000)
-    return () => clearInterval(interval)
-  })
-  useEffect(() => {
     if (!isAdding) {
       window.scrollTo({ top: 0 })
       setLocked(false)
