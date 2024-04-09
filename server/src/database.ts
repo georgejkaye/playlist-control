@@ -76,6 +76,18 @@ export const getTokens = async (username: string) => {
   }
 }
 
+export const getQueuedTracks = async (username: string) => {
+  const queryText = "SELECT track_id, queued_at FROM Track WHERE user_name = $1"
+  const query = { text: queryText }
+  let result = await client.query(query, [username])
+  let rows = result.rows
+  let queueds = rows.map((row) => ({
+    id: row.get("track_id"),
+    time: row.get("queued_at"),
+  }))
+  return queueds
+}
+
 export const getAccessToken = async (username: string) => {
   let tokens = await getTokens(username)
   if (!tokens) {

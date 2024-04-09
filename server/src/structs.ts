@@ -53,3 +53,8 @@ export interface CurrentTrack {
 export interface Data {
   currentTrack: Track
 }
+
+export interface QueuedTrack {
+  id: number
+  time: Date
+}
