@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useEffect, useState } from "react"
-import { SetState, SpotifyUser } from "./structs"
+import { Session, SetState, SpotifyUser, Track } from "./structs"
 import TopBar from "./components/bar"
 import { usePathname } from "next/navigation"
 import { socket } from "./socket"
@@ -12,6 +12,10 @@ interface AppData {
   setToken: SetState<string | undefined>
   spotifyUser: SpotifyUser | undefined
   setSpotifyUser: SetState<SpotifyUser | undefined>
+  session: Session | undefined
+  setSession: SetState<Session | undefined>
+  tracks: Track[]
+  setTracks: SetState<Track[]>
 }
 
 const defaultAppData: AppData = {
@@ -19,6 +23,10 @@ const defaultAppData: AppData = {
   setToken: () => {},
   spotifyUser: undefined,
   setSpotifyUser: () => {},
+  session: undefined,
+  setSession: () => {},
+  tracks: [],
+  setTracks: () => {},
 }
 
 export const UserContext = createContext(defaultAppData)
@@ -33,8 +41,19 @@ export const UserContextWrapper = (
     undefined
   )
   const [isConnected, setIsConnected] = useState(socket.connected)
+  const [session, setSession] = useState<Session | undefined>(undefined)
+  const [tracks, setTracks] = useState<Track[]>([])
   const path = usePathname()
-  const value: AppData = { token, setToken, spotifyUser, setSpotifyUser }
+  const value: AppData = {
+    token,
+    setToken,
+    spotifyUser,
+    setSpotifyUser,
+    session,
+    setSession,
+    tracks,
+    setTracks,
+  }
   useEffect(() => {
     const initToken = async (token: string) => {
       let data = await getAuthData(token)
@@ -45,7 +64,6 @@ export const UserContextWrapper = (
           setSpotifyUser(data.user)
         }
       } else {
-        alert("Invalid token")
         setToken(undefined)
         setSpotifyUser(undefined)
         localStorage.removeItem("token")

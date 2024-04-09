@@ -13,11 +13,18 @@ const responseToPlaylist = (response: any) => ({
   url: response["url"],
   name: response["name"],
   art: response["art"],
+  tracks: response["tracks"].map(responseToTrack),
+})
+
+const responseToPlaylistOverview = (response: any) => ({
+  id: response["id"],
+  url: response["url"],
+  name: response["name"],
+  art: response["art"],
   tracks: response["tracks"],
 })
 
 const responseToSession = (response: any) => ({
-  id: response["id"],
   name: response["name"],
   playlist: responseToPlaylist(response["playlist"]),
 })
@@ -181,8 +188,8 @@ export const postPlaylist = async (
   try {
     let response = await axios.post(endpoint, null, config)
     let data = response.data
-    let session = responseToSession(data["session"])
-    let tracks = data["tracks"].map(responseToTrack)
+    let session = responseToSession(data)
+    let tracks = data.playlist.tracks.map(responseToTrack)
     setSession(session)
     setTracks(tracks)
     return 0
@@ -194,11 +201,13 @@ export const postPlaylist = async (
         setError("Something went wrong")
       }
       return 1
+    } else {
+      throw err
     }
   }
 }
-export const stopSession = async (token: string, sessionId: number) => {
-  const endpoint = `/api/session/${sessionId}`
+export const stopSession = async (token: string) => {
+  const endpoint = `/server/auth/spotify/session`
   const config = {
     headers: getHeaders(token),
   }
@@ -215,9 +224,10 @@ export const getPlaylists = async (
   try {
     let response = await axios.get(endpoint, config)
     let data = response.data
-    let playlists = data.map(responseToPlaylist)
+    let playlists = data.map(responseToPlaylistOverview)
     setPlaylists(playlists)
   } catch (err) {
+    console.log(err)
     setPlaylists([])
   }
 }

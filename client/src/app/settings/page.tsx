@@ -24,9 +24,8 @@ import cd from "../../../public/cd.webp"
 import { UserContext } from "../context"
 import { useRouter, useSearchParams } from "next/navigation"
 
-const LoginPanel = (props: { setToken: SetState<string | undefined> }) => {
-  const { token, setToken, spotifyUser, setSpotifyUser } =
-    useContext(UserContext)
+const LoginPanel = () => {
+  const { setToken, setSpotifyUser } = useContext(UserContext)
   const [userText, setUserText] = useState("")
   const [passwordText, setPasswordText] = useState("")
   const [error, setError] = useState("")
@@ -185,16 +184,17 @@ const PlaylistCard = (props: {
   )
 }
 
-const SettingsPanel = (props: {
-  token: string
-  user: SpotifyUser | undefined
-  setToken: SetState<string | undefined>
-  session: Session | undefined
-  setSession: SetState<Session | undefined>
-  setTracks: SetState<Track[]>
-}) => {
-  const { token, setToken, spotifyUser, setSpotifyUser } =
-    useContext(UserContext)
+const SettingsPanel = () => {
+  const {
+    token,
+    setToken,
+    spotifyUser,
+    setSpotifyUser,
+    session,
+    setSession,
+    tracks,
+    setTracks,
+  } = useContext(UserContext)
   const params = useSearchParams()
   const router = useRouter()
   const [spotifyAuthenticated, setSpotifyAuthenticated] = useState(false)
@@ -212,13 +212,9 @@ const SettingsPanel = (props: {
       const code = params.get("code")
       const stateParam = params.get("state")
       const sendSpotifyAuth = async (code: string) => {
-        console.log("sending auth")
         let user = await sendAuthCode(token, code)
-        console.log("Checks okay")
         if (user) {
-          console.log("user")
           setSpotifyUser(user)
-          console.log("Getting the playlists")
           getPlaylists(token, setPlaylists)
         }
       }
@@ -226,8 +222,10 @@ const SettingsPanel = (props: {
         sendSpotifyAuth(code)
       }
       if (spotifyUser) {
+        console.log("getting playlists")
         getPlaylists(token, setPlaylists)
       }
+      console.log("Spotify user is", spotifyUser)
     }
     return () => {
       ignore = true
@@ -241,20 +239,22 @@ const SettingsPanel = (props: {
     }
   }, [spotifyUser])
   const onPlaylistSubmit = async (sessionName: string, playlistURL: string) => {
-    setLoadingSession(true)
-    let result = await postPlaylist(
-      props.token,
-      sessionName,
-      playlistURL,
-      setError,
-      props.setSession,
-      props.setTracks
-    )
-    if (result === 0) {
-      setPlaylistText("")
-      setSessionNameText("")
+    if (token) {
+      setLoadingSession(true)
+      let result = await postPlaylist(
+        token,
+        sessionName,
+        playlistURL,
+        setError,
+        setSession,
+        setTracks
+      )
+      if (result === 0) {
+        setPlaylistText("")
+        setSessionNameText("")
+      }
+      setLoadingSession(false)
     }
-    setLoadingSession(false)
   }
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -273,13 +273,13 @@ const SettingsPanel = (props: {
     router.replace("/")
   }
   const onClickPlaylistCard = (p: PlaylistOverview) => {
-    onPlaylistSubmit(sessionNameText, p.url)
+    onPlaylistSubmit(sessionNameText, p.id)
   }
   const onClickStopSession = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (props.session) {
+    if (session && token) {
       setLoadingSession(true)
-      stopSession(props.token, props.session.id)
-      props.setSession(undefined)
+      stopSession(token)
+      setSession(undefined)
       setLoadingSession(false)
     }
   }
@@ -360,20 +360,20 @@ const SettingsPanel = (props: {
           wrapperClass="color-ring-wrapper"
           colors={["#0f0765", "#0f0765", "#0f0765", "#0f0765", "#0f0765"]}
         />
-      ) : props.session ? (
+      ) : session ? (
         <div>
           <h3 className="text-3xl font-bold my-4">Current session</h3>
           <div className="flex flex-row items-center gap-4">
             <Image
               className="rounded-xl"
-              src={props.session.playlist.art}
-              alt={`Playlist art for ${props.session.playlist.name}`}
+              src={session.playlist.art}
+              alt={`Playlist art for ${session.playlist.name}`}
               width={100}
               height={100}
             />
             <div className="flex flex-col">
-              <div className="font-bold text-xl">{props.session.name}</div>
-              <div>{props.session.playlist.name}</div>
+              <div className="font-bold text-xl">{session.name}</div>
+              <div>{session.playlist.name}</div>
             </div>
           </div>
           <button
@@ -414,31 +414,9 @@ const SettingsPanel = (props: {
   )
 }
 
-const AdminPanel = (props: {
-  token: string | undefined
-  user: SpotifyUser | undefined
-  setToken: SetState<string | undefined>
-  session: Session | undefined
-  setSession: SetState<Session | undefined>
-  setTracks: SetState<Track[]>
-}) => {
+const AdminPanel = (props: {}) => {
   let { token } = useContext(UserContext)
-  return (
-    <div>
-      {!token ? (
-        <LoginPanel setToken={props.setToken} />
-      ) : (
-        <SettingsPanel
-          token={token}
-          user={props.user}
-          setToken={props.setToken}
-          session={props.session}
-          setSession={props.setSession}
-          setTracks={props.setTracks}
-        />
-      )}
-    </div>
-  )
+  return <div>{!token ? <LoginPanel /> : <SettingsPanel />}</div>
 }
 
 export default AdminPanel
