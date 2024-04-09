@@ -97,7 +97,7 @@ export const getSpotifyUser = async (accessToken: string) => {
 }
 
 const nameRegex =
-  /(.+)(( - |())(Radio Mix|Full Length Version|Radio Edit|Deluxe Edition)?((Remastered )?([0-9][0-9][0-9][0-9])?( Remastered( Version)?| Remaster| Mix)?)?()?)/
+  /(.+)(( - )(Radio Mix|Full Length Version|Radio Edit|Deluxe Edition)?((Remastered )?([0-9][0-9][0-9][0-9])?( Remastered( Version)?| Remaster| Mix)?)?()?)/
 
 const sanitiseName = (name: string) => {
   let match = name.match(nameRegex)
