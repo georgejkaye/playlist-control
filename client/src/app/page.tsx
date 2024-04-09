@@ -262,8 +262,10 @@ const Home = () => {
     socket.on("connect", onConnect)
     socket.on("disconnect", onDisconnect)
     socket.on("data", (data) => {
-      let current = data.currentTrack
-      setCurrent(current === null ? undefined : current)
+      let current = data.current
+      let queue = data.queue
+      setCurrent(current)
+      setQueue(queue)
     })
     return () => {
       socket.off("connect", onConnect)

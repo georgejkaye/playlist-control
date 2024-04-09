@@ -20,6 +20,7 @@ import {
   getCurrentTrack,
   getPlaylistDetails,
   getPlaylists,
+  getQueue,
   getSpotifyUser,
 } from "./spotify.js"
 
@@ -177,18 +178,18 @@ const getData = async () => {
     return undefined
   }
   const tracks = await getTracks([])
-  const currentTrack = await getCurrentTrack(token)
-  return { currentTrack }
+  const response = await getQueue(token)
+  return response
 }
 
 io.on("connection", async (socket) => {
   console.log("A user connected")
   let data = await getData()
+  console.log(data)
   socket.emit("data", data)
 })
 
 setInterval(async () => {
-  io.emit("update", "Hello!")
   let data = await getData()
   io.emit("data", data)
 }, 10000)

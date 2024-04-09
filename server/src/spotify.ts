@@ -200,6 +200,17 @@ export const getCurrentTrack = async (accessToken: string) => {
   )
 }
 
+export const getQueue = async (accessToken: string) => {
+  return executeGetRequest(accessToken, "/me/player/queue", (data) => {
+    let current = responseToTrack(data.currently_playing)
+    let queue = data.queue.map(responseToTrack)
+    return {
+      current,
+      queue,
+    }
+  })
+}
+
 export const getPlaylists = async (accessToken: string) => {
   let playlists = await executePaginatedRequest<
     PlaylistOverview[],
