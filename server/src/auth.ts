@@ -2,11 +2,21 @@ import { getSecret } from "./utils.js"
 import bcrypt from "bcryptjs"
 import jwt, { JwtPayload } from "jsonwebtoken"
 import { getPasswordHash } from "./database.js"
+import { randomBytes } from "crypto"
 
 export const tokenExpiresMinutes = 30
 
 const secretKeyFile = process.env.SECRET_KEY || "api.secret"
 const secretKey = await getSecret(secretKeyFile)
+const salt = await bcrypt.genSalt()
+
+const passwordLength = 6
+
+export const generatePassword = async () => {
+  const password = randomBytes(passwordLength / 2).toString("hex")
+  const hashedPassword = await bcrypt.hash(password, salt)
+  return { password, hashedPassword }
+}
 
 const compareWithAdminPassword = (password: string, hashedPassword: string) => {
   return new Promise<boolean>((resolve, reject) => {
@@ -20,9 +30,9 @@ const compareWithAdminPassword = (password: string, hashedPassword: string) => {
   })
 }
 
-export const authenticateUser = async (username: string, password: string) => {
+export const authenticateUser = async (sessionId: number, password: string) => {
   return new Promise<boolean>(async (resolve, reject) => {
-    let hashedPassword = await getPasswordHash(username)
+    let hashedPassword = await getPasswordHash(sessionId)
     if (!hashedPassword) {
       resolve(false)
     } else {
@@ -32,10 +42,10 @@ export const authenticateUser = async (username: string, password: string) => {
   })
 }
 
-export const generateToken = (user: string) =>
-  new Promise((resolve, reject) => {
+export const generateToken = (sessionId: number) =>
+  new Promise<string>((resolve, reject) => {
     jwt.sign(
-      { sub: user },
+      { sub: sessionId },
       secretKey,
       {
         expiresIn: tokenExpiresMinutes * 60,

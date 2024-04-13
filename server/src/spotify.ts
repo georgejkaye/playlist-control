@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from "axios"
 import { getSecret } from "./utils.js"
-import { Playlist, PlaylistOverview, Track } from "./structs.js"
-import { updateTokens } from "./database.js"
+import { Playlist, PlaylistOverview, Session, Track } from "./structs.js"
+import { getSpotifyTokens, updateTokens } from "./database.js"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
@@ -51,12 +51,15 @@ export const exchangeAccessCodeForTokens = async (code: string) => {
   }
 }
 
-export const refreshTokens = async (username: string, refreshToken: string) => {
+export const refreshTokens = async (
+  sessionId: number,
+  tokens: SpotifyTokens
+) => {
   const now = new Date()
   const headers = getSpotifyHeaders()
   const params = {
     grant_type: "refresh_token",
-    refresh_token: refreshToken,
+    refresh_token: tokens.refresh,
   }
   try {
     let response = await axios.post(SPOTIFY_TOKEN_URL, null, {
@@ -64,7 +67,7 @@ export const refreshTokens = async (username: string, refreshToken: string) => {
       params,
     })
     let tokens = getTokensFromTokenResponse(now, response)
-    updateTokens(username, tokens)
+    updateTokens(sessionId, tokens)
     return tokens
   } catch (e) {
     let err = e as AxiosError
@@ -79,22 +82,6 @@ const getApiURLFromEndpoint = (endpoint: string) =>
 const getAuthHeader = (accessToken: string) => ({
   Authorization: `Bearer ${accessToken}`,
 })
-
-export const getSpotifyUser = async (accessToken: string) => {
-  const url = getApiURLFromEndpoint("/me")
-  const headers = getAuthHeader(accessToken)
-  try {
-    let response = await axios.get(url, { headers })
-    let data = response.data
-    return {
-      name: data["display_name"],
-      image: data["images"][0]["url"],
-      id: data["id"],
-    }
-  } catch (e) {
-    return undefined
-  }
-}
 
 const nameRegex =
   /(.+)(( - )(Radio Mix|Full Length Version|Radio Edit|Deluxe Edition)?((Remastered )?([0-9][0-9][0-9][0-9])?( Remastered( Version)?| Remaster| Mix)?)?()?)/
@@ -141,52 +128,73 @@ const responseToPlaylist = (raw: any) => {
 }
 
 const executeGetRequest = async <T>(
-  accessToken: string,
+  sessionId: number,
   endpoint: string,
   dataCallback: (data: any) => T
 ) => {
   const url = getApiURLFromEndpoint(endpoint)
-  const headers = getAuthHeader(accessToken)
-  try {
-    let response = await axios.get(url, { headers })
-    let data = response.data
-    return dataCallback(data)
-  } catch (e) {
-    let err = e as AxiosError
-    console.log(`${err.status}: ${err.message}`)
+  let currentTokens = await getSpotifyTokens(sessionId)
+  if (!currentTokens) {
     return undefined
+  } else {
+    const headers = getAuthHeader(currentTokens.access)
+    try {
+      let response = await axios.get(url, { headers })
+      let data = response.data
+      return dataCallback(data)
+    } catch (e) {
+      let err = e as AxiosError
+      console.log(`${err.status}: ${err.message}`)
+      return undefined
+    }
   }
 }
 
 const executePaginatedRequest = async <T, U>(
-  accessToken: string,
+  sessionId: number,
   endpoint: string,
   outerCallback: (data: any, dataArray: U[]) => T,
   pageCallback: (dataArray: U[], data: any) => string | undefined
 ) => {
   const url = getApiURLFromEndpoint(endpoint)
-  const headers = getAuthHeader(accessToken)
-  try {
-    var next: string | undefined = url
-    let pages = []
-    let pageData: U[] = []
-    while (next) {
-      let response = await axios.get(next, { headers })
-      let data = response.data
-      pages.push(data)
-      next = pageCallback(pageData, data)
-    }
-    return outerCallback(pages, pageData)
-  } catch (e) {
-    let err = e as AxiosError
-    console.log(`${err.status}: ${err.message}`)
+  let tokens = await getSpotifyTokens(sessionId)
+  if (!tokens) {
     return undefined
+  } else {
+    const headers = getAuthHeader(tokens.access)
+    try {
+      var next: string | undefined = url
+      let pages = []
+      let pageData: U[] = []
+      while (next) {
+        let response = await axios.get(next, { headers })
+        let data = response.data
+        pages.push(data)
+        next = pageCallback(pageData, data)
+      }
+      return outerCallback(pages, pageData)
+    } catch (e) {
+      let err = e as AxiosError
+      console.log(`${err.status}: ${err.message}`)
+      return undefined
+    }
   }
 }
 
-export const getCurrentTrack = async (accessToken: string) => {
+export const getSpotifyUser = async (sessionId: number) => {
+  const url = getApiURLFromEndpoint("/me")
+  return executeGetRequest(sessionId, url, (data) => {
+    return {
+      name: data["display_name"],
+      image: data["images"][0]["url"],
+      id: data["id"],
+    }
+  })
+}
+
+export const getCurrentTrack = async (sessionId: number) => {
   return executeGetRequest(
-    accessToken,
+    sessionId,
     "/me/player/currently-playing",
     (data) => {
       let item = data.item
@@ -200,8 +208,8 @@ export const getCurrentTrack = async (accessToken: string) => {
   )
 }
 
-export const getQueue = async (accessToken: string) => {
-  return executeGetRequest(accessToken, "/me/player/queue", (data) => {
+export const getQueue = async (sessionId: number) => {
+  return executeGetRequest(sessionId, "/me/player/queue", (data) => {
     let current = responseToTrack(data.currently_playing)
     let queue = data.queue.map(responseToTrack)
     return {
@@ -211,12 +219,12 @@ export const getQueue = async (accessToken: string) => {
   })
 }
 
-export const getPlaylists = async (accessToken: string) => {
+export const getPlaylists = async (sessionId: number) => {
   let playlists = await executePaginatedRequest<
     PlaylistOverview[],
     PlaylistOverview
   >(
-    accessToken,
+    sessionId,
     "/me/playlists",
     (pages, pageData) => pageData,
     (dataArray, data) => {
@@ -230,12 +238,31 @@ export const getPlaylists = async (accessToken: string) => {
   return playlists
 }
 
+export const getPlaylistOverview = async (
+  sessionId: number,
+  playlistId: string
+) => {
+  let playlist = await executeGetRequest<PlaylistOverview>(
+    sessionId,
+    `/playlists/${playlistId}`,
+    (data) => {
+      let id = data.id
+      let art = data.images[0].url
+      let name = data.name
+      let url = data.external_urls.spotify
+      let tracks = data.tracks.total
+      return { id, url, name, art, tracks }
+    }
+  )
+  return playlist
+}
+
 export const getPlaylistDetails = async (
-  accessToken: string,
+  sessionId: number,
   playlistId: string
 ) => {
   let playlist = await executePaginatedRequest<Playlist, Track>(
-    accessToken,
+    sessionId,
     `/playlists/${playlistId}`,
     (pages, pageData) => {
       let first = pages[0]
@@ -255,4 +282,23 @@ export const getPlaylistDetails = async (
     }
   )
   return playlist
+}
+
+export const getSessionOverview = async (
+  sessionId: number,
+  sessionName: string,
+  sessionHost: string,
+  playlistId: string | undefined
+) => {
+  let playlist = !playlistId
+    ? undefined
+    : await getPlaylistOverview(sessionId, playlistId)
+  let current = await getCurrentTrack(sessionId)
+  return {
+    id: sessionId,
+    name: sessionName,
+    host: sessionHost,
+    playlist,
+    current,
+  }
 }

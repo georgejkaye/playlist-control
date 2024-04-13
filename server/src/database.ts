@@ -1,7 +1,15 @@
 import { Client, connect } from "ts-postgres"
-import { Playlist, Session, Track } from "./structs.js"
+import { Playlist, Session, SessionOverview, Track } from "./structs.js"
 import { getSecret } from "./utils.js"
-import { SpotifyTokens, getSpotifyUser, refreshTokens } from "./spotify.js"
+import {
+  SpotifyTokens,
+  getPlaylistDetails,
+  getPlaylistOverview,
+  getSessionOverview,
+  getSpotifyUser,
+  refreshTokens,
+} from "./spotify.js"
+import { generatePassword } from "./auth.js"
 
 const DB_HOST = process.env.DB_HOST || "georgejkaye.com"
 const DB_USER = process.env.DB_USER || "playlist"
@@ -24,10 +32,10 @@ const init = async () =>
 
 init()
 
-export const checkUserExists = async (username: string) => {
-  const queryText = "SELECT user_name FROM LocalUser WHERE user_name = $1"
+export const validateSessionId = async (sessionId: number) => {
+  const queryText = "SELECT session_id FROM Session WHERE session_id = $1"
   const query = { text: queryText }
-  const result = await client.query(query, [username])
+  const result = await client.query(query, [sessionId])
   if (result.rows.length !== 1) {
     return false
   } else {
@@ -35,11 +43,21 @@ export const checkUserExists = async (username: string) => {
   }
 }
 
-export const getPasswordHash = async (username: string) => {
-  const queryText =
-    "SELECT user_password_hash FROM LocalUser WHERE user_name = $1"
+export const checkUserExists = async (sessionId: string) => {
+  const queryText = "SELECT session_host FROM Session WHERE session_id = $1"
   const query = { text: queryText }
-  const result = await client.query(query, [username])
+  const result = await client.query(query, [sessionId])
+  if (result.rows.length !== 1) {
+    return false
+  } else {
+    return true
+  }
+}
+
+export const getPasswordHash = async (sessionId: number) => {
+  const queryText = "SELECT password_hash FROM Session WHERE session_id = $1"
+  const query = { text: queryText }
+  const result = await client.query(query, [sessionId])
   if (result.rows.length !== 1) {
     return undefined
   } else {
@@ -48,61 +66,17 @@ export const getPasswordHash = async (username: string) => {
   }
 }
 
-export const getTokens = async (username: string) => {
+export const getQueuedTracks = async (session_id: number) => {
   const queryText =
-    "SELECT spotify_id, access_token, refresh_token, expires_at FROM LocalUser WHERE user_name = $1"
+    "SELECT track_id, queued_at FROM Track WHERE session_id = $1"
   const query = { text: queryText }
-  let result = await client.query(query, [username])
-  let rows = result.rows
-  if (rows.length !== 1) {
-    return undefined
-  } else {
-    let row = rows[0]
-    let spotifyId = row.get("spotify_id")
-    if (!spotifyId) {
-      return undefined
-    } else {
-      var tokens
-      var access: string = row.get("access_token")
-      let refresh: string = row.get("refresh_token")
-      let expires: Date = row.get("expires_at")
-      if (expires < new Date()) {
-        tokens = await refreshTokens(username, refresh)
-      } else {
-        tokens = { access, refresh, expires }
-      }
-      return tokens
-    }
-  }
-}
-
-export const getQueuedTracks = async (username: string) => {
-  const queryText = "SELECT track_id, queued_at FROM Track WHERE user_name = $1"
-  const query = { text: queryText }
-  let result = await client.query(query, [username])
+  let result = await client.query(query, [session_id])
   let rows = result.rows
   let queueds = rows.map((row) => ({
     id: row.get("track_id"),
     time: row.get("queued_at"),
   }))
   return queueds
-}
-
-export const getAccessToken = async (username: string) => {
-  let tokens = await getTokens(username)
-  if (!tokens) {
-    return undefined
-  }
-  return tokens.access
-}
-
-export const getAuthData = async (username: string) => {
-  let token = await getAccessToken(username)
-  if (!token) {
-    return undefined
-  }
-  let user = getSpotifyUser(token)
-  return user
 }
 
 const selectTracksAndArtists = `
@@ -145,28 +119,61 @@ export const getTracks = async (trackIds: String[]) => {
   return result
 }
 
-export const updateTokens = async (username: string, tokens: SpotifyTokens) => {
-  let user = await getSpotifyUser(tokens.access)
-  if (user) {
-    const queryText = `
-      UPDATE LocalUser
-      SET spotify_id = $1, access_token = $2, refresh_token = $3, expires_at = $4
-      WHERE user_name = $5
-    `
-    const query = { text: queryText }
-    await client.query(query, [
-      user.id,
-      tokens.access,
-      tokens.refresh,
-      tokens.expires,
-      username,
-    ])
+export const getSpotifyTokens = async (sessionId: number) => {
+  const queryText = `
+    SELECT access_token, refresh_token, expires_at
+    FROM Session
+    WHERE session_id = $1
+  `
+  const query = { text: queryText }
+  let result = await client.query(query, [sessionId])
+  let rows = result.rows
+  if (rows.length !== 1) {
+    return undefined
+  } else {
+    let row = rows[0]
+    let access = row.get("access_token")
+    if (!access) {
+      return undefined
+    } else {
+      let refresh = row.get("refresh_token")
+      let expires = row.get("expires_at")
+      let oldTokens = { access, refresh, expires }
+      // Amount of remaining time to prompt refreshing
+      const expiryRange = 60 * 1000
+      if (oldTokens.expires >= new Date(new Date().getTime() + expiryRange)) {
+        return oldTokens
+      }
+      let newTokens = await refreshTokens(sessionId, oldTokens)
+      if (!newTokens) {
+        return undefined
+      }
+      return newTokens
+    }
   }
+}
+
+export const updateTokens = async (
+  sessionId: number,
+  tokens: SpotifyTokens
+) => {
+  const queryText = `
+      UPDATE Session
+      SET access_token = $2, refresh_token = $3, expires_at = $4
+      WHERE session_host = $5
+    `
+  const query = { text: queryText }
+  await client.query(query, [
+    tokens.access,
+    tokens.refresh,
+    tokens.expires,
+    sessionId,
+  ])
 }
 
 export const discardTokens = async (username: string) => {
   const queryText = `
-    UPDATE LocalUser
+    UPDATE Session
     SET
       spotify_id = NULL, access_token = NULL,
       refresh_token = NULL, expires_at = NULL
@@ -186,22 +193,103 @@ const makeParameters = (params: string[][]) => {
     .join(",")
 }
 
-export const createSession = async (username: string, session: Session) => {
+export const createSession = async (
+  sessionHost: string,
+  sessionName: string
+) => {
+  const { password, hashedPassword } = await generatePassword()
   const queryText = `
-    UPDATE LocalUser
-    SET session_name = $2, playlist_id = $3, session_start = NOW()
-    WHERE user_name = $1
+    INSERT INTO Session (session_host, session_name, password_hash, session_start)
+    VALUES ($1, $2, $3, NOW())
+    RETURNING session_id
   `
   const query = { text: queryText }
-  client.query(query, [username, session.name, session.playlist.id])
+  let result = await client.query(query, [
+    sessionHost,
+    sessionName,
+    hashedPassword,
+  ])
+  let sessionId = result.rows[0].get("session_id")
+  return {
+    session: {
+      id: sessionId,
+      name: sessionName,
+      host: sessionHost,
+      playlist: undefined,
+      current: undefined,
+    },
+    password,
+  }
 }
 
-export const deleteSession = async (username: string) => {
+export const getSessions = async () => {
   const queryText = `
-    UPDATE LocalUser
-    SET session_name = '', playlist_id = '', session_start = NULL
-    WHERE user_name = $1
+    SELECT session_id, session_host, session_name, playlist_id, access_token, refresh_token, expires_at
+    FROM Session
   `
   const query = { text: queryText }
-  client.query(query, [username])
+  let result = await client.query(query)
+  let sessions = result.rows.map(async (row) => {
+    let id = row.get("session_id")
+    let host = row.get("session_host")
+    let name = row.get("session_name")
+    let playlistId = row.get("playlist_id")
+    return await getSessionOverview(id, name, host, playlistId)
+  })
+  return sessions
+}
+
+export const getSession = async (sessionId: number) => {
+  const queryText = `
+    WITH queued_tracks AS (
+      SELECT track_id, queued_at
+      FROM Track
+      WHERE session_id = $1
+    )
+    SELECT session_name, playlist_id, ARRAY_AGG(playlist_track.track_id, playlist_track.queued_at) AS queued_tracks
+    FROM Session
+    WHERE session_id = $1
+  `
+  const query = { text: queryText }
+  const result = await client.query(query, [sessionId])
+  const rows = result.rows
+  if (rows.length !== 1) {
+    return undefined
+  } else {
+    let row = rows[0]
+    let sessionName = row.get("session_name")
+    let playlistId = row.get("playlist_id")
+    let queuedTracks = row.get("queued_tracks").map((track: any) => ({
+      id: track["track_id"],
+      time: track["queued_at"],
+    }))
+    let playlist = await getPlaylistDetails(sessionId, playlistId)
+    if (!playlist) {
+      return undefined
+    } else {
+      return {
+        name: sessionName,
+        playlist,
+        queuedTracks,
+      }
+    }
+  }
+}
+
+export const deleteSession = async (sessionId: string) => {
+  const queryText = `
+    DELETE FROM Session WHERE session_id = $1
+  `
+  const query = { text: queryText }
+  client.query(query, [sessionId])
+}
+
+export const setPlaylist = async (sessionId: number, playlistId: string) => {
+  const queryText = `
+    UPDATE Session
+    SET playlist_id = $1
+    WHERE session_id = $2
+  `
+  const query = { text: queryText }
+  client.query(query, [playlistId, sessionId])
 }

@@ -1,7 +1,14 @@
+import { SpotifyTokens } from "./spotify.js"
+
 export interface SpotifyUser {
   name: string
   image: string
   id: string
+}
+
+export interface QueuedTrack {
+  id: number
+  time: Date
 }
 
 export interface Playlist {
@@ -20,8 +27,18 @@ export interface PlaylistOverview {
   tracks: number
 }
 
-export interface Session {
+export interface SessionOverview {
+  id: number
   name: string
+  host: string
+  playlist: PlaylistOverview | undefined
+  current: Track | undefined
+}
+
+export interface Session {
+  id: number
+  name: string
+  host: string
   playlist: Playlist
 }
 
@@ -52,9 +69,4 @@ export interface CurrentTrack {
 
 export interface Data {
   currentTrack: Track
-}
-
-export interface QueuedTrack {
-  id: number
-  time: Date
 }
