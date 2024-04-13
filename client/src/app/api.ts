@@ -111,7 +111,7 @@ export const postQueue = async (
   setTracks: SetState<Track[]>,
   setQueue: SetState<Track[]>
 ) => {
-  const endpoint = "/api/queue"
+  const endpoint = "/server/queue"
   const config = {
     params: {
       track_id: track.id,

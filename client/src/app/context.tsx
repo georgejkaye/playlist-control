@@ -1,7 +1,14 @@
 "use client"
 
 import { createContext, useEffect, useState } from "react"
-import { Session, SetState, SpotifyUser, Track } from "./structs"
+import {
+  Session,
+  SessionOverview,
+  SetState,
+  SpotifyUser,
+  Track,
+  responseToSessionOverview,
+} from "./structs"
 import TopBar from "./components/bar"
 import { usePathname } from "next/navigation"
 import { socket } from "./socket"
@@ -12,6 +19,8 @@ interface AppData {
   setToken: SetState<string | undefined>
   spotifyUser: SpotifyUser | undefined
   setSpotifyUser: SetState<SpotifyUser | undefined>
+  sessions: SessionOverview[]
+  setSessions: SetState<SessionOverview[]>
   session: Session | undefined
   setSession: SetState<Session | undefined>
   tracks: Track[]
@@ -29,6 +38,8 @@ const defaultAppData: AppData = {
   setToken: () => {},
   spotifyUser: undefined,
   setSpotifyUser: () => {},
+  sessions: [],
+  setSessions: () => {},
   session: undefined,
   setSession: () => {},
   tracks: [],
@@ -52,6 +63,7 @@ export const AppContextWrapper = (
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | undefined>(
     undefined
   )
+  const [sessions, setSessions] = useState<SessionOverview[]>([])
   const [session, setSession] = useState<Session | undefined>(undefined)
   const [tracks, setTracks] = useState<Track[]>([])
   const [current, setCurrent] = useState<Track | undefined>(undefined)
@@ -64,6 +76,8 @@ export const AppContextWrapper = (
     setToken,
     spotifyUser,
     setSpotifyUser,
+    sessions,
+    setSessions,
     session,
     setSession,
     tracks,
@@ -103,6 +117,7 @@ export const AppContextWrapper = (
     socket.on("connect", onConnect)
     socket.on("disconnect", onDisconnect)
     socket.on("data", (data) => {
+      console.log(data)
       let current = data.current
       let queue = data.queue
       let queueds = data.queueds
@@ -111,6 +126,19 @@ export const AppContextWrapper = (
       setCurrent(current)
       setQueue(queue)
       setSession(session)
+    })
+    socket.on("session", (msg) => {
+      console.log(msg)
+    })
+    socket.on("sessions", (data) => {
+      console.log(data)
+      let sessions = data.map(responseToSessionOverview)
+      setSessions(sessions)
+    })
+    socket.on("session_created", (data) => {
+      let { session, password } = data
+      let sessionObject = responseToSessionOverview(session)
+      setSession(sessionObject)
     })
     return () => {
       socket.off("connect", onConnect)

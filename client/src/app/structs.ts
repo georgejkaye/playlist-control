@@ -24,6 +24,30 @@ export interface PlaylistOverview {
   tracks: number
 }
 
+export const responseToPlaylistOverview = (raw: any) => ({
+  id: raw["id"],
+  url: raw["url"],
+  name: raw["name"],
+  art: raw["art"],
+  tracks: raw["tracks"],
+})
+
+export interface SessionOverview {
+  id: string
+  name: string
+  host: string
+  playlist: PlaylistOverview
+  current: Track
+}
+
+export const responseToSessionOverview = (raw: any) => ({
+  id: raw["id"],
+  name: raw["name"],
+  host: raw["host"],
+  playlist: responseToPlaylistOverview(raw["playlist"]),
+  current: raw["current"],
+})
+
 export interface Session {
   name: string
   playlist: Playlist
