@@ -298,7 +298,8 @@ const SettingsPanel = () => {
     }
     let state = await generateRandomString()
     localStorage.setItem("state", state)
-    let scopes = "playlist-read-private user-read-currently-playing"
+    let scopes =
+      "playlist-read-private user-read-currently-playing user-read-playback-state"
     router.push(
       "https://accounts.spotify.com/authorize?" +
         querystring.stringify({
