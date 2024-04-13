@@ -106,9 +106,11 @@ export const AppContextWrapper = (
       let current = data.current
       let queue = data.queue
       let queueds = data.queueds
+      let session = data.session
       setQueuedTracks(new Set(queueds))
       setCurrent(current)
       setQueue(queue)
+      setSession(session)
     })
     return () => {
       socket.off("connect", onConnect)

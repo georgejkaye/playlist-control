@@ -3,6 +3,7 @@
 import React, { useContext, useEffect, useState } from "react"
 import {
   CurrentTrack,
+  Playlist,
   PlaylistOverview,
   Session,
   SetState,
@@ -90,9 +91,11 @@ const QueueAdderTrackCard = (props: {
   setAdding: SetState<boolean>
 }) => {
   const { queuedTracks } = useContext(AppContext)
-  const [isQueueable, setQueueable] = useState(queuedTracks.has(props.track.id))
+  const [isQueueable, setQueueable] = useState(
+    !queuedTracks.has(props.track.id)
+  )
   useEffect(() => {
-    setQueueable(queuedTracks.has(props.track.id))
+    setQueueable(!queuedTracks.has(props.track.id))
   }, [queuedTracks])
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isQueueable) {
@@ -103,9 +106,7 @@ const QueueAdderTrackCard = (props: {
   return (
     <div
       className={`${trackCardStyle} ${
-        !queuedTracks.has(props.track.id)
-          ? "text-gray-600"
-          : "hover:bg-gray-700 cursor-pointer"
+        !isQueueable ? "text-gray-600" : "hover:bg-gray-700 cursor-pointer"
       }`}
       onClick={onClickCard}
     >
@@ -126,7 +127,7 @@ const QueueAdderTrackCard = (props: {
   )
 }
 
-const QueueingFromCard = (props: { playlist: PlaylistOverview }) => {
+const QueueingFromCard = (props: { playlist: Playlist }) => {
   return (
     <div className="flex flex-row items-center mb-4 gap-4">
       <div>
@@ -260,7 +261,7 @@ const Home = () => {
               session={session}
               isAdding={isAdding}
               setAdding={setAdding}
-              tracks={tracks}
+              tracks={session.playlist.tracks}
               setTracks={setTracks}
               setCurrent={setCurrent}
               setQueue={setQueue}

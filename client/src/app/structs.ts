@@ -26,7 +26,7 @@ export interface PlaylistOverview {
 
 export interface Session {
   name: string
-  playlist: PlaylistOverview
+  playlist: Playlist
 }
 
 export interface Artist {
