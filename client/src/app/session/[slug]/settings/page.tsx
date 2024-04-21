@@ -82,15 +82,7 @@ const LoginPanel = () => {
           className="p-4 my-2 text-black w-60 rounded"
         />
         {isLoading ? (
-          <ColorRing
-            visible={true}
-            height="80"
-            width="80"
-            ariaLabel="color-ring-loading"
-            wrapperStyle={{}}
-            wrapperClass="color-ring-wrapper"
-            colors={["#0f0765", "#0f0765", "#0f0765", "#0f0765", "#0f0765"]}
-          />
+          <Loader />
         ) : (
           <div className="flex flex-row">
             <button
@@ -352,15 +344,7 @@ const SettingsPanel = () => {
         )}
       </div>
       {isLoadingSession ? (
-        <ColorRing
-          visible={true}
-          height="80"
-          width="80"
-          ariaLabel="color-ring-loading"
-          wrapperStyle={{}}
-          wrapperClass="color-ring-wrapper"
-          colors={["#0f0765", "#0f0765", "#0f0765", "#0f0765", "#0f0765"]}
-        />
+        <Loader />
       ) : session ? (
         <div>
           <h3 className="text-3xl font-bold my-4">Current session</h3>

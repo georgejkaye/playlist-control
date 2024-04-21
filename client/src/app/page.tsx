@@ -6,6 +6,7 @@ import { SessionOverview } from "./structs"
 import { createSession } from "./api"
 import { useRouter } from "next/navigation"
 import { ColorRing } from "react-loader-spinner"
+import { Loader } from "./loader"
 
 const SessionCard = (props: { session: SessionOverview }) => {
   const router = useRouter()
@@ -90,15 +91,7 @@ const MakeSession = (props: { stopMaking: () => void }) => {
     "my-4 p-2 w-48 rounded-xl bg-gray-100 bg-gray-700 hover:bg-gray-500 cursor-pointer"
   const boxDivStyle = "w-full"
   return isLoading ? (
-    <ColorRing
-      visible={true}
-      height="80"
-      width="80"
-      ariaLabel="color-ring-loading"
-      wrapperStyle={{}}
-      wrapperClass="color-ring-wrapper"
-      colors={["#0f0765", "#0f0765", "#0f0765", "#0f0765", "#0f0765"]}
-    />
+    <Loader />
   ) : (
     <div className="flex flex-col">
       <h2 className="text-xl font-bold">Create a new session</h2>
@@ -147,12 +140,16 @@ const Home = () => {
   return (
     <div>
       {!isMaking ? (
-        <div className="flex flex-col gap-4">
-          <NewSessionCard setMaking={() => setMaking(true)} />
-          {sessions.map((session) => (
-            <SessionCard key={session.id} session={session} />
-          ))}
-        </div>
+        !sessions ? (
+          <Loader />
+        ) : (
+          <div className="flex flex-col gap-4">
+            <NewSessionCard setMaking={() => setMaking(true)} />
+            {sessions.map((session) => (
+              <SessionCard key={session.id} session={session} />
+            ))}
+          </div>
+        )
       ) : (
         <MakeSession stopMaking={() => setMaking(false)} />
       )}

@@ -270,15 +270,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
     performRequests()
   }, [])
   return isLoading || !session ? (
-    <ColorRing
-      visible={true}
-      height="80"
-      width="80"
-      ariaLabel="color-ring-loading"
-      wrapperStyle={{}}
-      wrapperClass="color-ring-wrapper"
-      colors={["#0f0765", "#0f0765", "#0f0765", "#0f0765", "#0f0765"]}
-    />
+    <Loader />
   ) : (
     <div>
       <Header session={session} />

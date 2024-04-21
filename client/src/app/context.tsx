@@ -64,7 +64,9 @@ export const AppContextWrapper = (
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | undefined>(
     undefined
   )
-  const [sessions, setSessions] = useState<SessionOverview[]>([])
+  const [sessions, setSessions] = useState<SessionOverview[] | undefined>(
+    undefined
+  )
   const [session, setSession] = useState<Session | undefined>(undefined)
   const [tracks, setTracks] = useState<Track[]>([])
   const [current, setCurrent] = useState<Track | undefined>(undefined)
