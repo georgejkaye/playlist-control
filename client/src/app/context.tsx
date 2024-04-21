@@ -7,6 +7,7 @@ import {
   SetState,
   SpotifyUser,
   Track,
+  responseToSession,
   responseToSessionOverview,
 } from "./structs"
 import TopBar from "./components/bar"
@@ -131,13 +132,13 @@ export const AppContextWrapper = (
       console.log(msg)
     })
     socket.on("sessions", (data) => {
-      console.log(data)
+      console.log("session", data)
       let sessions = data.map(responseToSessionOverview)
       setSessions(sessions)
     })
     socket.on("session_created", (data) => {
       let { session, password } = data
-      let sessionObject = responseToSessionOverview(session)
+      let sessionObject = responseToSession(session)
       setSession(sessionObject)
     })
     return () => {
