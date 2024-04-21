@@ -8,6 +8,64 @@ export interface SpotifyUser {
   id: string
 }
 
+export interface Artist {
+  id: string
+  name: string
+}
+
+export const getMultipleArtistsString = (artists: Artist[]) =>
+  artists.map((artist) => artist.name).join(", ")
+
+const responseToArtist = (response: any) => ({
+  id: response["id"],
+  name: response["name"],
+})
+
+export interface Album {
+  id: string
+  name: string
+  artists: Artist[]
+  art: string
+}
+
+const responseToAlbum = (response: any) => ({
+  id: response["id"],
+  name: response["name"],
+  artists: response["artists"].map(responseToArtist),
+  art: response["art"],
+})
+
+export interface Track {
+  id: string
+  name: string
+  album: Album
+  artists: Artist[]
+  duration: number
+  queued: Date | undefined
+}
+
+export interface CurrentTrack {
+  track: Track
+  start: number
+}
+
+export const responseToTrack = (response: any) => ({
+  id: response["id"],
+  name: response["name"],
+  album: responseToAlbum(response["album"]),
+  artists: response["artists"].map(responseToArtist),
+  duration: response["duration"],
+  queued:
+    response["queued_at"] === null
+      ? undefined
+      : new Date(Date.parse(response["queued_at"])),
+})
+
+export const responseToCurrentTrack = (response: any) => ({
+  track: responseToTrack(response["track"]),
+  start: response["start"],
+})
+
 export interface Playlist {
   id: string
   url: string
@@ -15,6 +73,14 @@ export interface Playlist {
   art: string
   tracks: Track[]
 }
+
+const responseToPlaylist = (response: any) => ({
+  id: response["id"],
+  url: response["url"],
+  name: response["name"],
+  art: response["art"],
+  tracks: response["tracks"].map(responseToTrack),
+})
 
 export interface PlaylistOverview {
   id: string
@@ -35,49 +101,35 @@ export const responseToPlaylistOverview = (raw: any) => ({
 export interface SessionOverview {
   id: string
   name: string
+  slug: string
   host: string
-  playlist: PlaylistOverview
-  current: Track
+  playlist: PlaylistOverview | undefined
+  current: Track | undefined
 }
 
-export const responseToSessionOverview = (raw: any) => ({
+export const responseToSessionOverview = (raw: any): SessionOverview => ({
   id: raw["id"],
   name: raw["name"],
+  slug: raw["slug"],
   host: raw["host"],
-  playlist: responseToPlaylistOverview(raw["playlist"]),
-  current: raw["current"],
+  playlist: raw["playlist"]
+    ? responseToPlaylistOverview(raw["playlist"])
+    : undefined,
+  current: raw["current"] ? raw["current"] : undefined,
 })
 
 export interface Session {
-  name: string
-  playlist: Playlist
-}
-
-export interface Artist {
   id: string
   name: string
+  slug: string
+  playlist: Playlist | undefined
+  current: Track | undefined
 }
 
-export const getMultipleArtistsString = (artists: Artist[]) =>
-  artists.map((artist) => artist.name).join(", ")
-
-export interface Album {
-  id: string
-  name: string
-  artists: Artist[]
-  art: string
-}
-
-export interface Track {
-  id: string
-  name: string
-  album: Album
-  artists: Artist[]
-  duration: number
-  queued: Date | undefined
-}
-
-export interface CurrentTrack {
-  track: Track
-  start: number
-}
+export const responseToSession = (raw: any): Session => ({
+  id: raw["id"],
+  name: raw["name"],
+  slug: raw["slug"],
+  playlist: !raw["playlist"] ? undefined : responseToPlaylist(raw["playlist"]),
+  current: !raw["track"] ? undefined : responseToTrack(raw["track"]),
+})

@@ -6,57 +6,11 @@ import {
   SetState,
   SpotifyUser,
   Track,
+  responseToCurrentTrack,
+  responseToPlaylistOverview,
+  responseToSession,
+  responseToTrack,
 } from "./structs"
-
-const responseToPlaylist = (response: any) => ({
-  id: response["id"],
-  url: response["url"],
-  name: response["name"],
-  art: response["art"],
-  tracks: response["tracks"].map(responseToTrack),
-})
-
-const responseToPlaylistOverview = (response: any) => ({
-  id: response["id"],
-  url: response["url"],
-  name: response["name"],
-  art: response["art"],
-  tracks: response["tracks"],
-})
-
-const responseToSession = (response: any) => ({
-  name: response["name"],
-  playlist: responseToPlaylist(response["playlist"]),
-})
-
-const responseToArtist = (response: any) => ({
-  id: response["id"],
-  name: response["name"],
-})
-
-const responseToAlbum = (response: any) => ({
-  id: response["id"],
-  name: response["name"],
-  artists: response["artists"].map(responseToArtist),
-  art: response["art"],
-})
-
-const responseToTrack = (response: any) => ({
-  id: response["id"],
-  name: response["name"],
-  album: responseToAlbum(response["album"]),
-  artists: response["artists"].map(responseToArtist),
-  duration: response["duration"],
-  queued:
-    response["queued_at"] === null
-      ? undefined
-      : new Date(Date.parse(response["queued_at"])),
-})
-
-const responseToCurrentTrack = (response: any) => ({
-  track: responseToTrack(response["track"]),
-  start: response["start"],
-})
 
 const getHeaders = (token: string | undefined) =>
   !token
