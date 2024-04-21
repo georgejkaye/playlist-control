@@ -227,3 +227,41 @@ export const getAuthData = async (token: string) => {
     return undefined
   }
 }
+
+export const createSession = async (
+  sessionName: string,
+  sessionHost: string
+) => {
+  const endpoint = `/server/session`
+  console.log("creating session", sessionName, "with host", sessionHost)
+  try {
+    let response = await axios.post(endpoint, {
+      name: sessionName,
+      host: sessionHost,
+    })
+    let data = response.data
+    console.log("data is", data)
+    let session = responseToSession(data.session)
+    let password = data.password
+    return { session, password }
+  } catch (e) {
+    console.log(e)
+    return undefined
+  }
+}
+
+export const getSession = async (sessionSlug: string) => {
+  const endpoint = `/server/${sessionSlug}`
+  try {
+    let response = await axios.get(endpoint)
+    let data = response.data
+    if (!data) {
+      return undefined
+    } else {
+      let session = responseToSession(data)
+      return session
+    }
+  } catch (e) {
+    return undefined
+  }
+}
