@@ -2,6 +2,7 @@ CREATE TABLE Session (
     session_id SERIAL PRIMARY KEY,
     session_host TEXT NOT NULL,
     session_name TEXT NOT NULL,
+    session_name_slug TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     spotify_id TEXT,
     access_token TEXT,
