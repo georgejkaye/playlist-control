@@ -30,6 +30,7 @@ export interface PlaylistOverview {
 export interface SessionOverview {
   id: number
   name: string
+  slug: string
   host: string
   playlist: PlaylistOverview | undefined
   current: Track | undefined

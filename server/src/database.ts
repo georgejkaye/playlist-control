@@ -10,6 +10,7 @@ import {
   refreshTokens,
 } from "./spotify.js"
 import { generatePassword } from "./auth.js"
+import slugify from "@sindresorhus/slugify"
 
 const DB_HOST = process.env.DB_HOST || "georgejkaye.com"
 const DB_USER = process.env.DB_USER || "playlist"
@@ -32,10 +33,11 @@ const init = async () =>
 
 init()
 
-export const validateSessionId = async (sessionId: number) => {
-  const queryText = "SELECT session_id FROM Session WHERE session_id = $1"
+export const validateSessionSlug = async (sessionSlug: string) => {
+  const queryText =
+    "SELECT session_name_slug FROM Session WHERE session_name_slug = $1"
   const query = { text: queryText }
-  const result = await client.query(query, [sessionId])
+  const result = await client.query(query, [sessionSlug])
   if (result.rows.length !== 1) {
     return false
   } else {
@@ -194,31 +196,40 @@ const makeParameters = (params: string[][]) => {
 }
 
 export const createSession = async (
-  sessionHost: string,
-  sessionName: string
+  sessionName: string,
+  sessionHost: string
 ) => {
   const { password, hashedPassword } = await generatePassword()
+  const sessionSlug = slugify(sessionName)
   const queryText = `
-    INSERT INTO Session (session_host, session_name, password_hash, session_start)
-    VALUES ($1, $2, $3, NOW())
+    INSERT INTO Session (session_host, session_name, session_name_slug, password_hash, session_start)
+    VALUES ($1, $2, $3, $4, NOW())
     RETURNING session_id
   `
   const query = { text: queryText }
-  let result = await client.query(query, [
-    sessionHost,
-    sessionName,
-    hashedPassword,
-  ])
-  let sessionId = result.rows[0].get("session_id")
-  return {
-    session: {
-      id: sessionId,
-      name: sessionName,
-      host: sessionHost,
-      playlist: undefined,
-      current: undefined,
-    },
-    password,
+  try {
+    let result = await client.query(query, [
+      sessionHost,
+      sessionName,
+      sessionSlug,
+      hashedPassword,
+    ])
+    let sessionId = result.rows[0].get("session_id")
+    return {
+      session: {
+        id: sessionId,
+        name: sessionName,
+        slug: sessionSlug,
+        host: sessionHost,
+        playlist: undefined,
+        current: undefined,
+      },
+      password,
+    }
+  } catch (e) {
+    console.log(e)
+    // Error can occur if slug is not unique
+    return undefined
   }
 }
 
@@ -229,49 +240,65 @@ export const getSessions = async () => {
   `
   const query = { text: queryText }
   let result = await client.query(query)
-  let sessions = result.rows.map(async (row) => {
-    let id = row.get("session_id")
-    let host = row.get("session_host")
-    let name = row.get("session_name")
-    let playlistId = row.get("playlist_id")
-    return await getSessionOverview(id, name, host, playlistId)
-  })
+  let sessions = await Promise.all(
+    result.rows.map(async (row) => {
+      let id = row.get("session_id")
+      let host = row.get("session_host")
+      let name = row.get("session_name")
+      let playlistId = row.get("playlist_id")
+      return await getSessionOverview(id, name, host, playlistId)
+    })
+  )
   return sessions
 }
 
-export const getSession = async (sessionId: number) => {
+export const getSession = async (param: string, value: string) => {
   const queryText = `
-    WITH queued_tracks AS (
-      SELECT track_id, queued_at
-      FROM Track
-      WHERE session_id = $1
-    )
-    SELECT session_name, playlist_id, ARRAY_AGG(playlist_track.track_id, playlist_track.queued_at) AS queued_tracks
+    SELECT
+      session.session_name,
+      session.session_id,
+      session.session_name_slug,
+      session.playlist_id,
+      coalesce(
+        json_agg(
+          json_build_object(
+            'track_id', track.track_id,
+            'queued_at', track.queued_at
+          )
+        ) FILTER (
+          WHERE track.track_id IS NOT NULL
+        ),
+        '[]'
+      )
+      AS queued_tracks
     FROM Session
-    WHERE session_id = $1
+    LEFT JOIN Track
+    ON Session.session_id = Track.session_id
+    WHERE Session.${param} = $1
+    GROUP BY session.session_id
   `
   const query = { text: queryText }
-  const result = await client.query(query, [sessionId])
+  const result = await client.query(query, [value])
   const rows = result.rows
   if (rows.length !== 1) {
     return undefined
   } else {
     let row = rows[0]
     let sessionName = row.get("session_name")
+    let sessionId = row.get("session_id")
+    let sessionSlug = row.get("session_name_slug")
     let playlistId = row.get("playlist_id")
     let queuedTracks = row.get("queued_tracks").map((track: any) => ({
       id: track["track_id"],
       time: track["queued_at"],
     }))
     let playlist = await getPlaylistDetails(sessionId, playlistId)
-    if (!playlist) {
-      return undefined
-    } else {
-      return {
-        name: sessionName,
-        playlist,
-        queuedTracks,
-      }
+    return {
+      name: sessionName,
+      id: sessionId,
+      slug: sessionSlug,
+      playlist,
+      queuedTracks,
     }
   }
 }
