@@ -9,7 +9,6 @@ const TopBar = (props: { isLoggedIn: boolean; isAdminPanel: boolean }) => {
   return (
     <div className="p-4 bg-accent-blue flex flex-row">
       <div className="text-xl font-bold flex-1">Kayelist Controller</div>
-      <Link href={href}>{text}</Link>
     </div>
   )
 }
