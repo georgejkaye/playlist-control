@@ -235,7 +235,7 @@ export const createSession = async (
 
 export const getSessions = async () => {
   const queryText = `
-    SELECT session_id, session_host, session_name, playlist_id, access_token, refresh_token, expires_at
+    SELECT session_id, session_host, session_name, session_name_slug, playlist_id, access_token, refresh_token, expires_at
     FROM Session
   `
   const query = { text: queryText }
@@ -245,8 +245,9 @@ export const getSessions = async () => {
       let id = row.get("session_id")
       let host = row.get("session_host")
       let name = row.get("session_name")
+      let slug = row.get("session_name_slug")
       let playlistId = row.get("playlist_id")
-      return await getSessionOverview(id, name, host, playlistId)
+      return await getSessionOverview(id, name, slug, host, playlistId)
     })
   )
   return sessions

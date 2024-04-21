@@ -287,6 +287,7 @@ export const getPlaylistDetails = async (
 export const getSessionOverview = async (
   sessionId: number,
   sessionName: string,
+  slug: string,
   sessionHost: string,
   playlistId: string | undefined
 ) => {
@@ -297,6 +298,7 @@ export const getSessionOverview = async (
   return {
     id: sessionId,
     name: sessionName,
+    slug: slug,
     host: sessionHost,
     playlist,
     current,

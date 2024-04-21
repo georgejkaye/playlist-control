@@ -8,8 +8,15 @@ import { useRouter } from "next/navigation"
 import { ColorRing } from "react-loader-spinner"
 
 const SessionCard = (props: { session: SessionOverview }) => {
+  const router = useRouter()
+  const onClickSessionCard = (e: React.MouseEvent<HTMLButtonElement>) => {
+    router.push(`/session/${props.session.slug}`)
+  }
   return (
-    <div className="rounded-xl bg-accent-blue p-2 flex flex-row">
+    <button
+      className="text-left rounded-xl bg-accent-blue p-4 flex flex-row hover:bg-accent-blue-hover cursor-pointer"
+      onClick={onClickSessionCard}
+    >
       <div>
         <div className="font-bold">{props.session.name}</div>
         <div>hosted by {props.session.host}</div>
@@ -28,7 +35,7 @@ const SessionCard = (props: { session: SessionOverview }) => {
           </div>
         )}
       </div>
-    </div>
+    </button>
   )
 }
 

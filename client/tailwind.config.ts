@@ -36,6 +36,7 @@ const config: Config = {
       },
       colors: {
         "accent-blue": "#0f0765",
+        "accent-blue-hover": "#0f0745",
       },
     },
     plugins: [require("flowbite/plugin")],
