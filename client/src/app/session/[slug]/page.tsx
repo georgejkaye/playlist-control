@@ -1,22 +1,18 @@
 "use client"
 
 import React, { useContext, useEffect, useState } from "react"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { postQueue, getSession } from "@/app/api"
+import { AppContext } from "@/app/context"
+import { Loader } from "@/app/loader"
 import {
-  CurrentTrack,
-  Playlist,
-  PlaylistOverview,
-  Session,
-  SetState,
-  SpotifyUser,
   Track,
   getMultipleArtistsString,
-} from "../../structs"
-import Image from "next/image"
-import { AppContext } from "../../context"
-import { socket } from "../../socket"
-import { getSession, postQueue } from "../../api"
-import { useRouter } from "next/navigation"
-import { ColorRing } from "react-loader-spinner"
+  SetState,
+  Playlist,
+  Session,
+} from "@/app/structs"
 
 const Header = (props: { session: Session | undefined }) => {
   return (

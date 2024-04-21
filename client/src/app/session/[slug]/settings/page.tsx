@@ -1,28 +1,23 @@
 "use client"
 
 import { useState, useEffect, useContext } from "react"
-import { ColorRing } from "react-loader-spinner"
+import Image from "next/image"
+import { useRouter, useSearchParams } from "next/navigation"
+import crypto from "crypto"
+import querystring from "query-string"
+
 import {
   login,
+  sendAuthCode,
   getPlaylists,
   postPlaylist,
   stopSession,
-  sendAuthCode,
-} from "../../../api"
-import {
-  SetState,
-  PlaylistOverview,
-  SpotifyUser,
-  Session,
-  Track,
-} from "../../../structs"
-import crypto from "crypto"
-import querystring from "query-string"
-import Image from "next/image"
+} from "@/app/api"
+import { AppContext } from "@/app/context"
+import { Loader } from "@/app/loader"
+import { PlaylistOverview } from "@/app/structs"
 
-import cd from "../../../../../public/cd.webp"
-import { AppContext } from "../../../context"
-import { useRouter, useSearchParams } from "next/navigation"
+import cd from "@/../public/cd.webp"
 
 const LoginPanel = () => {
   const { setToken, setSpotifyUser } = useContext(AppContext)

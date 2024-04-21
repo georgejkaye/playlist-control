@@ -20,8 +20,8 @@ interface AppData {
   setToken: SetState<string | undefined>
   spotifyUser: SpotifyUser | undefined
   setSpotifyUser: SetState<SpotifyUser | undefined>
-  sessions: SessionOverview[]
-  setSessions: SetState<SessionOverview[]>
+  sessions: SessionOverview[] | undefined
+  setSessions: SetState<SessionOverview[] | undefined>
   session: Session | undefined
   setSession: SetState<Session | undefined>
   tracks: Track[]
