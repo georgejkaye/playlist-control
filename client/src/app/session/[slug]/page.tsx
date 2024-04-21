@@ -10,11 +10,13 @@ import {
   SpotifyUser,
   Track,
   getMultipleArtistsString,
-} from "./../structs"
-import { getData, getQueue, postQueue } from "./api"
+} from "../../structs"
 import Image from "next/image"
-import { AppContext } from "./../context"
-import { socket } from "./../socket"
+import { AppContext } from "../../context"
+import { socket } from "../../socket"
+import { getSession, postQueue } from "../../api"
+import { useRouter } from "next/navigation"
+import { ColorRing } from "react-loader-spinner"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -165,6 +167,7 @@ const QueueAdder = (props: {
   setCurrent: SetState<Track | undefined>
   setQueue: SetState<Track[]>
 }) => {
+  const { session } = useContext(AppContext)
   const [filteredTracks, setFilteredTracks] = useState<Track[]>(
     props.tracks.sort((t1, t2) => t1.name.localeCompare(t2.name))
   )
@@ -197,7 +200,9 @@ const QueueAdder = (props: {
     props.setAdding(!props.isAdding)
   const onClickMore = (e: React.MouseEvent<HTMLDivElement>) =>
     setTracksToShow(tracksToShow + defaultTracksToShow)
-  return (
+  return !session || !session.playlist ? (
+    ""
+  ) : (
     <div className="m-1">
       <div className={bigButtonStyle} onClick={onClickAdd}>
         {!props.isAdding ? "Add to queue" : "Back"}
@@ -206,7 +211,7 @@ const QueueAdder = (props: {
         ""
       ) : (
         <div>
-          <QueueingFromCard playlist={props.session.playlist} />
+          <QueueingFromCard playlist={session.playlist} />
           <div className="flex">
             <input
               autoFocus
@@ -242,19 +247,46 @@ const QueueAdder = (props: {
   )
 }
 
-const Home = () => {
-  const { session, setCurrent, current, setQueue, queue, tracks, setTracks } =
+const Home = ({ params }: { params: { slug: string } }) => {
+  const { setCurrent, current, setQueue, queue, tracks, setTracks } =
     useContext(AppContext)
+  const router = useRouter()
+  const [isLoading, setLoading] = useState(false)
+  const [session, setSession] = useState<Session | undefined>(undefined)
   const [isAdding, setAdding] = useState(false)
-  return (
+  useEffect(() => {
+    setLoading(true)
+    const performRequests = async () => {
+      let result = await getSession(params.slug)
+      console.log("result", result)
+      if (result) {
+        setSession(result)
+        console.log("about to stop loading")
+        setLoading(false)
+      } else {
+        router.push("/")
+      }
+    }
+    performRequests()
+  }, [])
+  return isLoading || !session ? (
+    <ColorRing
+      visible={true}
+      height="80"
+      width="80"
+      ariaLabel="color-ring-loading"
+      wrapperStyle={{}}
+      wrapperClass="color-ring-wrapper"
+      colors={["#0f0765", "#0f0765", "#0f0765", "#0f0765", "#0f0765"]}
+    />
+  ) : (
     <div>
       <Header session={session} />
-      {!current ? (
+      {!session || !session.current ? (
         ""
       ) : (
         <div>
-          <CurrentTrackCard currentTrack={current} />
-          {!session ? (
+          {!session.playlist ? (
             ""
           ) : (
             <QueueAdder

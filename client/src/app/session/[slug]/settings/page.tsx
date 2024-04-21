@@ -8,20 +8,20 @@ import {
   postPlaylist,
   stopSession,
   sendAuthCode,
-} from "../api"
+} from "../../../api"
 import {
   SetState,
   PlaylistOverview,
   SpotifyUser,
   Session,
   Track,
-} from "../structs"
+} from "../../../structs"
 import crypto from "crypto"
 import querystring from "query-string"
 import Image from "next/image"
 
-import cd from "../../../public/cd.webp"
-import { AppContext } from "../context"
+import cd from "../../../../../public/cd.webp"
+import { AppContext } from "../../../context"
 import { useRouter, useSearchParams } from "next/navigation"
 
 const LoginPanel = () => {
@@ -364,19 +364,23 @@ const SettingsPanel = () => {
       ) : session ? (
         <div>
           <h3 className="text-3xl font-bold my-4">Current session</h3>
-          <div className="flex flex-row items-center gap-4">
-            <Image
-              className="rounded-xl"
-              src={session.playlist.art}
-              alt={`Playlist art for ${session.playlist.name}`}
-              width={100}
-              height={100}
-            />
-            <div className="flex flex-col">
-              <div className="font-bold text-xl">{session.name}</div>
-              <div>{session.playlist.name}</div>
+          {!session.playlist ? (
+            ""
+          ) : (
+            <div className="flex flex-row items-center gap-4">
+              <Image
+                className="rounded-xl"
+                src={session.playlist.art}
+                alt={`Playlist art for ${session.playlist.name}`}
+                width={100}
+                height={100}
+              />
+              <div className="flex flex-col">
+                <div className="font-bold text-xl">{session.name}</div>
+                <div>{session.playlist.name}</div>
+              </div>
             </div>
-          </div>
+          )}
           <button
             onClick={onClickStopSession}
             className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
