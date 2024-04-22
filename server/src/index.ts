@@ -86,19 +86,20 @@ app.get("/:sessionSlug", async (req, res) => {
 
 app.post("/:sessionSlug/token", multer().single("file"), async (req, res) => {
   const body = req.body
-  const sessionId = Number.parseInt(req.params["sessionId"])
+  const sessionSlug = req.params["sessionSlug"]
   let password = body.password
-  let isValid = await authenticateSessionAdmin(sessionId, password)
+  let isValid = await authenticateSessionAdmin(sessionSlug, password)
   if (!isValid) {
     res
       .status(400)
       .header({ "WWW-Authenticate": "Bearer" })
       .send("Invalid credentials")
   } else {
-    let token = await generateToken(sessionId)
-    let user = await getSpotifyUser(sessionId)
+    let token = await generateToken(sessionSlug)
+    let user = await getSpotifyUser(sessionSlug)
     res.send({
-      access_token: token,
+      access_token: token.token,
+      expires_at: token.expiresAt,
       token_type: "bearer",
       user: user,
     })
@@ -111,7 +112,7 @@ const getSessionFromToken = async (token: string) => {
     if (!decoded["sub"]) {
       return undefined
     } else {
-      return Number.parseInt(decoded["sub"])
+      return decoded["sub"]
     }
   } catch (e) {
     console.log(e)
@@ -120,14 +121,17 @@ const getSessionFromToken = async (token: string) => {
 }
 
 app.use("/:sessionSlug/auth", async (req, res, next) => {
-  let sessionId: number = res.locals["sessionId"]
+  let sessionSlug: string = res.locals["sessionSlug"]
+  console.log(sessionSlug)
   let authorizationHeader = req.header("Authorization")
+  console.log(authorizationHeader)
   if (!authorizationHeader) {
     res.status(401).send("Authorization failed")
   } else {
     let token = authorizationHeader.split(" ")[1]
     let tokenSession = await getSessionFromToken(token)
-    if (sessionId !== tokenSession) {
+    console.log("The token says", tokenSession)
+    if (sessionSlug !== tokenSession) {
       res.status(401).send("Authorization failed")
     } else {
       next()
@@ -138,17 +142,20 @@ app.use("/:sessionSlug/auth", async (req, res, next) => {
 app.post("/:sessionSlug/auth/spotify", async (req, res) => {
   let body = req.body
   let code = body.code
-  let sessionId: number = res.locals["sessionId"]
+  let sessionSlug: string = res.locals["sessionSlug"]
   try {
     let tokens = await exchangeAccessCodeForTokens(code)
+    console.log("the tokens are", tokens)
     if (!tokens) {
       res.sendStatus(400)
     } else {
-      updateTokens(sessionId, tokens)
-      let spotifyUser = await getSpotifyUser(sessionId)
+      updateTokens(sessionSlug, tokens)
+      let spotifyUser = await getSpotifyUser(sessionSlug)
+      console.log("Got user", spotifyUser)
       res.send(spotifyUser)
     }
   } catch (e) {
+    console.log(e)
     res.sendStatus(400)
   }
 })
@@ -160,8 +167,8 @@ app.delete("/:sessionSlug/auth/spotify", async (req, res) => {
 })
 
 app.get("/:sessionSlug/auth/playlists", async (req, res) => {
-  let sessionId: number = res.locals["sessionId"]
-  let playlists = await getPlaylists(sessionId)
+  let sessionSlug = res.locals["sessionSlug"]
+  let playlists = await getPlaylists(sessionSlug)
   res.send(playlists)
 })
 
@@ -188,10 +195,10 @@ app.delete("/auth/spotify/session", async (req, res) => {
   res.send(200)
 })
 
-const getSessionData = async (sessionId: number) => {
-  const queue = await getQueue(sessionId)
-  const queueds = await getQueuedTracks(sessionId)
-  const session = await getSession("session_id", `${sessionId}`)
+const getSessionData = async (sessionSlug: string) => {
+  const queue = await getQueue(sessionSlug)
+  const queueds = await getQueuedTracks(sessionSlug)
+  const session = await getSession("session_id", `${sessionSlug}`)
   return {
     current: queue ? queue.current : undefined,
     session,
@@ -256,9 +263,13 @@ app.post("/session", async (req, res) => {
       res.status(400).send("Slug already exists")
     } else {
       let { session, password } = result
+      let token = await generateToken(session.slug)
+      console.log(token.expiresAt)
       res.status(200).send({
         session,
         password,
+        token: token.token,
+        expires: token.expiresAt,
       })
     }
   }

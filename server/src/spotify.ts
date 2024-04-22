@@ -7,7 +7,7 @@ const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
 const SPOTIFY_SECRET = await getSecret(SPOTIFY_SECRET_FILE)
 const CLIENT_URL = process.env.CLIENT_URL || ""
-const SPOTIFY_REDIRECT = `${CLIENT_URL}/settings`
+const SPOTIFY_REDIRECT = `${CLIENT_URL}/spotify`
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
@@ -36,6 +36,7 @@ const getSpotifyHeaders = () => ({
 export const exchangeAccessCodeForTokens = async (code: string) => {
   const now = new Date()
   const headers = getSpotifyHeaders()
+  console.log("code is", code)
   const params = new URLSearchParams({
     grant_type: "authorization_code",
     code: code,
@@ -47,12 +48,13 @@ export const exchangeAccessCodeForTokens = async (code: string) => {
     let response = await axios.post(SPOTIFY_TOKEN_URL, params, { headers })
     return getTokensFromTokenResponse(now, response)
   } catch (e) {
+    console.log(e)
     return undefined
   }
 }
 
 export const refreshTokens = async (
-  sessionId: number,
+  sessionSlug: string,
   tokens: SpotifyTokens
 ) => {
   const now = new Date()
@@ -67,7 +69,7 @@ export const refreshTokens = async (
       params,
     })
     let tokens = getTokensFromTokenResponse(now, response)
-    updateTokens(sessionId, tokens)
+    updateTokens(sessionSlug, tokens)
     return tokens
   } catch (e) {
     let err = e as AxiosError
@@ -128,12 +130,12 @@ const responseToPlaylist = (raw: any) => {
 }
 
 const executeGetRequest = async <T>(
-  sessionId: number,
+  sessionSlug: string,
   endpoint: string,
   dataCallback: (data: any) => T
 ) => {
   const url = getApiURLFromEndpoint(endpoint)
-  let currentTokens = await getSpotifyTokens(sessionId)
+  let currentTokens = await getSpotifyTokens(sessionSlug)
   if (!currentTokens) {
     return undefined
   } else {
@@ -143,21 +145,20 @@ const executeGetRequest = async <T>(
       let data = response.data
       return dataCallback(data)
     } catch (e) {
-      let err = e as AxiosError
-      console.log(`${err.status}: ${err.message}`)
+      console.log(e)
       return undefined
     }
   }
 }
 
 const executePaginatedRequest = async <T, U>(
-  sessionId: number,
+  sessionSlug: string,
   endpoint: string,
   outerCallback: (data: any, dataArray: U[]) => T,
   pageCallback: (dataArray: U[], data: any) => string | undefined
 ) => {
   const url = getApiURLFromEndpoint(endpoint)
-  let tokens = await getSpotifyTokens(sessionId)
+  let tokens = await getSpotifyTokens(sessionSlug)
   if (!tokens) {
     return undefined
   } else {
@@ -181,9 +182,8 @@ const executePaginatedRequest = async <T, U>(
   }
 }
 
-export const getSpotifyUser = async (sessionId: number) => {
-  const url = getApiURLFromEndpoint("/me")
-  return executeGetRequest(sessionId, url, (data) => {
+export const getSpotifyUser = async (sessionSlug: string) => {
+  return executeGetRequest(sessionSlug, "/me", (data) => {
     return {
       name: data["display_name"],
       image: data["images"][0]["url"],
@@ -192,9 +192,9 @@ export const getSpotifyUser = async (sessionId: number) => {
   })
 }
 
-export const getCurrentTrack = async (sessionId: number) => {
+export const getCurrentTrack = async (sessionSlug: string) => {
   return executeGetRequest(
-    sessionId,
+    sessionSlug,
     "/me/player/currently-playing",
     (data) => {
       let item = data.item
@@ -208,8 +208,8 @@ export const getCurrentTrack = async (sessionId: number) => {
   )
 }
 
-export const getQueue = async (sessionId: number) => {
-  return executeGetRequest(sessionId, "/me/player/queue", (data) => {
+export const getQueue = async (sessionSlug: string) => {
+  return executeGetRequest(sessionSlug, "/me/player/queue", (data) => {
     let current = responseToTrack(data.currently_playing)
     let queue = data.queue.map(responseToTrack)
     return {
@@ -219,12 +219,12 @@ export const getQueue = async (sessionId: number) => {
   })
 }
 
-export const getPlaylists = async (sessionId: number) => {
+export const getPlaylists = async (sessionSlug: string) => {
   let playlists = await executePaginatedRequest<
     PlaylistOverview[],
     PlaylistOverview
   >(
-    sessionId,
+    sessionSlug,
     "/me/playlists",
     (pages, pageData) => pageData,
     (dataArray, data) => {
@@ -239,11 +239,11 @@ export const getPlaylists = async (sessionId: number) => {
 }
 
 export const getPlaylistOverview = async (
-  sessionId: number,
+  sessionSlug: string,
   playlistId: string
 ) => {
   let playlist = await executeGetRequest<PlaylistOverview>(
-    sessionId,
+    sessionSlug,
     `/playlists/${playlistId}`,
     (data) => {
       let id = data.id
@@ -258,11 +258,11 @@ export const getPlaylistOverview = async (
 }
 
 export const getPlaylistDetails = async (
-  sessionId: number,
+  sessionSlug: string,
   playlistId: string
 ) => {
   let playlist = await executePaginatedRequest<Playlist, Track>(
-    sessionId,
+    sessionSlug,
     `/playlists/${playlistId}`,
     (pages, pageData) => {
       let first = pages[0]
@@ -287,18 +287,18 @@ export const getPlaylistDetails = async (
 export const getSessionOverview = async (
   sessionId: number,
   sessionName: string,
-  slug: string,
+  sessionSlug: string,
   sessionHost: string,
   playlistId: string | undefined
 ) => {
   let playlist = !playlistId
     ? undefined
-    : await getPlaylistOverview(sessionId, playlistId)
-  let current = await getCurrentTrack(sessionId)
+    : await getPlaylistOverview(sessionSlug, playlistId)
+  let current = await getCurrentTrack(sessionSlug)
   return {
     id: sessionId,
     name: sessionName,
-    slug: slug,
+    slug: sessionSlug,
     host: sessionHost,
     playlist,
     current,

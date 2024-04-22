@@ -30,9 +30,12 @@ const compareWithAdminPassword = (password: string, hashedPassword: string) => {
   })
 }
 
-export const authenticateUser = async (sessionId: number, password: string) => {
+export const authenticateUser = async (
+  sessionSlug: string,
+  password: string
+) => {
   return new Promise<boolean>(async (resolve, reject) => {
-    let hashedPassword = await getPasswordHash(sessionId)
+    let hashedPassword = await getPasswordHash(sessionSlug)
     if (!hashedPassword) {
       resolve(false)
     } else {
@@ -42,26 +45,28 @@ export const authenticateUser = async (sessionId: number, password: string) => {
   })
 }
 
-export const generateToken = (sessionId: number) =>
-  new Promise<string>((resolve, reject) => {
+export const generateToken = (sessionSlug: string) => {
+  let expiresIn = tokenExpiresMinutes * 60
+  let expiresAt = new Date(new Date().getTime() + expiresIn * 60000)
+  return new Promise<{ token: string; expiresAt: Date }>((resolve, reject) => {
     jwt.sign(
-      { sub: sessionId },
+      { sub: sessionSlug },
       secretKey,
       {
-        expiresIn: tokenExpiresMinutes * 60,
+        expiresIn,
       },
       (error, encoded) => {
         if (error) {
           reject(error)
         } else if (encoded) {
-          resolve(encoded)
+          resolve({ token: encoded, expiresAt })
         } else {
           reject(false)
         }
       }
     )
   })
-
+}
 export const verifyToken = async (token: string) =>
   new Promise<JwtPayload>((resolve, reject) => {
     jwt.verify(token, secretKey, (error, decoded) => {

@@ -56,10 +56,10 @@ export const checkUserExists = async (sessionId: string) => {
   }
 }
 
-export const getPasswordHash = async (sessionId: number) => {
+export const getPasswordHash = async (sessionSlug: string) => {
   const queryText = "SELECT password_hash FROM Session WHERE session_id = $1"
   const query = { text: queryText }
-  const result = await client.query(query, [sessionId])
+  const result = await client.query(query, [sessionSlug])
   if (result.rows.length !== 1) {
     return undefined
   } else {
@@ -68,11 +68,11 @@ export const getPasswordHash = async (sessionId: number) => {
   }
 }
 
-export const getQueuedTracks = async (session_id: number) => {
+export const getQueuedTracks = async (sessionSlug: string) => {
   const queryText =
-    "SELECT track_id, queued_at FROM Track WHERE session_id = $1"
+    "SELECT track_id, queued_at FROM Track WHERE session_name_slug = $1"
   const query = { text: queryText }
-  let result = await client.query(query, [session_id])
+  let result = await client.query(query, [sessionSlug])
   let rows = result.rows
   let queueds = rows.map((row) => ({
     id: row.get("track_id"),
@@ -121,14 +121,14 @@ export const getTracks = async (trackIds: String[]) => {
   return result
 }
 
-export const getSpotifyTokens = async (sessionId: number) => {
+export const getSpotifyTokens = async (sessionSlug: string) => {
   const queryText = `
     SELECT access_token, refresh_token, expires_at
     FROM Session
-    WHERE session_id = $1
+    WHERE session_name_slug = $1
   `
   const query = { text: queryText }
-  let result = await client.query(query, [sessionId])
+  let result = await client.query(query, [sessionSlug])
   let rows = result.rows
   if (rows.length !== 1) {
     return undefined
@@ -146,7 +146,7 @@ export const getSpotifyTokens = async (sessionId: number) => {
       if (oldTokens.expires >= new Date(new Date().getTime() + expiryRange)) {
         return oldTokens
       }
-      let newTokens = await refreshTokens(sessionId, oldTokens)
+      let newTokens = await refreshTokens(sessionSlug, oldTokens)
       if (!newTokens) {
         return undefined
       }
@@ -156,20 +156,20 @@ export const getSpotifyTokens = async (sessionId: number) => {
 }
 
 export const updateTokens = async (
-  sessionId: number,
+  sessionSlug: string,
   tokens: SpotifyTokens
 ) => {
   const queryText = `
       UPDATE Session
-      SET access_token = $2, refresh_token = $3, expires_at = $4
-      WHERE session_host = $5
+      SET access_token = $1, refresh_token = $2, expires_at = $3
+      WHERE session_name_slug = $4
     `
   const query = { text: queryText }
   await client.query(query, [
     tokens.access,
     tokens.refresh,
     tokens.expires,
-    sessionId,
+    sessionSlug,
   ])
 }
 
@@ -223,6 +223,7 @@ export const createSession = async (
         host: sessionHost,
         playlist: undefined,
         current: undefined,
+        spotify: undefined,
       },
       password,
     }
@@ -253,13 +254,18 @@ export const getSessions = async () => {
   return sessions
 }
 
-export const getSession = async (param: string, value: string) => {
+export const getSession = async (
+  param: string,
+  value: string
+): Promise<Session | undefined> => {
   const queryText = `
     SELECT
       session.session_name,
+      session.session_host,
       session.session_id,
       session.session_name_slug,
       session.playlist_id,
+      session.access_token,
       coalesce(
         json_agg(
           json_build_object(
@@ -286,20 +292,24 @@ export const getSession = async (param: string, value: string) => {
   } else {
     let row = rows[0]
     let sessionName = row.get("session_name")
+    let sessionHost = row.get("session_host")
     let sessionId = row.get("session_id")
     let sessionSlug = row.get("session_name_slug")
     let playlistId = row.get("playlist_id")
-    let queuedTracks = row.get("queued_tracks").map((track: any) => ({
+    let queued = row.get("queued_tracks").map((track: any) => ({
       id: track["track_id"],
       time: track["queued_at"],
     }))
+    let user = await getSpotifyUser(sessionSlug)
     let playlist = await getPlaylistDetails(sessionId, playlistId)
     return {
       name: sessionName,
       id: sessionId,
+      host: sessionHost,
       slug: sessionSlug,
       playlist,
-      queuedTracks,
+      queued,
+      spotify: user,
     }
   }
 }

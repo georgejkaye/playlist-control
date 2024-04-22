@@ -39,8 +39,11 @@ export interface SessionOverview {
 export interface Session {
   id: number
   name: string
+  slug: string
   host: string
-  playlist: Playlist
+  playlist: Playlist | undefined
+  queued: Track[]
+  spotify: SpotifyUser | undefined
 }
 
 export interface Artist {
