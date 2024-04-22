@@ -2,11 +2,22 @@ import { Dispatch, SetStateAction } from "react"
 
 export type SetState<T> = Dispatch<SetStateAction<T>>
 
+export interface Token {
+  token: string
+  expires: Date
+}
+
 export interface SpotifyUser {
   name: string
   image: string
   id: string
 }
+
+export const responseToSpotifyUser = (response: any) => ({
+  name: response["name"],
+  image: response["image"],
+  id: response["id"],
+})
 
 export interface Artist {
   id: string
@@ -122,14 +133,18 @@ export interface Session {
   id: string
   name: string
   slug: string
+  host: string
   playlist: Playlist | undefined
   current: Track | undefined
+  spotify: SpotifyUser | undefined
 }
 
 export const responseToSession = (raw: any): Session => ({
   id: raw["id"],
   name: raw["name"],
   slug: raw["slug"],
+  host: raw["host"],
   playlist: !raw["playlist"] ? undefined : responseToPlaylist(raw["playlist"]),
   current: !raw["track"] ? undefined : responseToTrack(raw["track"]),
+  spotify: !raw["spotify"] ? undefined : responseToSpotifyUser(raw["spotify"]),
 })

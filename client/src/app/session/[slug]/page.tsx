@@ -3,6 +3,10 @@
 import React, { useContext, useEffect, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+
+import crypto from "crypto"
+import querystring from "query-string"
+
 import { postQueue, getSession } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -243,10 +247,76 @@ const QueueAdder = (props: {
   )
 }
 
+let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
+
+const AdminPanel = (props: { session: Session }) => {
+  const router = useRouter()
+  const onClickSpotify = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    localStorage.setItem("redirect", props.session.slug)
+    let redirectURI = "http://localhost:3000/spotify"
+    const generateRandomString = () => {
+      return new Promise<string>((resolve, reject) => {
+        crypto.randomBytes(60, (err, buffer) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(buffer.toString("hex"))
+          }
+        })
+      })
+    }
+    let state = await generateRandomString()
+    localStorage.setItem("state", state)
+    let scopes =
+      "playlist-read-private user-read-currently-playing user-read-playback-state"
+    router.push(
+      "https://accounts.spotify.com/authorize?" +
+        querystring.stringify({
+          response_type: "code",
+          client_id: clientId,
+          scope: scopes,
+          redirect_uri: redirectURI,
+          state: state,
+        })
+    )
+  }
+  const onClickDeauthoriseSpotify = (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {}
+  return (
+    <div>
+      {!props.session.spotify ? (
+        <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+          <div>Not authenticated with Spotify</div>
+          <button
+            onClick={onClickSpotify}
+            className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+          >
+            Authenticate with Spotify
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+          <div>Authenticated with Spotify as {props.session.spotify.name}</div>
+          <button
+            onClick={onClickDeauthoriseSpotify}
+            className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+          >
+            Deauthorise
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const Home = ({ params }: { params: { slug: string } }) => {
   const { setCurrent, current, setQueue, queue, tracks, setTracks } =
     useContext(AppContext)
   const router = useRouter()
+  const [token, setToken] = useState<
+    { token: string; expiry: Date } | undefined
+  >(undefined)
   const [isLoading, setLoading] = useState(false)
   const [session, setSession] = useState<Session | undefined>(undefined)
   const [isAdding, setAdding] = useState(false)
@@ -264,32 +334,38 @@ const Home = ({ params }: { params: { slug: string } }) => {
       }
     }
     performRequests()
+    let tokenStorage = localStorage.getItem(`token-${params.slug}`)
+    let expiryStorage = localStorage.getItem(`expires-${params.slug}`)
+    let expiry = !expiryStorage ? undefined : new Date(expiryStorage)
+    if (tokenStorage && expiry && new Date() < expiry) {
+      setToken({ token: tokenStorage, expiry })
+    } else {
+      setToken(undefined)
+    }
   }, [])
   return isLoading || !session ? (
     <Loader />
   ) : (
     <div>
       <Header session={session} />
-      {!session || !session.current ? (
-        ""
-      ) : (
-        <div>
-          {!session.playlist ? (
-            ""
-          ) : (
-            <QueueAdder
-              session={session}
-              isAdding={isAdding}
-              setAdding={setAdding}
-              tracks={session.playlist.tracks}
-              setTracks={setTracks}
-              setCurrent={setCurrent}
-              setQueue={setQueue}
-            />
-          )}
-          {isAdding ? "" : <Queue queue={queue} />}
-        </div>
-      )}
+      <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
+      {!token ? "" : <AdminPanel session={session} />}
+      <div>
+        {!session.playlist ? (
+          ""
+        ) : (
+          <QueueAdder
+            session={session}
+            isAdding={isAdding}
+            setAdding={setAdding}
+            tracks={session.playlist.tracks}
+            setTracks={setTracks}
+            setCurrent={setCurrent}
+            setQueue={setQueue}
+          />
+        )}
+        {isAdding ? "" : <Queue queue={queue} />}
+      </div>
     </div>
   )
 }

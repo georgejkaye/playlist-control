@@ -186,8 +186,12 @@ export const getPlaylists = async (
   }
 }
 
-export const sendAuthCode = async (token: string, code: string) => {
-  const endpoint = `/server/auth/spotify`
+export const sendAuthCode = async (
+  slug: string,
+  token: string,
+  code: string
+) => {
+  const endpoint = `/server/${slug}/auth/spotify`
   const config = {
     headers: getHeaders(token),
   }
@@ -240,10 +244,11 @@ export const createSession = async (
       host: sessionHost,
     })
     let data = response.data
-    console.log("data is", data)
     let session = responseToSession(data.session)
-    let password = data.password
-    return { session, password }
+    let password: string = data.password
+    let token: string = data.token
+    let expires: Date = new Date(data.expires)
+    return { session, password, token, expires }
   } catch (e) {
     console.log(e)
     return undefined
