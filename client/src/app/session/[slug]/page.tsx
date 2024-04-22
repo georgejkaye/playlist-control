@@ -349,7 +349,11 @@ const Home = ({ params }: { params: { slug: string } }) => {
     <div>
       <Header session={session} />
       <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
-      {!token ? "" : <AdminPanel session={session} />}
+      {!token || new Date() < token.expiry ? (
+        ""
+      ) : (
+        <AdminPanel session={session} />
+      )}
       <div>
         {!session.playlist ? (
           ""
