@@ -76,9 +76,13 @@ const MakeSession = (props: { stopMaking: () => void }) => {
       setLoading(true)
       let result = await createSession(sessionNameText, sessionHostText)
       if (result !== undefined) {
-        console.log("session is", result.session)
         setLoading(false)
         setSession(result.session)
+        localStorage.setItem(`token-${result.session.slug}`, result.token)
+        localStorage.setItem(
+          `expires-${result.session.slug}`,
+          result.expires.toISOString()
+        )
         router.push(`/session/${result.session.slug}`)
         props.stopMaking()
       } else {
