@@ -9,6 +9,7 @@ import {
   Track,
   responseToSession,
   responseToSessionOverview,
+  responseToTrack,
 } from "./structs"
 import TopBar from "./components/bar"
 import { usePathname } from "next/navigation"
@@ -124,17 +125,14 @@ export const AppContextWrapper = (
       let current = data.current
       let queue = data.queue
       let queueds = data.queueds
-      let session = data.session
       setQueuedTracks(new Set(queueds))
       setCurrent(current)
       setQueue(queue)
-      setSession(session)
     })
     socket.on("session", (msg) => {
       console.log(msg)
     })
     socket.on("sessions", (data) => {
-      console.log("session", data)
       let sessions = data.map(responseToSessionOverview)
       setSessions(sessions)
     })
@@ -142,6 +140,16 @@ export const AppContextWrapper = (
       let { session, password } = data
       let sessionObject = responseToSession(session)
       setSession(sessionObject)
+    })
+    socket.on("queue", (data) => {
+      let currentTrack = data.current
+      let upcomingQueue = data.queue
+      if (currentTrack) {
+        setCurrent(responseToTrack(currentTrack))
+      } else {
+        setCurrent(undefined)
+      }
+      setQueue(upcomingQueue.map(responseToTrack))
     })
     return () => {
       socket.off("connect", onConnect)
@@ -155,6 +163,13 @@ export const AppContextWrapper = (
       localStorage.removeItem("token")
     }
   }, [token])
+  useEffect(() => {
+    if (session) {
+      socket.emit("join_session", session.slug)
+    } else {
+      socket.emit("leave_session")
+    }
+  }, [session])
   return (
     <AppContext.Provider value={value}>
       <TopBar
