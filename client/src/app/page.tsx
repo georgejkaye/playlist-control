@@ -59,6 +59,7 @@ const MakeSession = (props: { stopMaking: () => void }) => {
   const [sessionNameText, setSessionNameText] = useState("")
   const [sessionHostText, setSessionHostText] = useState("")
   const [isLoading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const router = useRouter()
   const onChangeNameBox = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSessionNameText(e.target.value)
@@ -76,7 +77,6 @@ const MakeSession = (props: { stopMaking: () => void }) => {
       setLoading(true)
       let result = await createSession(sessionNameText, sessionHostText)
       if (result !== undefined) {
-        setLoading(false)
         setSession(result.session)
         localStorage.setItem(`token-${result.session.slug}`, result.token)
         localStorage.setItem(
@@ -84,10 +84,12 @@ const MakeSession = (props: { stopMaking: () => void }) => {
           result.expires.toISOString()
         )
         router.push(`/session/${result.session.slug}`)
-        props.stopMaking()
       } else {
+        setError("Session name already taken!")
         setLoading(false)
       }
+    } else {
+      setError("Need session name and session host!")
     }
   }
   const boxStyle = "p-2 my-2 rounded-xl w-full tablet:w-full text-black"
@@ -134,6 +136,11 @@ const MakeSession = (props: { stopMaking: () => void }) => {
           Cancel
         </button>
       </div>
+      {error === "" ? (
+        ""
+      ) : (
+        <div className="p-2 rounded-xl bg-red-600">{error}</div>
+      )}
     </div>
   )
 }
