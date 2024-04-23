@@ -1,6 +1,6 @@
 "use client"
 
-import { useContext, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { AppContext } from "./context"
 import { SessionOverview } from "./structs"
 import { createSession } from "./api"
@@ -184,8 +184,15 @@ const MakeSession = (props: { stopMaking: () => void }) => {
 }
 
 const Home = () => {
-  const { sessions } = useContext(AppContext)
+  const { sessions, setSession, setQueue, setCurrent, setQueuedTracks } =
+    useContext(AppContext)
   const [isMaking, setMaking] = useState(false)
+  useEffect(() => {
+    setSession(undefined)
+    setQueue([])
+    setCurrent(undefined)
+    setQueuedTracks(new Set())
+  }, [])
   return (
     <div>
       {!isMaking ? (
