@@ -9,23 +9,24 @@ const Page = () => {
   const router = useRouter()
   useEffect(() => {
     var ignore = false
+    console.log("hello", ignore)
     const state = localStorage.getItem("state")
     const redirect = localStorage.getItem("redirect")
+    localStorage.removeItem("state")
+    localStorage.removeItem("redirect")
     const stateParam = params.get("state")
     const code = params.get("code")
     const token = localStorage.getItem(`token-${redirect}`)
     if (!ignore && redirect && code && token && state === stateParam) {
       const sendSpotifyAuth = async () => {
-        console.log(code)
         let user = await sendAuthCode(redirect, token, code)
-
-        console.log("user", user)
         if (user) {
           router.push(`/session/${redirect}`)
         }
       }
       sendSpotifyAuth()
     }
+    router.push("/")
     ignore = true
     return () => {
       ignore = true

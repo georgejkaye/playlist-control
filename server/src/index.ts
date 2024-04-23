@@ -59,6 +59,37 @@ app.get("/sessions", async (req, res) => {
   let sessions = await getSessions()
 })
 
+const getSessionFromToken = async (token: string) => {
+  try {
+    let decoded = await verifyToken(token)
+    if (!decoded["sub"]) {
+      return undefined
+    } else {
+      return decoded["sub"]
+    }
+  } catch (e) {
+    console.log(e)
+    return undefined
+  }
+}
+
+const authSessionHost = async (
+  sessionSlug: string,
+  authHeader: string | undefined
+) => {
+  if (!authHeader) {
+    return false
+  } else {
+    let token = authHeader.split(" ")[1]
+    let tokenSession = await getSessionFromToken(token)
+    if (sessionSlug === tokenSession) {
+      return true
+    } else {
+      return false
+    }
+  }
+}
+
 app.use("/:sessionSlug", async (req, res, next) => {
   let sessionSlugString = req.params["sessionSlug"]
   try {
@@ -67,6 +98,11 @@ app.use("/:sessionSlug", async (req, res, next) => {
       res.status(400).send("Invalid session id")
     } else {
       res.locals["sessionSlug"] = sessionSlug
+      let authorizationHeader = req.header("Authorization")
+      res.locals["isAdmin"] = await authSessionHost(
+        sessionSlug,
+        authorizationHeader
+      )
       next()
     }
   } catch {
@@ -76,7 +112,12 @@ app.use("/:sessionSlug", async (req, res, next) => {
 
 app.get("/:sessionSlug", async (req, res) => {
   let sessionSlugString = res.locals["sessionSlug"]
-  let session = await getSession("session_name_slug", sessionSlugString)
+  let isAdmin = res.locals["isAdmin"]
+  let session = await getSession(
+    "session_name_slug",
+    sessionSlugString,
+    isAdmin
+  )
   if (!session) {
     res.status(404).send("No session with that slug found")
   } else {
@@ -106,36 +147,12 @@ app.post("/:sessionSlug/token", multer().single("file"), async (req, res) => {
   }
 })
 
-const getSessionFromToken = async (token: string) => {
-  try {
-    let decoded = await verifyToken(token)
-    if (!decoded["sub"]) {
-      return undefined
-    } else {
-      return decoded["sub"]
-    }
-  } catch (e) {
-    console.log(e)
-    return undefined
-  }
-}
-
 app.use("/:sessionSlug/auth", async (req, res, next) => {
-  let sessionSlug: string = res.locals["sessionSlug"]
-  console.log(sessionSlug)
-  let authorizationHeader = req.header("Authorization")
-  console.log(authorizationHeader)
-  if (!authorizationHeader) {
-    res.status(401).send("Authorization failed")
+  let isAdmin = res.locals["isAdmin"]
+  if (!isAdmin) {
+    res.status(401).send("Invalid authorisation")
   } else {
-    let token = authorizationHeader.split(" ")[1]
-    let tokenSession = await getSessionFromToken(token)
-    console.log("The token says", tokenSession)
-    if (sessionSlug !== tokenSession) {
-      res.status(401).send("Authorization failed")
-    } else {
-      next()
-    }
+    next()
   }
 })
 
@@ -145,13 +162,11 @@ app.post("/:sessionSlug/auth/spotify", async (req, res) => {
   let sessionSlug: string = res.locals["sessionSlug"]
   try {
     let tokens = await exchangeAccessCodeForTokens(code)
-    console.log("the tokens are", tokens)
     if (!tokens) {
       res.sendStatus(400)
     } else {
       updateTokens(sessionSlug, tokens)
       let spotifyUser = await getSpotifyUser(sessionSlug)
-      console.log("Got user", spotifyUser)
       res.send(spotifyUser)
     }
   } catch (e) {
@@ -195,18 +210,6 @@ app.delete("/auth/spotify/session", async (req, res) => {
   res.send(200)
 })
 
-const getSessionData = async (sessionSlug: string) => {
-  const queue = await getQueue(sessionSlug)
-  const queueds = await getQueuedTracks(sessionSlug)
-  const session = await getSession("session_id", `${sessionSlug}`)
-  return {
-    current: queue ? queue.current : undefined,
-    session,
-    queue: queue ? queue.queue : undefined,
-    queueds,
-  }
-}
-
 const emitData = async (
   socket: Socket | Server,
   sessionId: number | undefined
@@ -235,12 +238,12 @@ io.on("connection", async (socket) => {
     try {
       let sessionHost = data.sessionHost
       let sessionName = data.sessionName
-      let result = await createSession(sessionHost, sessionName)
+      let password = data.password
+      let result = await createSession(sessionHost, sessionName, password)
       if (!result) {
         socket.emit("session_failed")
       } else {
-        let { session, password } = result
-        socket.emit("session_created", { session, password })
+        socket.emit("session_created", result)
       }
     } catch {
       socket.emit("error", "Session needs name and host")
@@ -255,19 +258,17 @@ app.post("/session", async (req, res) => {
   const body = req.body
   const sessionName = body["name"]
   const sessionHost = body["host"]
+  const password = body["password"]
   if (!sessionName || !sessionHost) {
     res.status(400).send("Session initialisation needs both name and host")
   } else {
-    let result = await createSession(sessionName, sessionHost)
-    if (!result) {
+    let session = await createSession(sessionName, sessionHost, password)
+    if (!session) {
       res.status(400).send("Slug already exists")
     } else {
-      let { session, password } = result
       let token = await generateToken(session.slug)
-      console.log(token.expiresAt)
       res.status(200).send({
         session,
-        password,
         token: token.token,
         expires: token.expiresAt,
       })

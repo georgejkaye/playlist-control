@@ -249,7 +249,10 @@ const QueueAdder = (props: {
 
 let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
 
-const AdminPanel = (props: { session: Session }) => {
+const AdminPanel = (props: {
+  session: Session
+  logoutCallback: () => void
+}) => {
   const router = useRouter()
   const onClickSpotify = async (e: React.MouseEvent<HTMLButtonElement>) => {
     localStorage.setItem("redirect", props.session.slug)
@@ -280,34 +283,48 @@ const AdminPanel = (props: { session: Session }) => {
         })
     )
   }
+  const onClickLogout = (e: React.MouseEvent<HTMLButtonElement>) => {
+    localStorage.removeItem(`token-${props.session.slug}`)
+    localStorage.removeItem(`expiry-${props.session.slug}`)
+    props.logoutCallback()
+  }
   const onClickDeauthoriseSpotify = (
     e: React.MouseEvent<HTMLButtonElement>
   ) => {}
   return (
-    <div>
-      {!props.session.spotify ? (
-        <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
-          <div>Not authenticated with Spotify</div>
-          <button
-            onClick={onClickSpotify}
-            className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
-          >
-            Authenticate with Spotify
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
-          <div>Authenticated with Spotify as {props.session.spotify.name}</div>
-          <button
-            onClick={onClickDeauthoriseSpotify}
-            className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
-          >
-            Deauthorise
-          </button>
-        </div>
-      )}
-    </div>
+    <>
+      <div className="flex flex-col items-start ">
+        {!props.session.spotify ? (
+          <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+            <div>Not authenticated with Spotify</div>
+            <button
+              onClick={onClickSpotify}
+              className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+            >
+              Authenticate with Spotify
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+            <div>
+              Authenticated with Spotify as {props.session.spotify.name}
+            </div>
+            <button
+              onClick={onClickDeauthoriseSpotify}
+              className="p-2 bg-accent-blue rounded hover:underline font-2xl font-bold"
+            >
+              Deauthorise
+            </button>
+          </div>
+        )}
+      </div>
+      <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
+    </>
   )
+}
+
+const LoginPanel = (props: { session: Session }) => {
+  return <div>Admin login</div>
 }
 
 const Home = ({ params }: { params: { slug: string } }) => {
@@ -322,20 +339,18 @@ const Home = ({ params }: { params: { slug: string } }) => {
   const [isAdding, setAdding] = useState(false)
   useEffect(() => {
     setLoading(true)
+    let tokenStorage = localStorage.getItem(`token-${params.slug}`)
+    let expiryStorage = localStorage.getItem(`expires-${params.slug}`)
     const performRequests = async () => {
-      let result = await getSession(params.slug)
-      console.log("result", result)
+      let result = await getSession(params.slug, token?.token)
       if (result) {
         setSession(result)
-        console.log("about to stop loading")
         setLoading(false)
       } else {
         router.push("/")
       }
     }
     performRequests()
-    let tokenStorage = localStorage.getItem(`token-${params.slug}`)
-    let expiryStorage = localStorage.getItem(`expires-${params.slug}`)
     let expiry = !expiryStorage ? undefined : new Date(expiryStorage)
     if (tokenStorage && expiry && new Date() < expiry) {
       setToken({ token: tokenStorage, expiry })
@@ -350,9 +365,12 @@ const Home = ({ params }: { params: { slug: string } }) => {
       <Header session={session} />
       <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
       {!token || new Date() > token.expiry ? (
-        ""
+        <LoginPanel session={session} />
       ) : (
-        <AdminPanel session={session} />
+        <AdminPanel
+          session={session}
+          logoutCallback={() => setToken(undefined)}
+        />
       )}
       <div>
         {!session.playlist ? (

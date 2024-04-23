@@ -12,9 +12,13 @@ const salt = await bcrypt.genSalt()
 
 const passwordLength = 6
 
+export const hashPassword = async (password: string) => {
+  return await bcrypt.hash(password, salt)
+}
+
 export const generatePassword = async () => {
   const password = randomBytes(passwordLength / 2).toString("hex")
-  const hashedPassword = await bcrypt.hash(password, salt)
+  const hashedPassword = await hashPassword(password)
   return { password, hashedPassword }
 }
 

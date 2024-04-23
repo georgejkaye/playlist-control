@@ -9,7 +9,7 @@ import {
   getSpotifyUser,
   refreshTokens,
 } from "./spotify.js"
-import { generatePassword } from "./auth.js"
+import { generatePassword, hashPassword } from "./auth.js"
 import slugify from "@sindresorhus/slugify"
 
 const DB_HOST = process.env.DB_HOST || "georgejkaye.com"
@@ -197,9 +197,10 @@ const makeParameters = (params: string[][]) => {
 
 export const createSession = async (
   sessionName: string,
-  sessionHost: string
+  sessionHost: string,
+  password: string
 ) => {
-  const { password, hashedPassword } = await generatePassword()
+  const hashedPassword = hashPassword(password)
   const sessionSlug = slugify(sessionName)
   const queryText = `
     INSERT INTO Session (session_host, session_name, session_name_slug, password_hash, session_start)
@@ -216,16 +217,13 @@ export const createSession = async (
     ])
     let sessionId = result.rows[0].get("session_id")
     return {
-      session: {
-        id: sessionId,
-        name: sessionName,
-        slug: sessionSlug,
-        host: sessionHost,
-        playlist: undefined,
-        current: undefined,
-        spotify: undefined,
-      },
-      password,
+      id: sessionId,
+      name: sessionName,
+      slug: sessionSlug,
+      host: sessionHost,
+      playlist: undefined,
+      current: undefined,
+      spotify: undefined,
     }
   } catch (e) {
     console.log(e)
@@ -256,7 +254,8 @@ export const getSessions = async () => {
 
 export const getSession = async (
   param: string,
-  value: string
+  value: string,
+  isAdmin: boolean
 ): Promise<Session | undefined> => {
   const queryText = `
     SELECT

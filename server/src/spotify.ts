@@ -36,7 +36,6 @@ const getSpotifyHeaders = () => ({
 export const exchangeAccessCodeForTokens = async (code: string) => {
   const now = new Date()
   const headers = getSpotifyHeaders()
-  console.log("code is", code)
   const params = new URLSearchParams({
     grant_type: "authorization_code",
     code: code,

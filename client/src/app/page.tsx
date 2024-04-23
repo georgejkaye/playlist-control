@@ -58,6 +58,7 @@ const MakeSession = (props: { stopMaking: () => void }) => {
   const { setSession } = useContext(AppContext)
   const [sessionNameText, setSessionNameText] = useState("")
   const [sessionHostText, setSessionHostText] = useState("")
+  const [passwordText, setPasswordText] = useState("")
   const [isLoading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
@@ -67,15 +68,26 @@ const MakeSession = (props: { stopMaking: () => void }) => {
   const onChangeHostBox = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSessionHostText(e.target.value)
   }
+  const onChangePasswordBox = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordText(e.target.value)
+  }
   const onClickCancelButton = (e: React.MouseEvent<HTMLButtonElement>) => {
     props.stopMaking()
   }
-  const onClickCreateSessionButton = async (
-    e: React.MouseEvent<HTMLButtonElement>
+  const submitSession = async (
+    name: string,
+    host: string,
+    password: string
   ) => {
-    if (sessionNameText !== "" && sessionHostText !== "") {
+    if (name === "" || host === "" || password === "") {
+      setError("Need session name, host and password!")
+    } else {
       setLoading(true)
-      let result = await createSession(sessionNameText, sessionHostText)
+      let result = await createSession(
+        sessionNameText,
+        sessionHostText,
+        password
+      )
       if (result !== undefined) {
         setSession(result.session)
         localStorage.setItem(`token-${result.session.slug}`, result.token)
@@ -88,8 +100,19 @@ const MakeSession = (props: { stopMaking: () => void }) => {
         setError("Session name already taken!")
         setLoading(false)
       }
-    } else {
-      setError("Need session name and session host!")
+    }
+  }
+  const onClickCreateSessionButton = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    submitSession(sessionHostText, sessionHostText, passwordText)
+  }
+  const onSubmitForm = (data: FormData) => {
+    const name = data.get("sessionName")
+    const host = data.get("sessionHost")
+    const password = data.get("password")
+    if (name && host && password) {
+      submitSession(name.toString(), host.toString(), password.toString())
     }
   }
   const boxStyle = "p-2 my-2 rounded-xl w-full tablet:w-full text-black"
@@ -102,26 +125,41 @@ const MakeSession = (props: { stopMaking: () => void }) => {
     <div className="flex flex-col">
       <h2 className="text-xl font-bold">Create a new session</h2>
       <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
-      <div className="flex flex-col tablet:flex-row gap-4">
-        <div className={boxDivStyle}>
-          <div>Session name</div>
-          <input
-            className={boxStyle}
-            type="text"
-            value={sessionNameText}
-            onChange={onChangeNameBox}
-          />
+      <form action={onSubmitForm}>
+        <div className="flex flex-col tablet:flex-row gap-4">
+          <div className={boxDivStyle}>
+            <div>Session name</div>
+            <input
+              name="sessionName"
+              autoFocus
+              className={boxStyle}
+              type="text"
+              value={sessionNameText}
+              onChange={onChangeNameBox}
+            />
+          </div>
+          <div className={boxDivStyle}>
+            <div>Session host</div>
+            <input
+              name="sessionHost"
+              className={boxStyle}
+              type="text"
+              value={sessionHostText}
+              onChange={onChangeHostBox}
+            />
+          </div>
+          <div className={boxDivStyle}>
+            <div>Password</div>
+            <input
+              name="password"
+              className={boxStyle}
+              type="password"
+              value={passwordText}
+              onChange={onChangePasswordBox}
+            />
+          </div>
         </div>
-        <div className={boxDivStyle}>
-          <div>Session host</div>
-          <input
-            className={boxStyle}
-            type="text"
-            value={sessionHostText}
-            onChange={onChangeHostBox}
-          />
-        </div>
-      </div>
+      </form>
       <div className="flex gap-4">
         <button
           className={createSessionButtonStyle}

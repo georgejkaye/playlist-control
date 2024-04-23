@@ -204,6 +204,7 @@ export const sendAuthCode = async (
       id: data.id,
     }
   } catch (e) {
+    console.log(e)
     return undefined
   }
 }
@@ -234,7 +235,8 @@ export const getAuthData = async (token: string) => {
 
 export const createSession = async (
   sessionName: string,
-  sessionHost: string
+  sessionHost: string,
+  password: string
 ) => {
   const endpoint = `/server/session`
   console.log("creating session", sessionName, "with host", sessionHost)
@@ -242,10 +244,10 @@ export const createSession = async (
     let response = await axios.post(endpoint, {
       name: sessionName,
       host: sessionHost,
+      password,
     })
     let data = response.data
     let session = responseToSession(data.session)
-    let password: string = data.password
     let token: string = data.token
     let expires: Date = new Date(data.expires)
     return { session, password, token, expires }
@@ -255,10 +257,16 @@ export const createSession = async (
   }
 }
 
-export const getSession = async (sessionSlug: string) => {
+export const getSession = async (
+  sessionSlug: string,
+  token: string | undefined
+) => {
   const endpoint = `/server/${sessionSlug}`
+  const config = {
+    headers: getHeaders(token),
+  }
   try {
-    let response = await axios.get(endpoint)
+    let response = await axios.get(endpoint, config)
     let data = response.data
     if (!data) {
       return undefined
