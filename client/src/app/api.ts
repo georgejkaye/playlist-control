@@ -160,12 +160,19 @@ export const postPlaylist = async (
     }
   }
 }
-export const stopSession = async (token: string) => {
-  const endpoint = `/server/auth/spotify/session`
+export const deauthenticateSpotify = async (slug: string, token: string) => {
+  const endpoint = `/server/${slug}/auth/spotify`
   const config = {
     headers: getHeaders(token),
   }
-  await axios.delete(endpoint, config)
+  try {
+    let response = await axios.delete(endpoint, config)
+    let data = response.data
+    console.log(data)
+    return responseToSession(data)
+  } catch (e) {
+    return undefined
+  }
 }
 export const getPlaylists = async (
   token: string,

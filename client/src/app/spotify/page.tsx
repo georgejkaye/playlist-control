@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 import { sendAuthCode } from "../api"
+import { Loader } from "../loader"
 
 const Page = () => {
   const params = useSearchParams()
@@ -22,18 +23,21 @@ const Page = () => {
         let user = await sendAuthCode(redirect, token, code)
         if (user) {
           router.push(`/session/${redirect}`)
+        } else {
+          router.push("/")
         }
       }
       sendSpotifyAuth()
+    } else {
+      router.push("/")
     }
-    router.push("/")
     ignore = true
     return () => {
       ignore = true
     }
   })
 
-  return <div>Redirecting...</div>
+  return <Loader />
 }
 
 export default Page

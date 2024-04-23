@@ -4,7 +4,7 @@ import jwt, { JwtPayload } from "jsonwebtoken"
 import { getPasswordHash } from "./database.js"
 import { randomBytes } from "crypto"
 
-export const tokenExpiresMinutes = 30
+export const tokenExpiresMinutes = 60 * 12
 
 const secretKeyFile = process.env.SECRET_KEY || "api.secret"
 const secretKey = await getSecret(secretKeyFile)

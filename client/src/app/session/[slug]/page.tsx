@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import crypto from "crypto"
 import querystring from "query-string"
 
-import { postQueue, getSession } from "@/app/api"
+import { postQueue, getSession, deauthenticateSpotify } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
 import {
@@ -250,8 +250,11 @@ const QueueAdder = (props: {
 let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
 
 const AdminPanel = (props: {
+  token: string
   session: Session
+  setLoading: SetState<boolean>
   logoutCallback: () => void
+  setSession: SetState<Session | undefined>
 }) => {
   const router = useRouter()
   const onClickSpotify = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -288,9 +291,19 @@ const AdminPanel = (props: {
     localStorage.removeItem(`expiry-${props.session.slug}`)
     props.logoutCallback()
   }
-  const onClickDeauthoriseSpotify = (
+  const onClickDeauthoriseSpotify = async (
     e: React.MouseEvent<HTMLButtonElement>
-  ) => {}
+  ) => {
+    props.setLoading(true)
+    const session = await deauthenticateSpotify(props.session.slug, props.token)
+    console.log(session)
+    if (session) {
+      props.setSession(session)
+      props.setLoading(false)
+    } else {
+      router.push("/")
+    }
+  }
   return (
     <>
       <div className="flex flex-col items-start ">
@@ -299,7 +312,7 @@ const AdminPanel = (props: {
             <div>Not authenticated with Spotify</div>
             <button
               onClick={onClickSpotify}
-              className="p-2 my-4 bg-accent-blue rounded hover:underline font-2xl font-bold"
+              className="p-2 bg-accent-blue rounded hover:underline font-2xl font-bold"
             >
               Authenticate with Spotify
             </button>
@@ -368,7 +381,10 @@ const Home = ({ params }: { params: { slug: string } }) => {
         <LoginPanel session={session} />
       ) : (
         <AdminPanel
+          setLoading={setLoading}
+          token={token.token}
           session={session}
+          setSession={setSession}
           logoutCallback={() => setToken(undefined)}
         />
       )}

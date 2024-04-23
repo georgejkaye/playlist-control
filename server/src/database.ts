@@ -173,17 +173,17 @@ export const updateTokens = async (
   ])
 }
 
-export const discardTokens = async (username: string) => {
+export const discardTokens = async (sessionSlug: string) => {
   const queryText = `
     UPDATE Session
     SET
       spotify_id = NULL, access_token = NULL,
       refresh_token = NULL, expires_at = NULL
     WHERE
-      username = $1
+      session_name_slug = $1
   `
   const query = { text: queryText }
-  await client.query(query, [username])
+  await client.query(query, [sessionSlug])
 }
 
 const makeParameters = (params: string[][]) => {
@@ -313,12 +313,12 @@ export const getSession = async (
   }
 }
 
-export const deleteSession = async (sessionId: string) => {
+export const deleteSession = async (sessionSlug: string) => {
   const queryText = `
-    DELETE FROM Session WHERE session_id = $1
+    DELETE FROM Session WHERE session_name_slug = $1
   `
   const query = { text: queryText }
-  client.query(query, [sessionId])
+  client.query(query, [sessionSlug])
 }
 
 export const setPlaylist = async (sessionId: number, playlistId: string) => {

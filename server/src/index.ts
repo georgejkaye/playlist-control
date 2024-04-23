@@ -175,10 +175,20 @@ app.post("/:sessionSlug/auth/spotify", async (req, res) => {
   }
 })
 
-app.delete("/:sessionSlug/auth/spotify", async (req, res) => {
-  let user = res.locals["user"]
-  await discardTokens(user)
+app.delete("/:sessionSlug/auth", async (req, res) => {
+  let sessionSlug: string = res.locals["sessionSlug"]
+  let isAdmin = res.locals["isAdmin"]
+  await deleteSession(sessionSlug)
   res.sendStatus(200)
+})
+
+app.delete("/:sessionSlug/auth/spotify", async (req, res) => {
+  let sessionSlug: string = res.locals["sessionSlug"]
+  let isAdmin = res.locals["isAdmin"]
+  await discardTokens(sessionSlug)
+  let session = await getSession("session_name_slug", sessionSlug, isAdmin)
+  console.log(session)
+  res.status(200).send(session)
 })
 
 app.get("/:sessionSlug/auth/playlists", async (req, res) => {
@@ -207,7 +217,7 @@ app.post("/:sessionSlug/auth/playlist", async (req, res) => {
 app.delete("/auth/spotify/session", async (req, res) => {
   let user = res.locals["user"]
   deleteSession(user)
-  res.send(200)
+  res.sendStatus(200)
 })
 
 const emitData = async (
