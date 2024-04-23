@@ -132,16 +132,11 @@ export const AppContextWrapper = (
       setQueue(queue)
     })
     socket.on("session", (msg) => {
-      console.log(msg)
+      // Reminder about session
     })
     socket.on("sessions", (data) => {
       let sessions = data.map(responseToSessionOverview)
       setSessions(sessions)
-    })
-    socket.on("session_created", (data) => {
-      let { session, password } = data
-      let sessionObject = responseToSession(session)
-      setSession(sessionObject)
     })
     socket.on("queue", (data) => {
       let currentTrack = data.current
