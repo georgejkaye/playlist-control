@@ -317,7 +317,7 @@ const AdminPanel = (props: {
     <>
       <div className="flex flex-col items-start ">
         {!props.session.spotify ? (
-          <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+          <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
             <div>Not authenticated with Spotify</div>
             <button
               onClick={onClickSpotify}
