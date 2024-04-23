@@ -24,7 +24,10 @@ const Header = (props: { session: Session | undefined }) => {
       {!props.session ? (
         ""
       ) : (
-        <div className="font-bold  text-3xl">{props.session.name}</div>
+        <div className="flex flex-col">
+          <div className="font-bold  text-3xl">{props.session.name}</div>
+          <div className="my-2">Hosted by {props.session.host}</div>
+        </div>
       )}
     </div>
   )
@@ -32,24 +35,29 @@ const Header = (props: { session: Session | undefined }) => {
 
 const CurrentTrackCard = (props: { currentTrack: Track }) => {
   return (
-    <div className="flex flex-col desktop:flex-row desktop:items-center justify-center my-6 gap-4 desktop:gap-10 mx-1">
-      <div>
-        <Image
-          className="rounded-lg"
-          width={200}
-          height={200}
-          src={props.currentTrack.album.art}
-          alt={`Album art for ${props.currentTrack.album.name}`}
-        />
-      </div>
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="font-bold text-4xl py-1">{props.currentTrack.name}</div>
-        <div className="text-lg py-2 text-2xl">
-          {getMultipleArtistsString(props.currentTrack.artists)}
+    <>
+      <div className="flex flex-col desktop:flex-row desktop:items-center justify-center my-6 gap-4 desktop:gap-10 mx-1">
+        <div>
+          <Image
+            className="rounded-lg"
+            width={200}
+            height={200}
+            src={props.currentTrack.album.art}
+            alt={`Album art for ${props.currentTrack.album.name}`}
+          />
         </div>
-        <div className="py-1">{props.currentTrack.album.name}</div>
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="font-bold text-4xl py-1">
+            {props.currentTrack.name}
+          </div>
+          <div className="text-lg py-2 text-2xl">
+            {getMultipleArtistsString(props.currentTrack.artists)}
+          </div>
+          <div className="py-1">{props.currentTrack.album.name}</div>
+        </div>
       </div>
-    </div>
+      <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
+    </>
   )
 }
 
@@ -337,18 +345,25 @@ const AdminPanel = (props: {
 }
 
 const LoginPanel = (props: { session: Session }) => {
-  return <div>Admin login</div>
+  return <div></div>
 }
 
 const Home = ({ params }: { params: { slug: string } }) => {
-  const { setCurrent, current, setQueue, queue, tracks, setTracks } =
-    useContext(AppContext)
+  const {
+    session,
+    setSession,
+    setCurrent,
+    current,
+    setQueue,
+    queue,
+    tracks,
+    setTracks,
+  } = useContext(AppContext)
   const router = useRouter()
   const [token, setToken] = useState<
     { token: string; expiry: Date } | undefined
   >(undefined)
   const [isLoading, setLoading] = useState(false)
-  const [session, setSession] = useState<Session | undefined>(undefined)
   const [isAdding, setAdding] = useState(false)
   useEffect(() => {
     setLoading(true)
@@ -389,6 +404,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
         />
       )}
       <div>
+        {!current ? "" : <CurrentTrackCard currentTrack={current} />}
         {!session.playlist ? (
           ""
         ) : (
