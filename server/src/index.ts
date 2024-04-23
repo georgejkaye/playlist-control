@@ -222,7 +222,7 @@ app.delete("/auth/spotify/session", async (req, res) => {
 
 const emitData = async (
   socket: Socket | Server,
-  sessionId: number | undefined
+  sessionId: string | undefined
 ) => {
   let sessions = await getSessions()
   if (sessionId) {
@@ -235,14 +235,17 @@ const emitData = async (
 
 io.on("connection", async (socket) => {
   console.log("A user connected")
-  var sessionId: number | undefined = undefined
-  emitData(socket, sessionId)
-  socket.on("join_session", (newSessionId: number) => {
-    sessionId = newSessionId
-    emitData(socket, sessionId)
+  var sessionSlug: string | undefined = undefined
+  emitData(socket, sessionSlug)
+  socket.on("join_session", async (newSessionId: string) => {
+    sessionSlug = newSessionId
+    let queue = await getQueue(sessionSlug)
+    if (queue) {
+      socket.emit("queue", queue)
+    }
   })
   socket.on("leave_session", () => {
-    sessionId = undefined
+    sessionSlug = undefined
   })
   socket.on("new_session", async (data) => {
     try {
@@ -260,7 +263,7 @@ io.on("connection", async (socket) => {
     }
   })
   setInterval(async () => {
-    emitData(socket, sessionId)
+    emitData(socket, sessionSlug)
   }, 5000)
 })
 

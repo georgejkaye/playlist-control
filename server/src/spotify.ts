@@ -57,22 +57,18 @@ export const refreshTokens = async (
   tokens: SpotifyTokens
 ) => {
   const now = new Date()
-  const headers = getSpotifyHeaders()
-  const params = {
-    grant_type: "refresh_token",
-    refresh_token: tokens.refresh,
+  const config = {
+    headers: getSpotifyHeaders(),
+    params: { grant_type: "refresh_token", refresh_token: tokens.refresh },
   }
   try {
-    let response = await axios.post(SPOTIFY_TOKEN_URL, null, {
-      headers,
-      params,
-    })
+    let response = await axios.post(SPOTIFY_TOKEN_URL, null, config)
     let tokens = getTokensFromTokenResponse(now, response)
     updateTokens(sessionSlug, tokens)
     return tokens
   } catch (e) {
     let err = e as AxiosError
-    console.log(err.response?.status)
+    console.log(err.message)
     return undefined
   }
 }
@@ -209,7 +205,9 @@ export const getCurrentTrack = async (sessionSlug: string) => {
 
 export const getQueue = async (sessionSlug: string) => {
   return executeGetRequest(sessionSlug, "/me/player/queue", (data) => {
-    let current = responseToTrack(data.currently_playing)
+    let current = !data.currently_playing
+      ? undefined
+      : responseToTrack(data.currently_playing)
     let queue = data.queue.map(responseToTrack)
     return {
       current,
