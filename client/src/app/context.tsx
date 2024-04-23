@@ -16,6 +16,8 @@ import { usePathname } from "next/navigation"
 import { socket } from "./socket"
 import { getAuthData } from "./api"
 
+export const Line = () => <hr className="h-px my-4 bg-lines border-0" />
+
 interface AppData {
   token: string | undefined
   setToken: SetState<string | undefined>

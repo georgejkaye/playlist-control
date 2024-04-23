@@ -7,6 +7,7 @@ import { createSession } from "./api"
 import { useRouter } from "next/navigation"
 import { ColorRing } from "react-loader-spinner"
 import { Loader } from "./loader"
+import { Line } from "./context"
 
 const SessionCard = (props: { session: SessionOverview }) => {
   const router = useRouter()
@@ -15,7 +16,7 @@ const SessionCard = (props: { session: SessionOverview }) => {
   }
   return (
     <button
-      className="text-left rounded-xl bg-accent-blue p-4 flex flex-row hover:bg-accent-blue-hover cursor-pointer"
+      className="text-left rounded-xl bg-accent p-4 flex flex-row hover:bg-accent-hover cursor-pointer"
       onClick={onClickSessionCard}
     >
       <div>
@@ -124,7 +125,7 @@ const MakeSession = (props: { stopMaking: () => void }) => {
   ) : (
     <div className="flex flex-col">
       <h2 className="text-xl font-bold">Create a new session</h2>
-      <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
+      <Line />
       <form action={onSubmitForm}>
         <div className="flex flex-col tablet:flex-row gap-4">
           <div className={boxDivStyle}>

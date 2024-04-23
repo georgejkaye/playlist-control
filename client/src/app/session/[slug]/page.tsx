@@ -17,6 +17,7 @@ import {
   Playlist,
   Session,
 } from "@/app/structs"
+import { Line } from "@/app/context"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -56,7 +57,7 @@ const CurrentTrackCard = (props: { currentTrack: Track }) => {
           <div className="py-1">{props.currentTrack.album.name}</div>
         </div>
       </div>
-      <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
+      <Line />
     </>
   )
 }
@@ -320,26 +321,26 @@ const AdminPanel = (props: {
             <div>Not authenticated with Spotify</div>
             <button
               onClick={onClickSpotify}
-              className="p-2 bg-accent-blue rounded hover:underline font-2xl font-bold"
+              className="p-2 bg-accent rounded hover:underline font-2xl font-bold"
             >
               Authenticate with Spotify
             </button>
           </div>
         ) : (
-          <div className="flex flex-col desktop:flex-row items-start desktop:items-center desktop:gap-5">
+          <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
             <div>
               Authenticated with Spotify as {props.session.spotify.name}
             </div>
             <button
               onClick={onClickDeauthoriseSpotify}
-              className="p-2 bg-accent-blue rounded hover:underline font-2xl font-bold"
+              className="p-2 bg-accent rounded hover:underline font-2xl font-bold"
             >
               Deauthorise
             </button>
           </div>
         )}
       </div>
-      <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
+      <Line />
     </>
   )
 }
@@ -391,7 +392,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
   ) : (
     <div>
       <Header session={session} />
-      <hr className="h-px my-4 bg-gray-200 border-0 dark:bg-gray-700" />
+      <Line />
       {!token || new Date() > token.expiry ? (
         <LoginPanel session={session} />
       ) : (

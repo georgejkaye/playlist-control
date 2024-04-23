@@ -35,8 +35,10 @@ const config: Config = {
         fadein: "fadein 1s ease-in",
       },
       colors: {
-        "accent-blue": "#0f0765",
-        "accent-blue-hover": "#0f0745",
+        accent: "#121212",
+        "accent-text": "#ffffff",
+        "accent-hover": "#38f27a",
+        lines: "#1ed760",
       },
     },
     plugins: [require("flowbite/plugin")],

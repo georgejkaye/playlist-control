@@ -7,7 +7,7 @@ const TopBar = (props: { isLoggedIn: boolean; isAdminPanel: boolean }) => {
     ? ["/settings", "Settings"]
     : ["/settings", "Login"]
   return (
-    <div className="p-4 bg-accent-blue flex flex-row">
+    <div className="p-4 bg-accent text-accent-text flex flex-row">
       <div className="text-xl font-bold flex-1">
         <a href="/">Kayelist Controller</a>
       </div>
