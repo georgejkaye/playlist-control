@@ -34,8 +34,8 @@ CREATE TABLE AlbumArtist (
 CREATE TABLE Track (
     track_id TEXT PRIMARY KEY,
     queued_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    session_id SERIAL NOT NULL,
-    CONSTRAINT fk_session_id FOREIGN KEY(session_id) REFERENCES Session(session_id) ON DELETE CASCADE
+    session_name_slug TEXT NOT NULL,
+    CONSTRAINT fk_session_slug FOREIGN KEY(session_name_slug) REFERENCES Session(session_name_slug) ON DELETE CASCADE
 );
 
 CREATE TABLE ArtistTrack (
