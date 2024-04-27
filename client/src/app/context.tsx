@@ -131,6 +131,12 @@ export const AppContextWrapper = (
       setCurrent(current)
       setQueue(queue)
     })
+    socket.on("playback", (data) => {
+      console.log("It has changed!")
+      let { current, queue } = data
+      setCurrent(current)
+      setQueue(queue)
+    })
     socket.on("session", (msg) => {
       // Reminder about session
     })
