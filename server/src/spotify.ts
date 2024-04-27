@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from "axios"
 import { getSecret } from "./utils.js"
 import { Playlist, PlaylistOverview, Session, Track } from "./structs.js"
-import { getSpotifyTokens, updateTokens } from "./database.js"
+import { getQueuedTracks, getSpotifyTokens, updateTokens } from "./database.js"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
@@ -203,17 +203,24 @@ export const getCurrentTrack = async (sessionSlug: string) => {
   )
 }
 
-export const getQueue = async (sessionSlug: string) => {
-  return executeGetRequest(sessionSlug, "/me/player/queue", (data) => {
-    let current = !data.currently_playing
-      ? undefined
-      : responseToTrack(data.currently_playing)
-    let queue = data.queue.map(responseToTrack)
-    return {
-      current,
-      queue,
+export const getQueue = async (
+  sessionSlug: string
+): Promise<{ current: Track | undefined; queue: Track[] }> => {
+  let result = await executeGetRequest(
+    sessionSlug,
+    "/me/player/queue",
+    (data) => {
+      let current = !data.currently_playing
+        ? undefined
+        : responseToTrack(data.currently_playing)
+      let queue = data.queue.map(responseToTrack)
+      return {
+        current,
+        queue,
+      }
     }
-  })
+  )
+  return !result ? { current: undefined, queue: [] } : result
 }
 
 export const getPlaylists = async (sessionSlug: string) => {
@@ -299,5 +306,31 @@ export const getSessionOverview = async (
     host: sessionHost,
     playlist,
     current,
+  }
+}
+
+export const getSessionObject = async (
+  sessionId: number,
+  sessionName: string,
+  sessionSlug: string,
+  sessionHost: string,
+  playlistId: string | undefined
+): Promise<Session> => {
+  let playlist = !playlistId
+    ? undefined
+    : await getPlaylistDetails(sessionSlug, playlistId)
+  let { current, queue } = await getQueue(sessionSlug)
+  let queuedTracks = await getQueuedTracks(sessionSlug)
+  let user = await getSpotifyUser(sessionSlug)
+  return {
+    id: sessionId,
+    name: sessionName,
+    slug: sessionSlug,
+    host: sessionHost,
+    playlist: playlist,
+    queued: queuedTracks,
+    spotify: user,
+    current,
+    queue,
   }
 }

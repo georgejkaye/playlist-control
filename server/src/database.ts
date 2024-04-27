@@ -5,6 +5,8 @@ import {
   SpotifyTokens,
   getPlaylistDetails,
   getPlaylistOverview,
+  getQueue,
+  getSessionObject,
   getSessionOverview,
   getSpotifyUser,
   refreshTokens,
@@ -20,6 +22,8 @@ const DB_PASSWORD_FILE = process.env.DB_PASSWORD || "db.secret"
 
 const DB_PASSWORD = await getSecret(DB_PASSWORD_FILE)
 
+export var connected = false
+
 var client: Client
 
 const init = async () =>
@@ -32,6 +36,7 @@ const init = async () =>
   }))
 
 init()
+connected = true
 
 export const validateSessionSlug = async (sessionSlug: string) => {
   const queryText =
@@ -199,7 +204,7 @@ export const createSession = async (
   sessionName: string,
   sessionHost: string,
   password: string
-) => {
+): Promise<Session | undefined> => {
   const hashedPassword = hashPassword(password)
   const sessionSlug = slugify(sessionName)
   const queryText = `
@@ -222,8 +227,10 @@ export const createSession = async (
       slug: sessionSlug,
       host: sessionHost,
       playlist: undefined,
-      current: undefined,
       spotify: undefined,
+      queued: [],
+      current: undefined,
+      queue: [],
     }
   } catch (e) {
     console.log(e)
@@ -233,6 +240,26 @@ export const createSession = async (
 }
 
 export const getSessions = async () => {
+  const queryText = `
+    SELECT session_id, session_host, session_name, session_name_slug, playlist_id, access_token, refresh_token, expires_at
+    FROM Session
+  `
+  const query = { text: queryText }
+  let result = await client.query(query)
+  let sessions = await Promise.all(
+    result.rows.map(async (row) => {
+      let id = row.get("session_id")
+      let host = row.get("session_host")
+      let name = row.get("session_name")
+      let slug = row.get("session_name_slug")
+      let playlistId = row.get("playlist_id")
+      return await getSessionObject(id, name, slug, host, playlistId)
+    })
+  )
+  return sessions
+}
+
+export const getSessionOverviews = async () => {
   const queryText = `
     SELECT session_id, session_host, session_name, session_name_slug, playlist_id, access_token, refresh_token, expires_at
     FROM Session
@@ -279,7 +306,7 @@ export const getSession = async (
       AS queued_tracks
     FROM Session
     LEFT JOIN Track
-    ON Session.session_id = Track.session_id
+    ON Session.session_name_slug = Track.session_name_slug
     WHERE Session.${param} = $1
     GROUP BY session.session_id
   `
@@ -301,6 +328,10 @@ export const getSession = async (
     }))
     let user = await getSpotifyUser(sessionSlug)
     let playlist = await getPlaylistDetails(sessionId, playlistId)
+    let playing = await getQueue(sessionSlug)
+    let { current, queue } = playing
+      ? playing
+      : { current: undefined, queue: [] }
     return {
       name: sessionName,
       id: sessionId,
@@ -309,6 +340,8 @@ export const getSession = async (
       playlist,
       queued,
       spotify: user,
+      current,
+      queue,
     }
   }
 }
@@ -329,4 +362,23 @@ export const setPlaylist = async (sessionId: number, playlistId: string) => {
   `
   const query = { text: queryText }
   client.query(query, [playlistId, sessionId])
+}
+
+export const addListener = async (sessionSlug: string) => {
+  const queryText = `
+    INSERT INTO Listener (session_name_slug) VALUES ($1) RETURNING listener_id
+  `
+  const query = { text: queryText }
+  let result = await client.query(query, [sessionSlug])
+  let rows = result.rows
+  let row = rows[0]
+  return row.get("listener_id")
+}
+
+export const removeListener = async (listenerId: number) => {
+  const queryText = `
+    DELETE FROM Listener WHERE listener_id = $1
+  `
+  const query = { text: queryText }
+  client.query(query, [listenerId])
 }

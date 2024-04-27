@@ -2544,6 +2544,11 @@ set-function-length@^1.2.1:
     gopd "^1.0.1"
     has-property-descriptors "^1.0.2"
 
+set-interval-async@^3.0.3:
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/set-interval-async/-/set-interval-async-3.0.3.tgz#99dd13098eebc2bf1ad0b22e03fe25c516b982c3"
+  integrity sha512-o4DyBv6mko+A9cH3QKek4SAAT5UyJRkfdTi6JHii6ZCKUYFun8SwgBmQrOXd158JOwBQzA+BnO8BvT64xuCaSw==
+
 setprototypeof@1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/setprototypeof/-/setprototypeof-1.2.0.tgz#66c9a24a73f9fc28cbe66b09fed3d33dcaf1b424"

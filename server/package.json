@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "npm": "^10.5.0",
+    "set-interval-async": "^3.0.3",
     "socket.io": "^4.7.5",
     "socket.io-server": "^1.0.0-b",
     "ts-postgres": "^2.0.1"

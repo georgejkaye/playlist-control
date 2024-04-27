@@ -11,6 +11,7 @@ import {
   discardTokens,
   getQueuedTracks,
   getSession,
+  getSessionOverviews,
   getSessions,
   getTracks,
   setPlaylist,
@@ -30,6 +31,15 @@ import {
   getQueue,
   getSpotifyUser,
 } from "./spotify.js"
+import {
+  Listener,
+  PlayingStatus,
+  Session,
+  Track,
+  getNewListener,
+  printListeners,
+} from "./structs.js"
+import { setIntervalAsync } from "set-interval-async"
 
 dotenv.config()
 
@@ -56,7 +66,7 @@ app.get("/", (req, res) => {
 })
 
 app.get("/sessions", async (req, res) => {
-  let sessions = await getSessions()
+  let sessions = await getSessionOverviews()
 })
 
 const getSessionFromToken = async (token: string) => {
@@ -224,7 +234,7 @@ const emitData = async (
   socket: Socket | Server,
   sessionId: string | undefined
 ) => {
-  let sessions = await getSessions()
+  let sessions = await getSessionOverviews()
   if (sessionId) {
     socket.emit("session", `You are connected to session ${sessionId}`)
   } else {
@@ -233,38 +243,68 @@ const emitData = async (
   socket.emit("sessions", sessions)
 }
 
+const listeners = new Map<number, Listener>()
+const sessionStatuses = new Map<string, PlayingStatus>()
+
+const queueChanged = (oldQueue: Track[], newQueue: Track[]) => {
+  if (oldQueue.length !== newQueue.length) {
+    return true
+  }
+  for (let i = 0; i < oldQueue.length; i++) {
+    if (oldQueue[i].id !== newQueue[i].id) {
+      return false
+    }
+  }
+}
+
+const updateSessionStatus = async () => {
+  let sessions = await getSessions()
+  sessions.forEach((session) => {
+    let sessionStatus = {
+      current: session.current,
+      queue: session.queue,
+    }
+    let oldSessionStatus = sessionStatuses.get(session.slug)
+    if (
+      !oldSessionStatus ||
+      !oldSessionStatus.current ||
+      !sessionStatus.current ||
+      oldSessionStatus.current.id !== sessionStatus.current.id ||
+      queueChanged(oldSessionStatus.queue, sessionStatus.queue)
+    ) {
+      sessionStatuses.set(session.slug, sessionStatus)
+      io.to(session.slug).emit("playback", sessionStatus)
+    }
+  })
+}
+
+// updateSessionStatus()
+
 io.on("connection", async (socket) => {
-  console.log("A user connected")
+  let listener = getNewListener(socket)
+  listeners.set(listener.id, listener)
+  console.log(`User #${listener.id} connected`)
   var sessionSlug: string | undefined = undefined
   emitData(socket, sessionSlug)
   socket.on("join_session", async (newSessionId: string) => {
+    console.log(socket.id, "is joining", newSessionId)
     sessionSlug = newSessionId
-    let queue = await getQueue(sessionSlug)
-    if (queue) {
-      socket.emit("queue", queue)
+    socket.join(sessionSlug)
+    const session = await getSession("session_name_slug", sessionSlug, false)
+    if (session) {
+      listener.session = session
+      let queue = await getQueue(sessionSlug)
+      if (queue) {
+        socket.emit("queue", queue)
+      }
     }
   })
   socket.on("leave_session", () => {
     sessionSlug = undefined
   })
-  socket.on("new_session", async (data) => {
-    try {
-      let sessionHost = data.sessionHost
-      let sessionName = data.sessionName
-      let password = data.password
-      let result = await createSession(sessionHost, sessionName, password)
-      if (!result) {
-        socket.emit("session_failed")
-      } else {
-        socket.emit("session_created", result)
-      }
-    } catch {
-      socket.emit("error", "Session needs name and host")
-    }
+  socket.on("disconnect", () => {
+    listeners.delete(listener.id)
   })
-  setInterval(async () => {
-    emitData(socket, sessionSlug)
-  }, 5000)
 })
 
 app.post("/session", async (req, res) => {
@@ -279,6 +319,7 @@ app.post("/session", async (req, res) => {
     if (!session) {
       res.status(400).send("Slug already exists")
     } else {
+      console.log("creating session", session.slug)
       let token = await generateToken(session.slug)
       res.status(200).send({
         session,
@@ -288,3 +329,7 @@ app.post("/session", async (req, res) => {
     }
   }
 })
+
+setIntervalAsync(async () => {
+  updateSessionStatus()
+}, 2000)

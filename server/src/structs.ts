@@ -1,3 +1,4 @@
+import { Socket } from "socket.io"
 import { SpotifyTokens } from "./spotify.js"
 
 export interface SpotifyUser {
@@ -42,8 +43,10 @@ export interface Session {
   slug: string
   host: string
   playlist: Playlist | undefined
-  queued: Track[]
+  queued: QueuedTrack[]
   spotify: SpotifyUser | undefined
+  current: Track | undefined
+  queue: Track[]
 }
 
 export interface Artist {
@@ -73,4 +76,54 @@ export interface CurrentTrack {
 
 export interface Data {
   currentTrack: Track
+}
+
+var nextSocket = 0
+
+export interface Listener {
+  id: number
+  socket: Socket
+  session: Session | undefined
+}
+
+export const getNewListener = (socket: Socket): Listener => {
+  let listener = {
+    id: nextSocket,
+    socket,
+    session: undefined,
+  }
+  nextSocket++
+  return listener
+}
+
+export const listenerToString = (listener: Listener) => {
+  let sessionString = listener.session ? ` (${listener.session.name})` : ""
+  return `Listener #${listener.id}${sessionString}`
+}
+
+export const printListeners = (
+  listeners: Map<number, Listener>,
+  tab: number
+) => {
+  var string = ""
+  var index = 0
+  var tabString = ""
+  for (let i = 0; i < tab; i++) {
+    tabString = `${tabString} `
+  }
+  for (const listener of listeners.values()) {
+    let listenerString = `${tabString}${listenerToString(listener)}`
+    if (index == 0) {
+      string = listenerString
+    } else {
+      string = `${string}\n${listenerString}`
+    }
+    index++
+  }
+  return string
+}
+
+export interface PlayingStatus {
+  current: Track | undefined
+  queue: Track[]
 }
