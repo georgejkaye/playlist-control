@@ -205,7 +205,7 @@ export const createSession = async (
   sessionHost: string,
   password: string
 ): Promise<Session | undefined> => {
-  const hashedPassword = hashPassword(password)
+  const hashedPassword = await hashPassword(password)
   const sessionSlug = slugify(sessionName)
   const queryText = `
     INSERT INTO Session (session_host, session_name, session_name_slug, password_hash, session_start)
