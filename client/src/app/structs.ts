@@ -85,7 +85,7 @@ export interface Playlist {
   tracks: Track[]
 }
 
-const responseToPlaylist = (response: any) => ({
+export const responseToPlaylist = (response: any) => ({
   id: response["id"],
   url: response["url"],
   name: response["name"],

@@ -7,6 +7,7 @@ import {
   SetState,
   SpotifyUser,
   Track,
+  responseToPlaylist,
   responseToSession,
   responseToSessionOverview,
   responseToTrack,
@@ -153,6 +154,13 @@ export const AppContextWrapper = (
         setCurrent(undefined)
       }
       setQueue(upcomingQueue.map(responseToTrack))
+    })
+    socket.on("new_playlist", (data) => {
+      console.log("HELLO!")
+      console.log("the data is", data)
+      let session = responseToSession(data)
+      console.log("new playlist", session)
+      setSession(session)
     })
     return () => {
       socket.off("connect", onConnect)
