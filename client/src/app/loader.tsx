@@ -9,7 +9,7 @@ export const Loader = () => (
       ariaLabel="color-ring-loading"
       wrapperStyle={{}}
       wrapperClass="color-ring-wrapper"
-      colors={["#0f0765", "#0f0765", "#0f0765", "#0f0765", "#0f0765"]}
+      colors={["#1ed760", "#1ed760", "#1ed760", "#1ed760", "#1ed760"]}
     />
   </div>
 )
