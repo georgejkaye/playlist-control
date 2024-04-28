@@ -201,23 +201,30 @@ app.delete("/:sessionSlug/auth/spotify", async (req, res) => {
   res.status(200).send(session)
 })
 
-app.get("/:sessionSlug/auth/playlists", async (req, res) => {
+app.get("/:sessionSlug/auth/spotify/playlists", async (req, res) => {
+  console.log("HELLO!")
   let sessionSlug = res.locals["sessionSlug"]
   let playlists = await getPlaylists(sessionSlug)
   res.send(playlists)
 })
 
-app.post("/:sessionSlug/auth/playlist", async (req, res) => {
-  let sessionId = res.locals["sessionId"]
+app.post("/:sessionSlug/auth/spotify/playlist", async (req, res) => {
+  let sessionSlug: string = res.locals["sessionSlug"]
   let playlistId = req.query.playlist_id
-  let name = req.query.session_name
-  if (typeof playlistId !== "string" || typeof name !== "string") {
+  if (typeof playlistId !== "string") {
     res.status(400).send("Query parameters must be string")
   } else {
-    let playlist = await getPlaylistDetails(sessionId, playlistId)
+    let playlist = await getPlaylistDetails(sessionSlug, playlistId)
     if (playlist) {
-      setPlaylist(sessionId, playlistId)
-      res.status(200).send(playlist)
+      await setPlaylist(sessionSlug, playlistId)
+      let session = await getSession("session_name_slug", sessionSlug, false)
+      if (session) {
+        io.to(sessionSlug).emit("new_playlist", session)
+        console.log(session.playlist?.tracks.length)
+        res.status(200).send(session)
+      } else {
+        res.status(500)
+      }
     } else {
       res.status(404).send("Playlist not found")
     }
