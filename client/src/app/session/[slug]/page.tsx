@@ -7,7 +7,13 @@ import { useRouter } from "next/navigation"
 import crypto from "crypto"
 import querystring from "query-string"
 
-import { postQueue, getSession, deauthenticateSpotify } from "@/app/api"
+import {
+  postQueue,
+  getSession,
+  deauthenticateSpotify,
+  getPlaylists,
+  postPlaylist,
+} from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
 import {
@@ -16,8 +22,12 @@ import {
   SetState,
   Playlist,
   Session,
+  Token,
+  PlaylistOverview,
 } from "@/app/structs"
 import { Line } from "@/app/context"
+
+import cd from "@/../public/cd.webp"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -168,15 +178,11 @@ interface QueueItem {
 }
 
 const QueueAdder = (props: {
-  session: Session
   isAdding: boolean
   setAdding: SetState<boolean>
   tracks: Track[]
-  setTracks: SetState<Track[]>
-  setCurrent: SetState<Track | undefined>
-  setQueue: SetState<Track[]>
 }) => {
-  const { session } = useContext(AppContext)
+  const { session, setQueue, setTracks } = useContext(AppContext)
   const [filteredTracks, setFilteredTracks] = useState<Track[]>(
     props.tracks.sort((t1, t2) => t1.name.localeCompare(t2.name))
   )
@@ -212,7 +218,7 @@ const QueueAdder = (props: {
   return !session || !session.playlist ? (
     ""
   ) : (
-    <div className="m-1">
+    <div>
       <div className={bigButtonStyle} onClick={onClickAdd}>
         {!props.isAdding ? "Add to queue" : "Back"}
       </div>
@@ -220,7 +226,6 @@ const QueueAdder = (props: {
         ""
       ) : (
         <div>
-          <QueueingFromCard playlist={session.playlist} />
           <div className="flex">
             <input
               autoFocus
@@ -237,8 +242,8 @@ const QueueAdder = (props: {
                 key={track.id}
                 track={track}
                 tracks={props.tracks}
-                setTracks={props.setTracks}
-                setQueue={props.setQueue}
+                setTracks={setTracks}
+                setQueue={setQueue}
                 setAdding={props.setAdding}
               />
             ))}
@@ -257,6 +262,9 @@ const QueueAdder = (props: {
 }
 
 let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
+
+const smallButtonStyle =
+  "p-2 bg-accent rounded hover:underline font-2xl font-bold"
 
 const AdminPanel = (props: {
   token: string
@@ -319,10 +327,7 @@ const AdminPanel = (props: {
         {!props.session.spotify ? (
           <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
             <div>Not authenticated with Spotify</div>
-            <button
-              onClick={onClickSpotify}
-              className="p-2 bg-accent rounded hover:underline font-2xl font-bold"
-            >
+            <button onClick={onClickSpotify} className={smallButtonStyle}>
               Authenticate with Spotify
             </button>
           </div>
@@ -333,7 +338,7 @@ const AdminPanel = (props: {
             </div>
             <button
               onClick={onClickDeauthoriseSpotify}
-              className="p-2 bg-accent rounded hover:underline font-2xl font-bold"
+              className={smallButtonStyle}
             >
               Deauthorise
             </button>
@@ -349,6 +354,191 @@ const LoginPanel = (props: { session: Session }) => {
   return <div></div>
 }
 
+const CustomPlaylistCard = (props: { onSubmit: (text: string) => void }) => {
+  const [customPlaylistText, setCustomPlaylistText] = useState("")
+  const onCustomPlaylistTextChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setCustomPlaylistText(e.target.value)
+  }
+  const onCustomPlaylistKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      props.onSubmit(customPlaylistText)
+    }
+  }
+  const onClickSubmitButton = (e: React.MouseEvent<HTMLButtonElement>) => {
+    props.onSubmit(customPlaylistText)
+  }
+  return (
+    <div className="p-4 rounded-xl w-full flex flex-row align-center items-center gap-4">
+      <Image
+        className="rounded-xl mr-2"
+        src={cd}
+        alt="Spotify logo"
+        width={50}
+        height={50}
+      />
+      <div className="w-full flex flex-row gap-5 items-center">
+        <input
+          type="text"
+          placeholder="Playlist URL"
+          className="w-10/12 flex-1 p-4 text-black rounded"
+          value={customPlaylistText}
+          onChange={onCustomPlaylistTextChange}
+          onKeyDown={onCustomPlaylistKeyDown}
+        />
+        <button
+          onClick={onClickSubmitButton}
+          className="p-2 bg-accent rounded hover:underline font-2xl font-bold"
+        >
+          Submit
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const PlaylistCard = (props: {
+  playlist: PlaylistOverview
+  onClickPlaylist: () => void
+}) => {
+  const onClickPlaylist = (e: React.MouseEvent<HTMLDivElement>) => {
+    props.onClickPlaylist()
+  }
+  return (
+    <div
+      className="p-4 cursor-pointer rounded-xl hover:bg-accent flex flex-row items-center w-full gap-5"
+      onClick={onClickPlaylist}
+    >
+      <Image
+        className="rounded-xl"
+        src={props.playlist.art}
+        width={50}
+        height={50}
+        alt={`Art for playlist ${props.playlist.name}`}
+      />
+      <div className="font-bold text-xl">{props.playlist.name}</div>
+      <div>{props.playlist.tracks} tracks</div>
+    </div>
+  )
+}
+
+const PlaylistSelector = (props: {
+  session: Session
+  setSession: SetState<Session | undefined>
+  token: Token
+  setAdding: SetState<boolean>
+}) => {
+  const [isSelecting, setSelecting] = useState(false)
+  const [isLoading, setLoading] = useState(false)
+  const [playlists, setPlaylists] = useState<PlaylistOverview[]>([])
+  const [playlistText, setPlaylistText] = useState("")
+  const [errorText, setErrorText] = useState("")
+  const onClickSelectPlaylist = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    setLoading(true)
+    let playlists = await getPlaylists(props.token.token, props.session.slug)
+    console.log(playlists)
+    setPlaylists(playlists)
+    setSelecting(true)
+    props.setAdding(true)
+    setLoading(false)
+  }
+  const onPlaylistSubmit = async (playlistURL: string) => {
+    setLoading(true)
+    let { result, error } = await postPlaylist(
+      props.token.token,
+      props.session.slug,
+      playlistURL
+    )
+    console.log(result, error)
+    if (error) {
+      setErrorText(error)
+    } else {
+      setSelecting(false)
+    }
+    setLoading(false)
+  }
+  const onClickPlaylistCard = (p: PlaylistOverview) => {
+    onPlaylistSubmit(p.id)
+  }
+  return (
+    <div>
+      {isLoading ? (
+        <Loader />
+      ) : props.token && !isSelecting ? (
+        <button className={smallButtonStyle} onClick={onClickSelectPlaylist}>
+          Select playlist
+        </button>
+      ) : (
+        <div className="flex flex-row flex-wrap">
+          <CustomPlaylistCard
+            onSubmit={(text) => onPlaylistSubmit(playlistText)}
+          />
+          {playlists.map((p) => (
+            <PlaylistCard
+              key={p.id}
+              playlist={p}
+              onClickPlaylist={() => onClickPlaylistCard(p)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const PlaylistPanel = (props: {
+  session: Session
+  setSession: SetState<Session | undefined>
+  playlist: Playlist | undefined
+  token: Token | undefined
+  isAdding: boolean
+  setAdding: SetState<boolean>
+}) => {
+  return (
+    <div>
+      {!props.playlist && props.token ? (
+        <PlaylistSelector
+          session={props.session}
+          setSession={props.setSession}
+          token={props.token}
+          setAdding={props.setAdding}
+        />
+      ) : props.playlist ? (
+        <div>
+          <div className="flex flex-row items-center mb-4 gap-4">
+            <div>
+              <Image
+                className="rounded-lg mr-4"
+                width={100}
+                height={100}
+                src={props.playlist.art}
+                alt={`Playlist art for ${props.playlist.name}`}
+              />
+            </div>
+            <div>
+              <div>Queueing from</div>
+              <div className="text-2xl font-bold">{props.playlist.name}</div>
+            </div>
+          </div>
+          <QueueAdder
+            isAdding={props.isAdding}
+            setAdding={props.setAdding}
+            tracks={props.playlist.tracks}
+          />
+        </div>
+      ) : (
+        "No playlist"
+      )}
+      <Line />
+    </div>
+  )
+}
+
 const Home = ({ params }: { params: { slug: string } }) => {
   const {
     session,
@@ -361,9 +551,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
     setTracks,
   } = useContext(AppContext)
   const router = useRouter()
-  const [token, setToken] = useState<
-    { token: string; expiry: Date } | undefined
-  >(undefined)
+  const [token, setToken] = useState<Token | undefined>(undefined)
   const [isLoading, setLoading] = useState(false)
   const [isAdding, setAdding] = useState(false)
   useEffect(() => {
@@ -373,6 +561,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
     const performRequests = async () => {
       let result = await getSession(params.slug, token?.token)
       if (result) {
+        console.log("the result is", result)
         setSession(result)
         setLoading(false)
       } else {
@@ -380,9 +569,9 @@ const Home = ({ params }: { params: { slug: string } }) => {
       }
     }
     performRequests()
-    let expiry = !expiryStorage ? undefined : new Date(expiryStorage)
-    if (tokenStorage && expiry && new Date() < expiry) {
-      setToken({ token: tokenStorage, expiry })
+    let expires = !expiryStorage ? undefined : new Date(expiryStorage)
+    if (tokenStorage && expires && new Date() < expires) {
+      setToken({ token: tokenStorage, expires })
     } else {
       setToken(undefined)
     }
@@ -393,7 +582,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
     <div>
       <Header session={session} />
       <Line />
-      {!token || new Date() > token.expiry ? (
+      {!token || new Date() > token.expires ? (
         <LoginPanel session={session} />
       ) : (
         <AdminPanel
@@ -406,19 +595,14 @@ const Home = ({ params }: { params: { slug: string } }) => {
       )}
       <div>
         {!current ? "" : <CurrentTrackCard currentTrack={current} />}
-        {!session.playlist ? (
-          ""
-        ) : (
-          <QueueAdder
-            session={session}
-            isAdding={isAdding}
-            setAdding={setAdding}
-            tracks={session.playlist.tracks}
-            setTracks={setTracks}
-            setCurrent={setCurrent}
-            setQueue={setQueue}
-          />
-        )}
+        <PlaylistPanel
+          session={session}
+          setSession={setSession}
+          playlist={session.playlist}
+          token={token}
+          isAdding={isAdding}
+          setAdding={setAdding}
+        />
         {isAdding ? "" : <Queue queue={queue} />}
       </div>
     </div>
