@@ -327,7 +327,9 @@ export const getSession = async (
       time: track["queued_at"],
     }))
     let user = await getSpotifyUser(sessionSlug)
-    let playlist = await getPlaylistDetails(sessionId, playlistId)
+    let playlist = !playlistId
+      ? undefined
+      : await getPlaylistDetails(sessionSlug, playlistId)
     let playing = await getQueue(sessionSlug)
     let { current, queue } = playing
       ? playing
@@ -354,14 +356,14 @@ export const deleteSession = async (sessionSlug: string) => {
   client.query(query, [sessionSlug])
 }
 
-export const setPlaylist = async (sessionId: number, playlistId: string) => {
+export const setPlaylist = async (sessionSlug: string, playlistId: string) => {
   const queryText = `
     UPDATE Session
     SET playlist_id = $1
-    WHERE session_id = $2
+    WHERE session_name_slug = $2
   `
   const query = { text: queryText }
-  client.query(query, [playlistId, sessionId])
+  client.query(query, [playlistId, sessionSlug])
 }
 
 export const addListener = async (sessionSlug: string) => {
