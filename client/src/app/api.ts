@@ -7,6 +7,7 @@ import {
   SpotifyUser,
   Track,
   responseToCurrentTrack,
+  responseToPlaylist,
   responseToPlaylistOverview,
   responseToSession,
   responseToTrack,
@@ -125,36 +126,29 @@ export const login = async (
 
 export const postPlaylist = async (
   token: string,
-  sessionName: string,
-  playlistId: string,
-  setError: SetState<string>,
-  setSession: SetState<Session | undefined>,
-  setTracks: SetState<Track[]>
+  slug: string,
+  playlistId: string
 ) => {
-  const endpoint = "/server/auth/spotify/session"
+  const endpoint = `/server/${slug}/auth/spotify/playlist`
   const config = {
     headers: getHeaders(token),
     params: {
-      session_name: sessionName,
       playlist_id: playlistId,
     },
   }
   try {
     let response = await axios.post(endpoint, null, config)
     let data = response.data
+    console.log("Response data is", data)
     let session = responseToSession(data)
-    let tracks = data.playlist.tracks.map(responseToTrack)
-    setSession(session)
-    setTracks(tracks)
-    return 0
+    return { result: session, error: undefined }
   } catch (err) {
     if (err instanceof AxiosError && err.response) {
-      if (err.response.status === 404) {
-        setError("Could not find playlist")
-      } else {
-        setError("Something went wrong")
-      }
-      return 1
+      let error =
+        err.response.status === 404
+          ? "Could not find playlist"
+          : "Something went wrong"
+      return { result: undefined, error }
     } else {
       throw err
     }
@@ -174,11 +168,8 @@ export const deauthenticateSpotify = async (slug: string, token: string) => {
     return undefined
   }
 }
-export const getPlaylists = async (
-  token: string,
-  setPlaylists: SetState<PlaylistOverview[]>
-) => {
-  const endpoint = "/server/auth/spotify/playlists"
+export const getPlaylists = async (token: string, slug: string) => {
+  const endpoint = `/server/${slug}/auth/spotify/playlists`
   const config = {
     headers: getHeaders(token),
   }
@@ -186,10 +177,10 @@ export const getPlaylists = async (
     let response = await axios.get(endpoint, config)
     let data = response.data
     let playlists = data.map(responseToPlaylistOverview)
-    setPlaylists(playlists)
+    return playlists
   } catch (err) {
-    console.log(err)
-    setPlaylists([])
+    console.log("getPlaylists", err)
+    return []
   }
 }
 
@@ -211,7 +202,7 @@ export const sendAuthCode = async (
       id: data.id,
     }
   } catch (e) {
-    console.log(e)
+    console.log("sendAuthCode", e)
     return undefined
   }
 }
@@ -259,7 +250,7 @@ export const createSession = async (
     let expires: Date = new Date(data.expires)
     return { session, password, token, expires }
   } catch (e) {
-    console.log(e)
+    console.log("createSession", e)
     return undefined
   }
 }
