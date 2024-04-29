@@ -35,9 +35,39 @@ CREATE TABLE AlbumArtist (
 );
 
 CREATE TABLE Track (
+    track_id TEXT NOT NULL PRIMARY KEY,
+    track_name TEXT NOT NULL,
+    track_album TEXT NOT NULL,
+    track_duration INT NOT NULL,
+    CONSTRAINT fk_track_album FOREIGN KEY(track_album) REFERENCES album(album_id) ON DELETE CASCADE,
+    UNIQUE (track_id, track_album)
+);
+
+CREATE TABLE SessionTrack (
+    session_slug TEXT NOT NULL,
+    track_id TEXT NOT NULL,
+    CONSTRAINT fk_session_slug FOREIGN KEY(session_slug) REFERENCES session(session_name_slug) ON DELETE CASCADE,
+    CONSTRAINT fk_track_id FOREIGN KEY(track_id) REFERENCES track(track_id) ON DELETE CASCADE
+);
+
+CREATE TABLE PlaylistTrack (
+    playlist_id TEXT,
+    track_id TEXT,
+    CONSTRAINT fk_track_id FOREIGN KEY(track_id) REFERENCES track(track_id) ON DELETE CASCADE
+);
+
+CREATE TABLE TrackArtist (
+    track_id TEXT NOT NULL,
+    artist_id TEXT NOT NULL,
+    CONSTRAINT fk_track_id FOREIGN KEY(track_id) REFERENCES track(track_id) ON DELETE CASCADE,
+    CONSTRAINT fk_artist_id FOREIGN KEY(artist_id) REFERENCES artist(artist_id) ON DELETE CASCADE
+);
+
+CREATE TABLE QueuedTrack (
     track_id TEXT PRIMARY KEY,
     queued_at TIMESTAMP WITH TIME ZONE NOT NULL,
     session_name_slug TEXT NOT NULL,
+    CONSTRAINT fk_track_id FOREIGN KEY(track_id) REFERENCES Track(track_id) ON DELETE CASCADE,
     CONSTRAINT fk_session_slug FOREIGN KEY(session_name_slug) REFERENCES Session(session_name_slug) ON DELETE CASCADE
 );
 

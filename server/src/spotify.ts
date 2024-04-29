@@ -22,6 +22,7 @@ const getTokensFromTokenResponse = (now: Date, response: AxiosResponse) => {
   let access = body.access_token
   let expires = new Date(now.getTime() + body.expires_in * 1000)
   let refresh = body.refresh_token
+  console.log(`|${refresh}|`)
   let tokens: SpotifyTokens = { access, expires, refresh }
   return tokens
 }
@@ -47,7 +48,7 @@ export const exchangeAccessCodeForTokens = async (code: string) => {
     let response = await axios.post(SPOTIFY_TOKEN_URL, params, { headers })
     return getTokensFromTokenResponse(now, response)
   } catch (e) {
-    console.log(e)
+    console.log("exchangeAccessCodeForTokens", e)
     return undefined
   }
 }
@@ -68,7 +69,8 @@ export const refreshTokens = async (
     return tokens
   } catch (e) {
     let err = e as AxiosError
-    console.log(err.message)
+    console.log("refreshTokens:", err.message)
+    console.log(e)
     return undefined
   }
 }
@@ -159,7 +161,11 @@ const executePaginatedRequest = async <T, U>(
   sessionSlug: string,
   endpoint: string,
   outerCallback: (data: any, dataArray: U[]) => T,
-  pageCallback: (dataArray: U[], data: any) => string | undefined
+  pageCallback: (
+    dataArray: U[],
+    data: any,
+    pageNo: number
+  ) => string | undefined
 ) => {
   const url = getApiURLFromEndpoint(endpoint)
   let tokens = await getSpotifyTokens(sessionSlug)
@@ -171,11 +177,13 @@ const executePaginatedRequest = async <T, U>(
       var next: string | undefined = url
       let pages = []
       let pageData: U[] = []
+      var pageNo = 0
       while (next) {
         let response = await doGet(next, { headers })
         let data = response.data
         pages.push(data)
-        next = pageCallback(pageData, data)
+        next = pageCallback(pageData, data, pageNo)
+        pageNo++
       }
       return outerCallback(pages, pageData)
     } catch (e) {
@@ -287,17 +295,21 @@ export const getPlaylistDetails = async (
       let tracks = pageData
       return { id, url, name, art, tracks }
     },
-    (array, data) => {
-      // console.log("This page data is", data)
-      if (data.tracks) {
-        let tracks = data.tracks.items
+    (array, data, pageNo) => {
+      const readTracks = (tracks: any[]) => {
         for (let track of tracks) {
           array.push(responseToTrack(track.track))
         }
-        console.log("The next page is", data.tracks.next)
+      }
+      // console.log("This page data is", data)
+      if (pageNo === 0) {
+        let tracks = data.tracks.items
+        readTracks(tracks)
         return data.tracks.next ? data.tracks.next : undefined
       } else {
-        return undefined
+        let tracks = data.items
+        readTracks(tracks)
+        return data.next ? data.next : undefined
       }
     }
   )

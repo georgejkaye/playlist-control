@@ -1,5 +1,7 @@
 import { Client, connect } from "ts-postgres"
 import {
+  Album,
+  Artist,
   Playlist,
   Session,
   SessionOverview,
@@ -132,6 +134,108 @@ export const getTracks = async (trackIds: String[]) => {
   return result
 }
 
+const getInsertArtistsStatement = (artists: Artist[]) => {
+  let values = artists
+    .map((artist) => `('${artist.id}', '${artist.name.replaceAll("'", "''")}')`)
+    .join(",")
+  return `INSERT INTO Artist (artist_id, artist_name) VALUES ${values} ON CONFLICT DO NOTHING`
+}
+
+const getInsertAlbumsStatement = (albums: Album[]) => {
+  let values = albums
+    .map(
+      (album) =>
+        `('${album.id}', '${album.name.replaceAll("'", "''")}', '${album.art}')`
+    )
+    .join(",")
+  return `INSERT INTO Album (album_id, album_name, album_art) VALUES ${values} ON CONFLICT DO NOTHING`
+}
+
+const getInsertTracksStatement = (tracks: Track[]) => {
+  let values = tracks
+    .map(
+      (track) =>
+        `('${track.id}', '${track.name.replaceAll("'", "''")}', '${
+          track.duration
+        }', '${track.album.id}')`
+    )
+    .join(",")
+  return `INSERT INTO Track (track_id, track_name, track_duration, track_album) VALUES ${values} ON CONFLICT DO NOTHING`
+}
+
+const getInsertAlbumTracksStatement = (
+  albumTracks: { album: Album; track: Track }[]
+) => {
+  let values = albumTracks
+    .map(({ album, track }) => `('${album.id}', '${track.id}')`)
+    .join(",")
+  return `INSERT INTO AlbumTrack (album_id, track_id) VALUES ${values} ON CONFLICT DO NOTHING`
+}
+
+const getInsertArtistTracksStatement = (
+  artistTracks: { artist: Artist; track: Track }[]
+) => {
+  let values = artistTracks
+    .map(({ artist, track }) => `('${artist.id}', '${track.id}')`)
+    .join(",")
+  return `INSERT INTO ArtistTrack (artist_id, track_id) VALUES ${values} ON CONFLICT DO NOTHING`
+}
+
+const getInsertPlaylistTracksStatement = (
+  playlistTracks: { playlist: Playlist; track: Track }[]
+) => {
+  let values = playlistTracks
+    .map(({ playlist, track }) => `('${playlist.id}', '${track.id}')`)
+    .join(",")
+  return `INSERT INTO PlaylistTrack (playlist_id, track_id) VALUES ${values} ON CONFLICT DO NOTHING`
+}
+
+const getInsertAlbumArtistsStatement = (
+  albumArtists: { album: Album; artist: Artist }[]
+) => {
+  let values = albumArtists
+    .map(({ album, artist }) => `('${album.id}', '${artist.id}')`)
+    .join(",")
+  return `INSERT INTO AlbumArtist (album_id, artist_id) VALUES ${values} ON CONFLICT DO NOTHING`
+}
+
+const mapQueryOverSet = <T>(set: Set<T>, fn: (data: T[]) => string) =>
+  fn(Array.from(set))
+
+export const insertPlaylist = async (playlist: Playlist) => {
+  let artists = new Set<Artist>()
+  let albums = new Set<Album>()
+  let albumTracks = new Set<{ album: Album; track: Track }>()
+  let artistTracks = new Set<{ artist: Artist; track: Track }>()
+  let albumArtists = new Set<{ album: Album; artist: Artist }>()
+  let tracks = new Set<Track>()
+  let playlistTracks = new Set<{ playlist: Playlist; track: Track }>()
+  for (let track of playlist.tracks) {
+    let album = track.album
+    albums.add(album)
+    for (let artist of album.artists) {
+      artists.add(artist)
+      albumArtists.add({ album, artist })
+    }
+    albumTracks.add({ album, track })
+    for (let artist of track.artists) {
+      artists.add(artist)
+      artistTracks.add({ artist, track })
+    }
+    tracks.add(track)
+    playlistTracks.add({ playlist, track })
+  }
+  await client.query(mapQueryOverSet(artists, getInsertArtistsStatement))
+  await client.query(mapQueryOverSet(albums, getInsertAlbumsStatement))
+  await client.query(mapQueryOverSet(tracks, getInsertTracksStatement))
+  client.query(mapQueryOverSet(albumArtists, getInsertAlbumArtistsStatement))
+  client.query(mapQueryOverSet(artistTracks, getInsertArtistTracksStatement))
+  client.query(mapQueryOverSet(albumTracks, getInsertAlbumTracksStatement))
+  client.query(
+    mapQueryOverSet(playlistTracks, getInsertPlaylistTracksStatement)
+  )
+}
+
 export const getSpotifyTokens = async (sessionSlug: string) => {
   const queryText = `
     SELECT access_token, refresh_token, expires_at
@@ -239,7 +343,7 @@ export const createSession = async (
       queue: [],
     }
   } catch (e) {
-    console.log(e)
+    console.log("createSession", e)
     // Error can occur if slug is not unique
     return undefined
   }
@@ -305,7 +409,7 @@ export const getSession = async (
         json_agg(
           json_build_object(
             'track_id', track.track_id,
-            'queued_at', track.queued_at
+            'queued_at', queuedtrack.queued_at
           )
         ) FILTER (
           WHERE track.track_id IS NOT NULL
@@ -314,8 +418,12 @@ export const getSession = async (
       )
       AS queued_tracks
     FROM Session
+    LEFT JOIN SessionTrack
+    ON Session.session_name_slug = SessionTrack.session_slug
     LEFT JOIN Track
-    ON Session.session_name_slug = Track.session_name_slug
+    ON SessionTrack.track_id = Track.track_id
+    LEFT JOIN QueuedTrack
+    ON SessionTrack.track_id = QueuedTrack.track_id
     WHERE Session.${param} = $1
     GROUP BY session.session_id
   `

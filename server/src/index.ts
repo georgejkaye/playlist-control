@@ -15,6 +15,7 @@ import {
   getSessionOverviews,
   getSessions,
   getTracks,
+  insertPlaylist,
   setPlaylist,
   updateTokens,
   validateSessionSlug,
@@ -222,6 +223,7 @@ app.post("/:sessionSlug/auth/spotify/playlist", async (req, res) => {
   } else {
     let playlist = await getPlaylistDetails(sessionSlug, playlistId)
     if (playlist) {
+      await insertPlaylist(playlist)
       await setPlaylist(sessionSlug, playlistId)
       let session = await getSession("session_name_slug", sessionSlug, false)
       if (session) {
@@ -341,8 +343,3 @@ app.post("/session", async (req, res) => {
     }
   }
 })
-
-setIntervalAsync(async () => {
-  console.log("Updating sessions")
-  updateSessionStatus()
-}, 30000)
