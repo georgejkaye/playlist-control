@@ -1,5 +1,11 @@
 import { Client, connect } from "ts-postgres"
-import { Playlist, Session, SessionOverview, Track } from "./structs.js"
+import {
+  Playlist,
+  Session,
+  SessionOverview,
+  SpotifyUser,
+  Track,
+} from "./structs.js"
 import { getSecret } from "./utils.js"
 import {
   SpotifyTokens,
@@ -261,7 +267,7 @@ export const getSessions = async () => {
 
 export const getSessionOverviews = async () => {
   const queryText = `
-    SELECT session_id, session_host, session_name, session_name_slug, playlist_id, access_token, refresh_token, expires_at
+    SELECT session_id, session_host, session_name, session_name_slug, playlist_name, access_token, refresh_token, expires_at
     FROM Session
   `
   const query = { text: queryText }
@@ -272,8 +278,8 @@ export const getSessionOverviews = async () => {
       let host = row.get("session_host")
       let name = row.get("session_name")
       let slug = row.get("session_name_slug")
-      let playlistId = row.get("playlist_id")
-      return await getSessionOverview(id, name, slug, host, playlistId)
+      let playlist = row.get("playlist_name")
+      return { id, host, name, slug, playlist }
     })
   )
   return sessions
@@ -292,6 +298,9 @@ export const getSession = async (
       session.session_name_slug,
       session.playlist_id,
       session.access_token,
+      session.spotify_user,
+      session.spotify_user_art,
+      session.spotify_id,
       coalesce(
         json_agg(
           json_build_object(
@@ -322,11 +331,18 @@ export const getSession = async (
     let sessionId = row.get("session_id")
     let sessionSlug = row.get("session_name_slug")
     let playlistId = row.get("playlist_id")
+    let spotifyId = row.get("spotify_id")
+    let spotifyUser = !spotifyId
+      ? undefined
+      : {
+          id: spotifyId,
+          name: row.get("spotify_user"),
+          image: row.get("spotify_user_art"),
+        }
     let queued = row.get("queued_tracks").map((track: any) => ({
       id: track["track_id"],
       time: track["queued_at"],
     }))
-    let user = await getSpotifyUser(sessionSlug)
     let playlist = !playlistId
       ? undefined
       : await getPlaylistDetails(sessionSlug, playlistId)
@@ -341,7 +357,7 @@ export const getSession = async (
       slug: sessionSlug,
       playlist,
       queued,
-      spotify: user,
+      spotify: spotifyUser,
       current,
       queue,
     }
@@ -354,6 +370,24 @@ export const deleteSession = async (sessionSlug: string) => {
   `
   const query = { text: queryText }
   client.query(query, [sessionSlug])
+}
+
+export const addSpotifyUserToSession = async (
+  sessionSlug: string,
+  spotifyUser: SpotifyUser
+) => {
+  const queryText = `
+    UPDATE Session
+    SET spotify_id = $1, spotify_user = $2, spotify_user_art = $3
+    WHERE session_name_slug = $4
+  `
+  const query = { text: queryText }
+  client.query(query, [
+    spotifyUser.id,
+    spotifyUser.name,
+    spotifyUser.image,
+    sessionSlug,
+  ])
 }
 
 export const setPlaylist = async (sessionSlug: string, playlistId: string) => {

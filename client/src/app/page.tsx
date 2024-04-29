@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState } from "react"
 import { AppContext } from "./context"
 import { SessionOverview } from "./structs"
-import { createSession } from "./api"
+import { createSession, getSessions } from "./api"
 import { useRouter } from "next/navigation"
 import { ColorRing } from "react-loader-spinner"
 import { Loader } from "./loader"
@@ -26,14 +26,7 @@ const SessionCard = (props: { session: SessionOverview }) => {
           ""
         ) : (
           <div>
-            <div>
-              {props.session.playlist ? props.session.playlist.name : ""}
-            </div>
-            {!props.session.current ? (
-              ""
-            ) : (
-              <div>Currently playing: {props.session.current.name}</div>
-            )}
+            <div>{props.session.playlist ? props.session.playlist : ""}</div>
           </div>
         )}
       </div>
@@ -185,14 +178,18 @@ const MakeSession = (props: { stopMaking: () => void }) => {
 }
 
 const Home = () => {
-  const { sessions, setSession, setQueue, setCurrent, setQueuedTracks } =
-    useContext(AppContext)
+  const [sessions, setSessions] = useState<SessionOverview[]>([])
   const [isMaking, setMaking] = useState(false)
   useEffect(() => {
-    setSession(undefined)
-    setQueue([])
-    setCurrent(undefined)
-    setQueuedTracks(new Set())
+    const performSessionRequest = async () => {
+      let sessions = await getSessions()
+      if (sessions) {
+        setSessions(sessions)
+      } else {
+        setSessions([])
+      }
+    }
+    performSessionRequest()
   }, [])
   return (
     <div>

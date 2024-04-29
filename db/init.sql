@@ -5,10 +5,13 @@ CREATE TABLE Session (
     session_name_slug TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     spotify_id TEXT,
+    spotify_user TEXT,
+    spotify_user_art TEXT,
     access_token TEXT,
     refresh_token TEXT,
     expires_at TIMESTAMP WITH TIME ZONE,
     playlist_id TEXT,
+    playlist_name TEXT,
     session_start TIMESTAMP WITH TIME ZONE
 );
 

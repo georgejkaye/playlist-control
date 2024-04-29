@@ -5,6 +5,7 @@ import cors from "cors"
 import multer from "multer"
 
 import {
+  addSpotifyUserToSession,
   checkUserExists,
   createSession,
   deleteSession,
@@ -46,7 +47,11 @@ dotenv.config()
 const port = process.env.SERVER_PORT || 8090
 
 const app = express()
-app.use(cors())
+
+const corsOptions = {
+  origin: ["http://localhost:3000"],
+  methods: ["GET", "POST"],
+}
 app.use(express.json())
 app.use(express.urlencoded())
 
@@ -54,12 +59,7 @@ const server = app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`)
 })
 
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-})
+const io = new Server(server, { cors: corsOptions })
 
 app.get("/", (req, res) => {
   res.send("Hello!")
@@ -67,6 +67,7 @@ app.get("/", (req, res) => {
 
 app.get("/sessions", async (req, res) => {
   let sessions = await getSessionOverviews()
+  res.status(200).send(sessions)
 })
 
 const getSessionFromToken = async (token: string) => {
@@ -78,7 +79,7 @@ const getSessionFromToken = async (token: string) => {
       return decoded["sub"]
     }
   } catch (e) {
-    console.log(e)
+    console.log("getSessionFromToken", e)
     return undefined
   }
 }
@@ -177,10 +178,15 @@ app.post("/:sessionSlug/auth/spotify", async (req, res) => {
     } else {
       updateTokens(sessionSlug, tokens)
       let spotifyUser = await getSpotifyUser(sessionSlug)
-      res.send(spotifyUser)
+      if (spotifyUser) {
+        addSpotifyUserToSession(sessionSlug, spotifyUser)
+        res.send(spotifyUser)
+      } else {
+        res.status(404).send("Spotify user not found")
+      }
     }
   } catch (e) {
-    console.log(e)
+    console.log("auth/spotify", e)
     res.sendStatus(400)
   }
 })
@@ -241,17 +247,16 @@ const emitData = async (
   socket: Socket | Server,
   sessionId: string | undefined
 ) => {
-  let sessions = await getSessionOverviews()
   if (sessionId) {
     socket.emit("session", `You are connected to session ${sessionId}`)
   } else {
     socket.emit("session", "You are not connected to a session")
   }
-  socket.emit("sessions", sessions)
 }
 
 const listeners = new Map<number, Listener>()
 const sessionStatuses = new Map<string, PlayingStatus>()
+const sessions = new Map<Session, Listener[]>()
 
 const queueChanged = (oldQueue: Track[], newQueue: Track[]) => {
   if (oldQueue.length !== newQueue.length) {
@@ -300,10 +305,10 @@ io.on("connection", async (socket) => {
     const session = await getSession("session_name_slug", sessionSlug, false)
     if (session) {
       listener.session = session
-      let queue = await getQueue(sessionSlug)
-      if (queue) {
-        socket.emit("queue", queue)
-      }
+      socket.emit("queue", {
+        current: session.current,
+        queue: session.queue,
+      })
     }
   })
   socket.on("leave_session", () => {
@@ -338,5 +343,6 @@ app.post("/session", async (req, res) => {
 })
 
 setIntervalAsync(async () => {
+  console.log("Updating sessions")
   updateSessionStatus()
-}, 2000)
+}, 30000)

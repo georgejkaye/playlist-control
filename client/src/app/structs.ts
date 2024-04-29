@@ -114,8 +114,7 @@ export interface SessionOverview {
   name: string
   slug: string
   host: string
-  playlist: PlaylistOverview | undefined
-  current: Track | undefined
+  playlist: string | undefined
 }
 
 export const responseToSessionOverview = (raw: any): SessionOverview => ({
@@ -123,10 +122,7 @@ export const responseToSessionOverview = (raw: any): SessionOverview => ({
   name: raw["name"],
   slug: raw["slug"],
   host: raw["host"],
-  playlist: raw["playlist"]
-    ? responseToPlaylistOverview(raw["playlist"])
-    : undefined,
-  current: raw["current"] ? raw["current"] : undefined,
+  playlist: raw["playlist"],
 })
 
 export interface Session {

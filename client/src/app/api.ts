@@ -10,6 +10,7 @@ import {
   responseToPlaylist,
   responseToPlaylistOverview,
   responseToSession,
+  responseToSessionOverview,
   responseToTrack,
 } from "./structs"
 
@@ -251,6 +252,21 @@ export const createSession = async (
     return { session, password, token, expires }
   } catch (e) {
     console.log("createSession", e)
+    return undefined
+  }
+}
+
+export const getSessions = async () => {
+  const endpoint = `/server/sessions`
+  try {
+    let response = await axios.get(endpoint)
+    let data = response.data
+    if (!data) {
+      return undefined
+    } else {
+      return data.map(responseToSessionOverview)
+    }
+  } catch {
     return undefined
   }
 }

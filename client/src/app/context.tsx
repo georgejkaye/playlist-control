@@ -146,6 +146,7 @@ export const AppContextWrapper = (
       setSessions(sessions)
     })
     socket.on("queue", (data) => {
+      console.log(data)
       let currentTrack = data.current
       let upcomingQueue = data.queue
       if (currentTrack) {

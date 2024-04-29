@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosResponse } from "axios"
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios"
 import { getSecret } from "./utils.js"
 import { Playlist, PlaylistOverview, Session, Track } from "./structs.js"
 import { getQueuedTracks, getSpotifyTokens, updateTokens } from "./database.js"
@@ -124,6 +124,14 @@ const responseToPlaylist = (raw: any) => {
   return { id, url, name, art, tracks }
 }
 
+const doGet = async (
+  url: string,
+  config: AxiosRequestConfig<any> | undefined
+) => {
+  console.log(`Getting ${url}`)
+  return axios.get(url, config)
+}
+
 const executeGetRequest = async <T>(
   sessionSlug: string,
   endpoint: string,
@@ -136,11 +144,12 @@ const executeGetRequest = async <T>(
   } else {
     const headers = getAuthHeader(currentTokens.access)
     try {
-      let response = await axios.get(url, { headers })
+      console.log("Getting", url)
+      let response = await doGet(url, { headers })
       let data = response.data
       return dataCallback(data)
     } catch (e) {
-      console.log(e)
+      console.log("executeGetRequest", url, e)
       return undefined
     }
   }
@@ -163,7 +172,7 @@ const executePaginatedRequest = async <T, U>(
       let pages = []
       let pageData: U[] = []
       while (next) {
-        let response = await axios.get(next, { headers })
+        let response = await doGet(next, { headers })
         let data = response.data
         pages.push(data)
         next = pageCallback(pageData, data)
@@ -172,6 +181,7 @@ const executePaginatedRequest = async <T, U>(
     } catch (e) {
       let err = e as AxiosError
       console.log(`${err.status}: ${err.message}`)
+      console.log(err)
       return undefined
     }
   }
