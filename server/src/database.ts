@@ -390,8 +390,12 @@ export const getSessions = async () => {
 
 export const getSessionOverviews = async () => {
   const queryText = `
-    SELECT session_id, session_host, session_name, session_name_slug, playlist_name, access_token, refresh_token, expires_at
+    SELECT
+      session_id, session_host, session_name, session_name_slug,
+      playlist.playlist_name, access_token, refresh_token, expires_at
     FROM Session
+    INNER JOIN Playlist
+    ON session.playlist_id = playlist.playlist_id
   `
   const query = { text: queryText }
   let result = await client.query(query)
@@ -515,33 +519,21 @@ export const getSession = async (
       playlist.playlist_name,
       playlist.playlist_url,
       playlist.playlist_art,
+      sessionqueued.queued_tracks,
       session.access_token,
       session.spotify_user,
       session.spotify_user_art,
-      session.spotify_id,
-      coalesce(
-        json_agg(
-          json_build_object(
-            'track_id', track.track_id,
-            'queued_at', queuedtrack.queued_at
-          )
-        ) FILTER (
-          WHERE track.track_id IS NOT NULL
-        ),
-        '[]'
-      )
-      AS queued_tracks
+      session.spotify_id
     FROM Session
+    INNER JOIN (
+      SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at)) AS queued_tracks
+      FROM queuedtrack
+      GROUP BY session_name_slug
+    ) SessionQueued
+    ON sessionqueued.session_name_slug = session.session_name_slug
     LEFT JOIN Playlist
     ON Session.playlist_id = Playlist.playlist_id
-    LEFT JOIN SessionTrack
-    ON Session.session_name_slug = SessionTrack.session_slug
-    LEFT JOIN Track
-    ON SessionTrack.track_id = Track.track_id
-    LEFT JOIN QueuedTrack
-    ON SessionTrack.track_id = QueuedTrack.track_id
-    WHERE Session.${param} = $1
-    GROUP BY session.session_id, playlist.playlist_id
+    WHERE Session.session_name_slug = 'the-big-one'
   `
   const query = { text: queryText }
   const result = await client.query(query, [value])
@@ -651,4 +643,23 @@ export const removeListener = async (listenerId: number) => {
   `
   const query = { text: queryText }
   client.query(query, [listenerId])
+}
+
+export const addToQueuedTracks = async (
+  sessionSlug: string,
+  trackId: string
+) => {
+  const query = `
+    INSERT INTO QueuedTrack (track_id, queued_at, session_name_slug)
+    VALUES ($1, NOW(), $2)
+    ON CONFLICT (track_id) DO NOTHING
+    RETURNING queued_at
+  `
+  let response = await client.query(query, [trackId, sessionSlug])
+  let row = response.rows[0]
+  try {
+    return row.get("queued_at")
+  } catch (e) {
+    return undefined
+  }
 }

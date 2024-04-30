@@ -22,7 +22,6 @@ const getTokensFromTokenResponse = (now: Date, response: AxiosResponse) => {
   let access = body.access_token
   let expires = new Date(now.getTime() + body.expires_in * 1000)
   let refresh = body.refresh_token
-  console.log(`|${refresh}|`)
   let tokens: SpotifyTokens = { access, expires, refresh }
   return tokens
 }
@@ -134,24 +133,64 @@ const doGet = async (
   return axios.get(url, config)
 }
 
+const doPost = async (
+  url: string,
+  data: any,
+  config: AxiosRequestConfig<any> | undefined
+) => {
+  console.log(`Posting ${url}`)
+  return axios.post(url, data, config)
+}
+
+const getUrlAndHeaders = async (sessionSlug: string, endpoint: string) => {
+  const url = getApiURLFromEndpoint(endpoint)
+  let currentTokens = await getSpotifyTokens(sessionSlug)
+  if (!currentTokens) {
+    return { url, headers: undefined }
+  } else {
+    const headers = getAuthHeader(currentTokens.access)
+    return { url, headers }
+  }
+}
+
 const executeGetRequest = async <T>(
   sessionSlug: string,
   endpoint: string,
   dataCallback: (data: any) => T
 ) => {
-  const url = getApiURLFromEndpoint(endpoint)
-  let currentTokens = await getSpotifyTokens(sessionSlug)
-  if (!currentTokens) {
+  let { url, headers } = await getUrlAndHeaders(sessionSlug, endpoint)
+  if (!headers) {
     return undefined
   } else {
-    const headers = getAuthHeader(currentTokens.access)
     try {
-      console.log("Getting", url)
       let response = await doGet(url, { headers })
       let data = response.data
       return dataCallback(data)
     } catch (e) {
       console.log("executeGetRequest", url, e)
+      return undefined
+    }
+  }
+}
+
+const executePostRequest = async <T>(
+  sessionSlug: string,
+  endpoint: string,
+  data: any,
+  params: any,
+  dataCallback: ((data: any) => T) | undefined
+) => {
+  let { url, headers } = await getUrlAndHeaders(sessionSlug, endpoint)
+  if (!headers) {
+    return undefined
+  } else {
+    try {
+      let response = await doPost(url, data, { headers, params })
+      if (dataCallback) {
+        return dataCallback(response.data)
+      }
+    } catch (e) {
+      console.log("executePostRequest", url, e)
       return undefined
     }
   }
@@ -241,6 +280,17 @@ export const getQueue = async (
   return !result ? { current: undefined, queue: [] } : result
 }
 
+export const addToQueue = async (sessionSlug: string, trackId: string) => {
+  const endpoint = "/me/player/queue"
+  return executePostRequest(
+    sessionSlug,
+    endpoint,
+    undefined,
+    { uri: `spotify:track:${trackId}` },
+    (data) => 1
+  )
+}
+
 export const getPlaylists = async (sessionSlug: string) => {
   let playlists = await executePaginatedRequest<
     PlaylistOverview[],
@@ -301,7 +351,6 @@ export const getPlaylistDetails = async (
           array.push(responseToTrack(track.track))
         }
       }
-      // console.log("This page data is", data)
       if (pageNo === 0) {
         let tracks = data.tracks.items
         readTracks(tracks)

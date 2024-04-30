@@ -6,6 +6,7 @@ import multer from "multer"
 
 import {
   addSpotifyUserToSession,
+  addToQueuedTracks,
   checkUserExists,
   createSession,
   deleteSession,
@@ -26,6 +27,7 @@ import {
   verifyToken,
 } from "./auth.js"
 import {
+  addToQueue,
   exchangeAccessCodeForTokens,
   getCurrentTrack,
   getPlaylistDetails,
@@ -159,6 +161,30 @@ app.post("/:sessionSlug/token", multer().single("file"), async (req, res) => {
   }
 })
 
+app.post("/:sessionSlug/queue", async (req, res) => {
+  const query = req.query
+  const trackId = query.track_id
+  if (typeof trackId !== "string") {
+    res.status(400).send("Query parameters must be string")
+  } else {
+    let sessionSlug: string = res.locals["sessionSlug"]
+    let response = await addToQueue(sessionSlug, trackId)
+    if (!response) {
+      res.status(400).send("Could not add track to queue")
+    } else {
+      let queuedAt = await addToQueuedTracks(sessionSlug, trackId)
+      let queue = await getQueue(sessionSlug)
+      io.to(sessionSlug).emit("queued_track", {
+        id: trackId,
+        queued_at: queuedAt,
+        queue: queue.queue,
+        current: queue.current,
+      })
+      res.status(200).send("Queued successfully")
+    }
+  }
+})
+
 app.use("/:sessionSlug/auth", async (req, res, next) => {
   let isAdmin = res.locals["isAdmin"]
   if (!isAdmin) {
@@ -204,12 +230,10 @@ app.delete("/:sessionSlug/auth/spotify", async (req, res) => {
   let isAdmin = res.locals["isAdmin"]
   await discardTokens(sessionSlug)
   let session = await getSession("session_name_slug", sessionSlug, isAdmin)
-  console.log(session)
   res.status(200).send(session)
 })
 
 app.get("/:sessionSlug/auth/spotify/playlists", async (req, res) => {
-  console.log("HELLO!")
   let sessionSlug = res.locals["sessionSlug"]
   let playlists = await getPlaylists(sessionSlug)
   res.send(playlists)
@@ -228,7 +252,6 @@ app.post("/:sessionSlug/auth/spotify/playlist", async (req, res) => {
       let session = await getSession("session_name_slug", sessionSlug, false)
       if (session) {
         io.to(sessionSlug).emit("new_playlist", session)
-        console.log(session.playlist?.tracks.length)
         res.status(200).send(session)
       } else {
         res.status(500)
@@ -335,6 +358,7 @@ app.post("/session", async (req, res) => {
     } else {
       console.log("creating session", session.slug)
       let token = await generateToken(session.slug)
+      io.emit("new_session", session)
       res.status(200).send({
         session,
         token: token.token,

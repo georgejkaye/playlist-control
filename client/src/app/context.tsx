@@ -2,6 +2,8 @@
 
 import { createContext, useEffect, useState } from "react"
 import {
+  Playlist,
+  QueuedTrack,
   Session,
   SessionOverview,
   SetState,
@@ -28,14 +30,14 @@ interface AppData {
   setSessions: SetState<SessionOverview[] | undefined>
   session: Session | undefined
   setSession: SetState<Session | undefined>
-  tracks: Track[]
-  setTracks: SetState<Track[]>
+  playlist: Playlist | undefined
+  setPlaylist: SetState<Playlist | undefined>
   queue: Track[]
   setQueue: SetState<Track[]>
   current: Track | undefined
   setCurrent: SetState<Track | undefined>
-  queuedTracks: Set<string>
-  setQueuedTracks: SetState<Set<string>>
+  queuedTracks: Map<string, Date>
+  setQueuedTracks: SetState<Map<string, Date>>
 }
 
 const defaultAppData: AppData = {
@@ -47,13 +49,13 @@ const defaultAppData: AppData = {
   setSessions: () => {},
   session: undefined,
   setSession: () => {},
-  tracks: [],
-  setTracks: () => {},
+  playlist: undefined,
+  setPlaylist: () => {},
   queue: [],
   setQueue: () => {},
   current: undefined,
   setCurrent: () => {},
-  queuedTracks: new Set(),
+  queuedTracks: new Map(),
   setQueuedTracks: () => {},
 }
 
@@ -72,10 +74,10 @@ export const AppContextWrapper = (
     undefined
   )
   const [session, setSession] = useState<Session | undefined>(undefined)
-  const [tracks, setTracks] = useState<Track[]>([])
+  const [playlist, setPlaylist] = useState<Playlist | undefined>(undefined)
   const [current, setCurrent] = useState<Track | undefined>(undefined)
   const [queue, setQueue] = useState<Track[]>([])
-  const [queuedTracks, setQueuedTracks] = useState<Set<string>>(new Set())
+  const [queuedTracks, setQueuedTracks] = useState<Map<string, Date>>(new Map())
   const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
   const value: AppData = {
@@ -87,8 +89,8 @@ export const AppContextWrapper = (
     setSessions,
     session,
     setSession,
-    tracks,
-    setTracks,
+    playlist,
+    setPlaylist,
     queue,
     setQueue,
     current,
@@ -99,7 +101,6 @@ export const AppContextWrapper = (
   useEffect(() => {
     const initToken = async (token: string) => {
       let data = await getAuthData(token)
-      console.log("The data is", data)
       if (data) {
         setToken(token)
         if (data.user) {
@@ -123,30 +124,16 @@ export const AppContextWrapper = (
     }
     socket.on("connect", onConnect)
     socket.on("disconnect", onDisconnect)
-    socket.on("data", (data) => {
-      console.log(data)
-      let current = data.current
-      let queue = data.queue
-      let queueds = data.queueds
-      setQueuedTracks(new Set(queueds))
-      setCurrent(current)
-      setQueue(queue)
-    })
     socket.on("playback", (data) => {
-      console.log("It has changed!")
       let { current, queue } = data
       setCurrent(current)
       setQueue(queue)
     })
-    socket.on("session", (msg) => {
-      // Reminder about session
-    })
-    socket.on("sessions", (data) => {
+    socket.on("new_session", (data) => {
       let sessions = data.map(responseToSessionOverview)
       setSessions(sessions)
     })
     socket.on("queue", (data) => {
-      console.log(data)
       let currentTrack = data.current
       let upcomingQueue = data.queue
       if (currentTrack) {
@@ -157,11 +144,15 @@ export const AppContextWrapper = (
       setQueue(upcomingQueue.map(responseToTrack))
     })
     socket.on("new_playlist", (data) => {
-      console.log("HELLO!")
-      console.log("the data is", data)
       let session = responseToSession(data)
-      console.log("new playlist", session)
       setSession(session)
+      setPlaylist(session.playlist)
+    })
+    socket.on("queued_track", (data) => {
+      let { id, queued_at, queue, current } = data
+      setCurrent(current)
+      setQueue(queue)
+      setQueuedTracks((map) => new Map(map.set(id, new Date(queued_at))))
     })
     return () => {
       socket.off("connect", onConnect)

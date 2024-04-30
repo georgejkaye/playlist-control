@@ -61,27 +61,15 @@ export const getQueue = async (
   }
 }
 
-export const postQueue = async (
-  track: Track,
-  tracks: Track[],
-  setTracks: SetState<Track[]>,
-  setQueue: SetState<Track[]>
-) => {
-  const endpoint = "/server/queue"
+export const postQueue = async (sessionSlug: string, track: Track) => {
+  const endpoint = `/server/${sessionSlug}/queue`
   const config = {
     params: {
       track_id: track.id,
     },
   }
   try {
-    const response = await axios.post(endpoint, null, config)
-    if (response.status === 200) {
-      const data = response.data
-      const queued = responseToTrack(data["queued"])
-      const queue = data["queue"].map(responseToTrack)
-      setQueue(queue)
-      setTracks(tracks.map((t) => (t.id !== track.id ? t : queued)))
-    }
+    await axios.post(endpoint, null, config)
   } catch (err) {
     if (err instanceof AxiosError && err.response) {
       if (err.response.status !== 400) {
@@ -140,7 +128,6 @@ export const postPlaylist = async (
   try {
     let response = await axios.post(endpoint, null, config)
     let data = response.data
-    console.log("Response data is", data)
     let session = responseToSession(data)
     return { result: session, error: undefined }
   } catch (err) {
@@ -163,7 +150,6 @@ export const deauthenticateSpotify = async (slug: string, token: string) => {
   try {
     let response = await axios.delete(endpoint, config)
     let data = response.data
-    console.log(data)
     return responseToSession(data)
   } catch (e) {
     return undefined
@@ -238,7 +224,6 @@ export const createSession = async (
   password: string
 ) => {
   const endpoint = `/server/session`
-  console.log("creating session", sessionName, "with host", sessionHost)
   try {
     let response = await axios.post(endpoint, {
       name: sessionName,
@@ -286,7 +271,9 @@ export const getSession = async (
       return undefined
     } else {
       let session = responseToSession(data)
-      return session
+      let queued = data.queued
+      let queue = data.queue
+      return { session, queued, queue }
     }
   } catch (e) {
     return undefined

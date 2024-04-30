@@ -46,6 +46,11 @@ const responseToAlbum = (response: any) => ({
   art: response["art"],
 })
 
+export interface QueuedTrack {
+  id: string
+  queued: Date
+}
+
 export interface Track {
   id: string
   name: string

@@ -105,10 +105,8 @@ const Queue = (props: { queue: Track[] }) => {
 }
 
 const QueueAdderTrackCard = (props: {
+  session: Session
   track: Track
-  setQueue: SetState<Track[]>
-  tracks: Track[]
-  setTracks: SetState<Track[]>
   setAdding: SetState<boolean>
 }) => {
   const { queuedTracks } = useContext(AppContext)
@@ -120,7 +118,7 @@ const QueueAdderTrackCard = (props: {
   }, [queuedTracks])
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isQueueable) {
-      postQueue(props.track, props.tracks, props.setTracks, props.setQueue)
+      postQueue(props.session.slug, props.track)
       props.setAdding(false)
     }
   }
@@ -178,11 +176,12 @@ interface QueueItem {
 }
 
 const QueueAdder = (props: {
+  session: Session
   isAdding: boolean
   setAdding: SetState<boolean>
   tracks: Track[]
 }) => {
-  const { session, setQueue, setTracks } = useContext(AppContext)
+  const { session, setQueue } = useContext(AppContext)
   const [filteredTracks, setFilteredTracks] = useState<Track[]>(
     props.tracks.sort((t1, t2) => t1.name.localeCompare(t2.name))
   )
@@ -239,11 +238,9 @@ const QueueAdder = (props: {
           <div>
             {filteredTracks.slice(0, tracksToShow).map((track) => (
               <QueueAdderTrackCard
+                session={props.session}
                 key={track.id}
                 track={track}
-                tracks={props.tracks}
-                setTracks={setTracks}
-                setQueue={setQueue}
                 setAdding={props.setAdding}
               />
             ))}
@@ -291,7 +288,7 @@ const AdminPanel = (props: {
     let state = await generateRandomString()
     localStorage.setItem("state", state)
     let scopes =
-      "playlist-read-private user-read-currently-playing user-read-playback-state"
+      "playlist-read-private user-read-currently-playing user-read-playback-state user-modify-playback-state"
     router.push(
       "https://accounts.spotify.com/authorize?" +
         querystring.stringify({
@@ -313,7 +310,6 @@ const AdminPanel = (props: {
   ) => {
     props.setLoading(true)
     const session = await deauthenticateSpotify(props.session.slug, props.token)
-    console.log(session)
     if (session) {
       props.setSession(session)
       props.setLoading(false)
@@ -441,7 +437,6 @@ const PlaylistSelector = (props: {
   ) => {
     setLoading(true)
     let playlists = await getPlaylists(props.token.token, props.session.slug)
-    console.log(playlists)
     setPlaylists(playlists)
     setSelecting(true)
     setLoading(false)
@@ -453,7 +448,6 @@ const PlaylistSelector = (props: {
       props.session.slug,
       playlistURL
     )
-    console.log(result, error)
     if (error) {
       setErrorText(error)
     } else {
@@ -525,6 +519,7 @@ const PlaylistPanel = (props: {
             </div>
           </div>
           <QueueAdder
+            session={props.session}
             isAdding={props.isAdding}
             setAdding={props.setAdding}
             tracks={props.playlist.tracks}
@@ -545,9 +540,11 @@ const Home = ({ params }: { params: { slug: string } }) => {
     setCurrent,
     current,
     setQueue,
+    queuedTracks,
+    setQueuedTracks,
     queue,
-    tracks,
-    setTracks,
+    playlist,
+    setPlaylist,
   } = useContext(AppContext)
   const router = useRouter()
   const [token, setToken] = useState<Token | undefined>(undefined)
@@ -560,8 +557,11 @@ const Home = ({ params }: { params: { slug: string } }) => {
     const performRequests = async () => {
       let result = await getSession(params.slug, token?.token)
       if (result) {
-        console.log("the result is", result)
-        setSession(result)
+        let { session, queued, queue } = result
+        setSession(session)
+        setQueue(queue)
+        setQueuedTracks(new Map(queued.map((obj: any) => [obj.id, obj.time])))
+        setPlaylist(session.playlist)
         setLoading(false)
       } else {
         router.push("/")
@@ -597,7 +597,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
         <PlaylistPanel
           session={session}
           setSession={setSession}
-          playlist={session.playlist}
+          playlist={playlist}
           token={token}
           isAdding={isAdding}
           setAdding={setAdding}
