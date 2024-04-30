@@ -47,12 +47,12 @@ import { setIntervalAsync } from "set-interval-async"
 
 dotenv.config()
 
-const port = process.env.SERVER_PORT || 8090
+const port = process.env.SERVER_PORT_A || 8000
 
 const app = express()
 
 const corsOptions = {
-  origin: ["http://localhost:3000"],
+  origin: [process.env.CLIENT_URL || "http://localhost:3000"],
   methods: ["GET", "POST"],
 }
 app.use(express.json())

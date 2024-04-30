@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source: "/server/:path*",
-        destination: `${process.env.SERVER_URL}/:path*`,
+        destination: `https://localhost:${process.env.SERVER_PORT_A}/:path*`,
       },
     ]
   },
