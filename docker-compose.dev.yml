@@ -10,40 +10,10 @@ services:
       POSTGRES_DB: playlist
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "5001:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
-    networks:
-      - internal
-  api:
-    build:
-      context: api
-      dockerfile: Dockerfile.dev
-      args:
-        POETRY_VERSION: ${POETRY_VERSION}
-    ports:
-      - "${API_PORT}:${API_PORT}"
-    environment:
-      API_ENV: dev
-      API_PORT: ${API_PORT}
-      ADMIN_USER: ${ADMIN_USER}
-      ADMIN_PASSWORD_HASHED: /run/secrets/admin_password_hash
-      SECRET_KEY: /run/secrets/api_secret
-      DB_HOST: db
-      DB_USER: playlist
-      DB_PASSWORD: /run/secrets/db_password
-      DB_NAME: playlist
-      SPOTIFY_ID: ${SPOTIFY_APP_ID}
-      SPOTIFY_SECRET: /run/secrets/spotify_secret
-      SPOTIFY_REDIRECT: ${SPOTIFY_REDIRECT}
-    volumes:
-      - ./api/src:/app/src
-      - ${PWD}/api/.cache:/app/.cache
-    secrets:
-      - api_secret
-      - admin_password_hash
-      - spotify_secret
     networks:
       - internal
   server:
@@ -52,16 +22,28 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
-      - 5001:5001
+      - 7000:7000
     environment:
       SERVER_PORT: ${SERVER_PORT}
       SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
       SPOTIFY_SECRET: /run/secrets/spotify_secret
+      DB_HOST: db
+      DB_USER: playlist
+      DB_PASSWORD: /run/secrets/db_password
+      DB_NAME: playlist
+      ADMIN_USER: ${ADMIN_USER}
+      ADMIN_PASSWORD_HASHED: /run/secrets/admin_password_hash
+      SECRET_KEY: /run/secrets/api_secret
+      CLIENT_URL: http://localhost:${CLIENT_PORT}
     volumes:
       - ./server/src:/app/src
       - ./server/node_modules:/app/node_modules
     secrets:
       - spotify_secret
+      - admin_password_hash
+      - api_secret
+    networks:
+      - internal
   client:
     build:
       context: client
@@ -77,6 +59,7 @@ services:
       API_URL: "http://api:${API_PORT}"
       SERVER_URL: "http://server:${SERVER_PORT}"
       NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
+      NEXT_PUBLIC_CLIENT_URL: "http://localhost:${CLIENT_PORT}"
     depends_on:
       - api
     volumes:
@@ -84,6 +67,8 @@ services:
       - ./client/node_modules:/app/node_modules
     networks:
       - internal
+    secrets:
+      - admin_password_hash
 secrets:
   api_secret:
     file: api.secret

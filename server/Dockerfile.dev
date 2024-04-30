@@ -2,5 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 COPY ./package.json .
+COPY ./tsconfig.json .
 RUN yarn
+
+RUN mkdir /run/secrets && echo "password" > /run/secrets/db_password
+
 CMD yarn dev

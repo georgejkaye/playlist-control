@@ -9,6 +9,7 @@ const mobileContentSize = 400
 
 const config: Config = {
   content: [
+    "./node_modules/flowbite/**/*.js",
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -34,10 +35,13 @@ const config: Config = {
         fadein: "fadein 1s ease-in",
       },
       colors: {
-        "accent-blue": "#0f0765",
+        accent: "#121212",
+        "accent-text": "#ffffff",
+        "accent-hover": "#38f27a",
+        lines: "#1ed760",
       },
     },
-    plugins: [],
+    plugins: [require("flowbite/plugin")],
   },
 }
 export default config

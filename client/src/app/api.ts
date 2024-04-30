@@ -1,48 +1,18 @@
 import axios, { AxiosError } from "axios"
-import { CurrentTrack, Playlist, Session, SetState, Track } from "./structs"
-
-const responseToPlaylist = (response: any) => ({
-  id: response["id"],
-  url: response["url"],
-  name: response["name"],
-  art: response["art"],
-  tracks: response["tracks"],
-})
-
-const responseToSession = (response: any) => ({
-  id: response["id"],
-  name: response["name"],
-  playlist: responseToPlaylist(response["playlist"]),
-})
-
-const responseToArtist = (response: any) => ({
-  id: response["id"],
-  name: response["name"],
-})
-
-const responseToAlbum = (response: any) => ({
-  id: response["id"],
-  name: response["name"],
-  artists: response["artists"].map(responseToArtist),
-  art: response["art"],
-})
-
-const responseToTrack = (response: any) => ({
-  id: response["id"],
-  name: response["name"],
-  album: responseToAlbum(response["album"]),
-  artists: response["artists"].map(responseToArtist),
-  duration: response["duration"],
-  queued:
-    response["queued_at"] === null
-      ? undefined
-      : new Date(Date.parse(response["queued_at"])),
-})
-
-const responseToCurrentTrack = (response: any) => ({
-  track: responseToTrack(response["track"]),
-  start: response["start"],
-})
+import {
+  CurrentTrack,
+  PlaylistOverview,
+  Session,
+  SetState,
+  SpotifyUser,
+  Track,
+  responseToCurrentTrack,
+  responseToPlaylist,
+  responseToPlaylistOverview,
+  responseToSession,
+  responseToSessionOverview,
+  responseToTrack,
+} from "./structs"
 
 const getHeaders = (token: string | undefined) =>
   !token
@@ -91,27 +61,15 @@ export const getQueue = async (
   }
 }
 
-export const postQueue = async (
-  track: Track,
-  tracks: Track[],
-  setTracks: SetState<Track[]>,
-  setQueue: SetState<Track[]>
-) => {
-  const endpoint = "/api/queue"
+export const postQueue = async (sessionSlug: string, track: Track) => {
+  const endpoint = `/server/${sessionSlug}/queue`
   const config = {
     params: {
       track_id: track.id,
     },
   }
   try {
-    const response = await axios.post(endpoint, null, config)
-    if (response.status === 200) {
-      const data = response.data
-      const queued = responseToTrack(data["queued"])
-      const queue = data["queue"].map(responseToTrack)
-      setQueue(queue)
-      setTracks(tracks.map((t) => (t.id !== track.id ? t : queued)))
-    }
+    await axios.post(endpoint, null, config)
   } catch (err) {
     if (err instanceof AxiosError && err.response) {
       if (err.response.status !== 400) {
@@ -125,9 +83,10 @@ export const login = async (
   username: string,
   password: string,
   setToken: SetState<string | undefined>,
+  setSpotifyUser: SetState<SpotifyUser | undefined>,
   setError: SetState<string>
 ) => {
-  const endpoint = "/api/token"
+  const endpoint = "/server/token"
   let data = new FormData()
   data.append("username", username)
   data.append("password", password)
@@ -145,6 +104,7 @@ export const login = async (
       let response = await axios.post(endpoint, data)
       let responseData = response.data
       setToken(responseData.access_token)
+      setSpotifyUser(responseData.user)
       return 0
     } catch (err) {
       setError("Could not log in...")
@@ -155,54 +115,167 @@ export const login = async (
 
 export const postPlaylist = async (
   token: string,
-  sessionName: string,
-  playlistId: string,
-  setError: SetState<string>,
-  setSession: SetState<Session | undefined>,
-  setTracks: SetState<Track[]>
+  slug: string,
+  playlistId: string
 ) => {
-  const endpoint = "/api/session"
+  const endpoint = `/server/${slug}/auth/spotify/playlist`
   const config = {
     headers: getHeaders(token),
     params: {
-      session_name: sessionName,
       playlist_id: playlistId,
     },
   }
   try {
     let response = await axios.post(endpoint, null, config)
     let data = response.data
-    let session = responseToSession(data["session"])
-    let tracks = data["tracks"].map(responseToTrack)
-    setSession(session)
-    setTracks(tracks)
-    return 0
+    let session = responseToSession(data)
+    return { result: session, error: undefined }
   } catch (err) {
     if (err instanceof AxiosError && err.response) {
-      if (err.response.status === 404) {
-        setError("Could not find playlist")
-      } else {
-        setError("Something went wrong")
-      }
-      return 1
+      let error =
+        err.response.status === 404
+          ? "Could not find playlist"
+          : "Something went wrong"
+      return { result: undefined, error }
+    } else {
+      throw err
     }
   }
 }
-export const stopSession = async (token: string, sessionId: number) => {
-  const endpoint = `/api/session/${sessionId}`
+export const deauthenticateSpotify = async (slug: string, token: string) => {
+  const endpoint = `/server/${slug}/auth/spotify`
   const config = {
     headers: getHeaders(token),
   }
-  await axios.delete(endpoint, config)
+  try {
+    let response = await axios.delete(endpoint, config)
+    let data = response.data
+    return responseToSession(data)
+  } catch (e) {
+    return undefined
+  }
 }
-export const getPlaylists = async (setPlaylists: SetState<Playlist[]>) => {
-  const endpoint = "/api/playlists"
+export const getPlaylists = async (token: string, slug: string) => {
+  const endpoint = `/server/${slug}/auth/spotify/playlists`
+  const config = {
+    headers: getHeaders(token),
+  }
+  try {
+    let response = await axios.get(endpoint, config)
+    let data = response.data
+    let playlists = data.map(responseToPlaylistOverview)
+    return playlists
+  } catch (err) {
+    console.log("getPlaylists", err)
+    return []
+  }
+}
+
+export const sendAuthCode = async (
+  slug: string,
+  token: string,
+  code: string
+) => {
+  const endpoint = `/server/${slug}/auth/spotify`
+  const config = {
+    headers: getHeaders(token),
+  }
+  try {
+    let response = await axios.post(endpoint, { code: code }, config)
+    let data = response.data
+    return {
+      name: data.name,
+      image: data.image,
+      id: data.id,
+    }
+  } catch (e) {
+    console.log("sendAuthCode", e)
+    return undefined
+  }
+}
+
+export const getAuthData = async (token: string) => {
+  const endpoint = `/server/auth/data`
+  const config = {
+    headers: getHeaders(token),
+  }
+  try {
+    let response = await axios.get(endpoint, config)
+    let data = response.data
+    let user = !data
+      ? undefined
+      : {
+          name: data.name,
+          image: data.image,
+          id: data.id,
+        }
+
+    return {
+      user,
+    }
+  } catch (e) {
+    return undefined
+  }
+}
+
+export const createSession = async (
+  sessionName: string,
+  sessionHost: string,
+  password: string
+) => {
+  const endpoint = `/server/session`
+  try {
+    let response = await axios.post(endpoint, {
+      name: sessionName,
+      host: sessionHost,
+      password,
+    })
+    let data = response.data
+    let session = responseToSession(data.session)
+    let token: string = data.token
+    let expires: Date = new Date(data.expires)
+    return { session, password, token, expires }
+  } catch (e) {
+    console.log("createSession", e)
+    return undefined
+  }
+}
+
+export const getSessions = async () => {
+  const endpoint = `/server/sessions`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
-    let playlists = data.map(responseToPlaylist)
-    setPlaylists(playlists)
-  } catch (err) {
-    setPlaylists([])
+    if (!data) {
+      return undefined
+    } else {
+      return data.map(responseToSessionOverview)
+    }
+  } catch {
+    return undefined
+  }
+}
+
+export const getSession = async (
+  sessionSlug: string,
+  token: string | undefined
+) => {
+  const endpoint = `/server/${sessionSlug}`
+  const config = {
+    headers: getHeaders(token),
+  }
+  try {
+    let response = await axios.get(endpoint, config)
+    let data = response.data
+    if (!data) {
+      return undefined
+    } else {
+      let session = responseToSession(data)
+      let queued = data.queued
+      let queue = data.queue
+      return { session, queued, queue }
+    }
+  } catch (e) {
+    return undefined
   }
 }
