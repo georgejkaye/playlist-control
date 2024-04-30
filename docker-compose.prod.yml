@@ -25,6 +25,7 @@ services:
     secrets:
       - spotify_secret
       - secret_key
+      - db_password
     networks:
       - internal
   client:
