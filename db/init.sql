@@ -1,3 +1,10 @@
+CREATE TABLE Playlist (
+    playlist_id TEXT PRIMARY KEY,
+    playlist_name TEXT NOT NULL,
+    playlist_url TEXT NOT NULL,
+    playlist_art TEXT NOT NULL
+);
+
 CREATE TABLE Session (
     session_id SERIAL PRIMARY KEY,
     session_host TEXT NOT NULL,
@@ -11,8 +18,8 @@ CREATE TABLE Session (
     refresh_token TEXT,
     expires_at TIMESTAMP WITH TIME ZONE,
     playlist_id TEXT,
-    playlist_name TEXT,
-    session_start TIMESTAMP WITH TIME ZONE
+    session_start TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT fk_playlist_id FOREIGN KEY(playlist_id) REFERENCES playlist(playlist_id) ON DELETE SET NULL
 );
 
 CREATE TABLE Artist (

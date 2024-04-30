@@ -114,7 +114,7 @@ const responseToTrack = (raw: any) => {
   let album = responseToAlbum(raw.album)
   let artists = raw.artists.map(responseToArtist)
   let duration = raw.duration_ms
-  return { id, name, album, artists, duration }
+  return { id, name, album, artists, duration, queued: undefined }
 }
 
 const responseToPlaylist = (raw: any) => {

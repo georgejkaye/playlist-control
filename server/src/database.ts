@@ -203,6 +203,17 @@ const mapQueryOverSet = <T>(set: Set<T>, fn: (data: T[]) => string) =>
   fn(Array.from(set))
 
 export const insertPlaylist = async (playlist: Playlist) => {
+  const playlistQueryText = `
+    INSERT INTO playlist
+    (playlist_id, playlist_name, playlist_url, playlist_art)
+    VALUES ($1, $2, $3, $4)
+  `
+  await client.query(playlistQueryText, [
+    playlist.id,
+    playlist.name,
+    playlist.url,
+    playlist.art,
+  ])
   let artists = new Set<Artist>()
   let albums = new Set<Album>()
   let albumTracks = new Set<{ album: Album; track: Track }>()
@@ -351,7 +362,9 @@ export const createSession = async (
 
 export const getSessions = async () => {
   const queryText = `
-    SELECT session_id, session_host, session_name, session_name_slug, playlist_id, access_token, refresh_token, expires_at
+    SELECT
+      session_id, session_host, session_name, session_name_slug, playlist_id,
+      access_token, refresh_token, expires_at
     FROM Session
   `
   const query = { text: queryText }
@@ -389,6 +402,98 @@ export const getSessionOverviews = async () => {
   return sessions
 }
 
+export const getSessionPlaylist = async (sessionSlug: string) => {
+  const queryText = `
+    SELECT
+      track.track_id, track.track_name,
+      trackartists.artists AS track_artists,
+      album.album_id, album.album_name, album.album_art,
+      albumartists.artists AS album_artists,
+      track.track_duration, sessiontracks.queued_at
+    FROM track
+    INNER JOIN albumtrack
+    ON track.track_id = albumtrack.track_id
+    INNER JOIN album
+    ON albumtrack.album_id = album.album_id
+    INNER JOIN (
+      SELECT
+      track_id,
+      json_agg(json_build_object('artist_id', Artist.artist_id, 'artist_name', Artist.artist_name)) AS Artists
+      FROM ArtistTrack
+      INNER JOIN Artist ON Artist.artist_id = ArtistTrack.artist_id
+      GROUP BY track_id
+    ) trackartists
+    ON track.track_id = trackartists.track_id
+    INNER JOIN (
+      SELECT
+        album_id,
+        json_agg(json_build_object('artist_id', Artist.artist_id, 'artist_name', Artist.artist_name)) AS Artists
+      FROM AlbumArtist
+      INNER JOIN Artist ON Artist.artist_id = AlbumArtist.artist_id
+      GROUP BY album_id
+    ) albumartists
+    ON album.album_id = albumartists.album_id
+    LEFT JOIN (
+      SELECT *
+      FROM queuedtrack
+      WHERE session_name_slug = $1
+    ) sessiontracks
+    ON sessiontracks.track_id = track.track_id
+    WHERE track.track_id
+    IN (
+      SELECT playlisttrack.track_id
+      FROM playlisttrack
+      WHERE playlisttrack.playlist_id IN (
+        SELECT session.playlist_id
+        FROM session
+        WHERE session_name_slug = $1
+      )
+    )
+  `
+  const query = { text: queryText }
+  let result = await client.query(query, [sessionSlug])
+  if (!result) {
+    return []
+  } else {
+    let rows = result.rows
+    let tracks = rows.map((row) => {
+      let track_id = row.get("track_id")
+      let track_name = row.get("track_name")
+      let track_artists = row.get("track_artists")
+      let album_id = row.get("album_id")
+      let album_name = row.get("album_name")
+      let album_art = row.get("album_art")
+      let album_artists = row.get("album_artists")
+      let track_duration = row.get("track_duration")
+      let queued_at = row.get("queued_at")
+      let track_artist_objects: Artist[] = track_artists.map((artist: any) => ({
+        id: artist.artist_id,
+        name: artist.artist_name,
+      }))
+      let album_artist_objects: Artist[] = album_artists.map((artist: any) => ({
+        id: artist.artist_id,
+        name: artist.artist_name,
+      }))
+      let album: Album = {
+        id: album_id,
+        name: album_name,
+        artists: album_artist_objects,
+        art: album_art,
+      }
+      let track: Track = {
+        id: track_id,
+        name: track_name,
+        album: album,
+        artists: track_artist_objects,
+        duration: track_duration,
+        queued: queued_at,
+      }
+      return track
+    })
+    return tracks
+  }
+}
+
 export const getSession = async (
   param: string,
   value: string,
@@ -400,7 +505,10 @@ export const getSession = async (
       session.session_host,
       session.session_id,
       session.session_name_slug,
-      session.playlist_id,
+      playlist.playlist_id,
+      playlist.playlist_name,
+      playlist.playlist_url,
+      playlist.playlist_art,
       session.access_token,
       session.spotify_user,
       session.spotify_user_art,
@@ -418,6 +526,8 @@ export const getSession = async (
       )
       AS queued_tracks
     FROM Session
+    LEFT JOIN Playlist
+    ON Session.playlist_id = Playlist.playlist_id
     LEFT JOIN SessionTrack
     ON Session.session_name_slug = SessionTrack.session_slug
     LEFT JOIN Track
@@ -425,7 +535,7 @@ export const getSession = async (
     LEFT JOIN QueuedTrack
     ON SessionTrack.track_id = QueuedTrack.track_id
     WHERE Session.${param} = $1
-    GROUP BY session.session_id
+    GROUP BY session.session_id, playlist.playlist_id
   `
   const query = { text: queryText }
   const result = await client.query(query, [value])
@@ -439,6 +549,9 @@ export const getSession = async (
     let sessionId = row.get("session_id")
     let sessionSlug = row.get("session_name_slug")
     let playlistId = row.get("playlist_id")
+    let playlistName = row.get("playlist_name")
+    let playlistURL = row.get("playlist_url")
+    let playlistArt = row.get("playlist_art")
     let spotifyId = row.get("spotify_id")
     let spotifyUser = !spotifyId
       ? undefined
@@ -451,9 +564,16 @@ export const getSession = async (
       id: track["track_id"],
       time: track["queued_at"],
     }))
+    let tracks = await getSessionPlaylist(sessionSlug)
     let playlist = !playlistId
       ? undefined
-      : await getPlaylistDetails(sessionSlug, playlistId)
+      : {
+          id: playlistId,
+          name: playlistName,
+          url: playlistURL,
+          art: playlistArt,
+          tracks,
+        }
     let playing = await getQueue(sessionSlug)
     let { current, queue } = playing
       ? playing

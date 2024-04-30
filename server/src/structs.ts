@@ -66,6 +66,7 @@ export interface Track {
   album: Album
   artists: Artist[]
   duration: number
+  queued: Date | undefined
 }
 
 export interface CurrentTrack {
