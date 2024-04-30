@@ -31,16 +31,13 @@ services:
       DB_USER: playlist
       DB_PASSWORD: /run/secrets/db_password
       DB_NAME: playlist
-      ADMIN_USER: ${ADMIN_USER}
-      ADMIN_PASSWORD_HASHED: /run/secrets/admin_password_hash
-      SECRET_KEY: /run/secrets/api_secret
+      SECRET_KEY: /run/secrets/secret_key
       CLIENT_URL: http://localhost:${CLIENT_PORT}
     volumes:
       - ./server/src:/app/src
       - ./server/node_modules:/app/node_modules
     secrets:
       - spotify_secret
-      - admin_password_hash
       - api_secret
     networks:
       - internal
@@ -50,13 +47,11 @@ services:
       dockerfile: Dockerfile.dev
       args:
         CLIENT_PORT: ${CLIENT_PORT}
-        API_URL: "http://api:${API_PORT}"
         SERVER_URL: "http://server:${SERVER_PORT}"
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
       CLIENT_PORT: ${CLIENT_PORT}
-      API_URL: "http://api:${API_PORT}"
       SERVER_URL: "http://server:${SERVER_PORT}"
       NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
       NEXT_PUBLIC_CLIENT_URL: "http://localhost:${CLIENT_PORT}"
@@ -67,14 +62,10 @@ services:
       - ./client/node_modules:/app/node_modules
     networks:
       - internal
-    secrets:
-      - admin_password_hash
 secrets:
-  api_secret:
-    file: api.secret
+  secret_key:
+    file: key.secret
   spotify_secret:
     file: spotify.secret
-  admin_password_hash:
-    file: admin.secret
 volumes:
   pgdata:
