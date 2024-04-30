@@ -55,7 +55,7 @@ services:
 secrets:
   spotify_secret:
     file: spotify.secret
-  db_passwd:
+  db_password:
     file: db.secret
   secret_key:
     file: key.secret
