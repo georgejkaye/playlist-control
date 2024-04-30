@@ -1,11 +1,11 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 import { sendAuthCode } from "../api"
 import { Loader } from "../loader"
 
-const Page = () => {
+const SpotifyRedirect = () => {
   const params = useSearchParams()
   const router = useRouter()
   useEffect(() => {
@@ -38,5 +38,11 @@ const Page = () => {
 
   return <Loader />
 }
+
+const Page = () => (
+  <Suspense>
+    <SpotifyRedirect />
+  </Suspense>
+)
 
 export default Page
