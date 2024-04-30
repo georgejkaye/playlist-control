@@ -22,13 +22,11 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: /run/secrets/db_password
       DB_NAME: ${DB_NAME}
-      ADMIN_PASSWORD_HASHED: /run/secrets/admin_password_hash
-      SECRET_KEY: /run/secrets/api_secret
+      SECRET_KEY: /run/secrets/secret_key
       CLIENT_URL: ${CLIENT_HOST}
     secrets:
       - spotify_secret
-      - admin_password_hash
-      - api_secret
+      - secret_key
     networks:
       - internal
   client:
@@ -37,13 +35,11 @@ services:
       dockerfile: Dockerfile.prod
       args:
         CLIENT_PORT: ${CLIENT_PORT}
-        API_URL: "http://api:${API_PORT}"
         SERVER_URL: "http://server:${SERVER_PORT}"
         NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      API_URL: "http://api:${API_PORT}"
       SERVER_URL: "http://server:${SERVER_PORT}"
       CLIENT_PORT: ${CLIENT_PORT}
     labels:
@@ -56,14 +52,12 @@ services:
       - internal
       - web
     depends_on:
-      - api
+      - server
 
 secrets:
-  api_secret:
-    file: api.secret
   spotify_secret:
     file: spotify.secret
-  admin_password_hash:
-    file: admin.secret
   db_passwd:
     file: db.secret
+  secret_key:
+    file: key.secret
