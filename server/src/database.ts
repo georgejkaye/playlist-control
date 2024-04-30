@@ -207,6 +207,8 @@ export const insertPlaylist = async (playlist: Playlist) => {
     INSERT INTO playlist
     (playlist_id, playlist_name, playlist_url, playlist_art)
     VALUES ($1, $2, $3, $4)
+    ON CONFLICT (playlist_id) DO UPDATE
+    SET playlist_name = $2, playlist_url = $3, playlist_art = $4
   `
   await client.query(playlistQueryText, [
     playlist.id,
@@ -214,6 +216,10 @@ export const insertPlaylist = async (playlist: Playlist) => {
     playlist.url,
     playlist.art,
   ])
+  const playlistTrackQueryText = `
+    DELETE FROM playlisttrack WHERE playlist_id = $1
+  `
+  await client.query(playlistTrackQueryText, [playlist.id])
   let artists = new Set<Artist>()
   let albums = new Set<Album>()
   let albumTracks = new Set<{ album: Album; track: Track }>()
