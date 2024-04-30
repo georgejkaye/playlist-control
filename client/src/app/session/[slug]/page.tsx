@@ -444,7 +444,6 @@ const PlaylistSelector = (props: {
     console.log(playlists)
     setPlaylists(playlists)
     setSelecting(true)
-    props.setAdding(true)
     setLoading(false)
   }
   const onPlaylistSubmit = async (playlistURL: string) => {
