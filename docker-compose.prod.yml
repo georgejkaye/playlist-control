@@ -7,45 +7,30 @@ networks:
     external: false
 
 services:
-  api:
+  server:
     build:
-      context: api
+      context: server
       dockerfile: Dockerfile.prod
-      args:
-        POETRY_VERSION: ${POETRY_VERSION}
     ports:
-      - "${API_PORT}:${API_PORT}"
-    env_file:
-      - ./.env
+      - "${SERVER_PORT}:${SERVER_PORT}"
+      - 7000:7000
     environment:
-      API_ENV: prod
-      API_PORT: ${API_PORT}
-      ADMIN_USER: ${ADMIN_USER}
-      ADMIN_PASSWORD_HASHED: /run/secrets/admin_password_hash
-      SECRET_KEY: /run/secrets/api_secret
+      SERVER_PORT: ${SERVER_PORT}
+      SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
+      SPOTIFY_SECRET: /run/secrets/spotify_secret
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
-      DB_PASSWORD: /run/secrets/db_passwd
+      DB_PASSWORD: /run/secrets/db_password
       DB_NAME: ${DB_NAME}
-      SPOTIFY_ID: ${SPOTIFY_API_ID}
-      SPOTIFY_SECRET: /run/secrets/spotify_secret
-      SPOTIFY_REDIRECT: ${SPOTIFY_REDIRECT}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.playlist_api.rule=Host(`${API_HOST}`)"
-      - "traefik.http.routers.playlist_api.tls=true"
-      - "traefik.http.routers.playlist_api.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.playlist_api.loadbalancer.server.port=${API_PORT}"
+      ADMIN_PASSWORD_HASHED: /run/secrets/admin_password_hash
+      SECRET_KEY: /run/secrets/api_secret
+      CLIENT_URL: ${CLIENT_HOST}
+    secrets:
+      - spotify_secret
+      - admin_password_hash
+      - api_secret
     networks:
       - internal
-      - web
-    volumes:
-      - ${PWD}/api/.cache:/app/.cache
-    secrets:
-      - api_secret
-      - admin_password_hash
-      - db_passwd
-      - spotify_secret
   client:
     build:
       context: client
