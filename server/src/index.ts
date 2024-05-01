@@ -52,7 +52,7 @@ const port = process.env.SERVER_PORT_A || 8000
 const app = express()
 
 const corsOptions = {
-  origin: [process.env.CLIENT_URL || "http://localhost:3000"],
+  origin: "*",
   methods: ["GET", "POST"],
 }
 app.use(express.json())
