@@ -10,10 +10,9 @@ services:
       context: server
       dockerfile: Dockerfile.prod
     ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
-      - 7000:7000
+      - "${SERVER_PORT_A}:${SERVER_PORT_A}"
     environment:
-      SERVER_PORT: ${SERVER_PORT}
+      SERVER_PORT_A: ${SERVER_PORT_A}
       SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
       SPOTIFY_SECRET: /run/secrets/spotify_secret
       DB_HOST: ${DB_HOST}
@@ -21,7 +20,7 @@ services:
       DB_PASSWORD: /run/secrets/db_password
       DB_NAME: ${DB_NAME}
       SECRET_KEY: /run/secrets/secret_key
-      CLIENT_URL: ${CLIENT_HOST}
+      CLIENT_URL: https://localhost:${CLIENT_PORT}
     secrets:
       - spotify_secret
       - secret_key
@@ -34,13 +33,13 @@ services:
       dockerfile: Dockerfile.prod
       args:
         CLIENT_PORT: ${CLIENT_PORT}
-        SERVER_URL: "http://server:${SERVER_PORT}"
         NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      SERVER_URL: "http://server:${SERVER_PORT}"
+      SERVER_URL: "http://localhost:${SERVER_PORT_A}"
       CLIENT_PORT: ${CLIENT_PORT}
+      SERVER_PORT_A: ${SERVER_PORT_A}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.playlist_client.rule=Host(`${CLIENT_HOST}`)"
