@@ -15,6 +15,8 @@ ENV SERVER_PORT_A ${SERVER_PORT_A}
 ENV NEXT_SHARP_PATH=/app/node_modules/sharp
 
 WORKDIR /app
+
 COPY ./package.json .
 RUN yarn
+
 CMD yarn dev -p ${CLIENT_PORT}
