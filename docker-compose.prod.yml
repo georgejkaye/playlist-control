@@ -43,6 +43,8 @@ services:
         SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
         SERVER_HOST: ${SERVER_HOST}
         SERVER_PROTOCOL: ${SERVER_PROTOCOL}
+        CLIENT_HOST: ${CLIENT_HOST}
+        CLIENT_PROTOCOL: ${CLIENT_PROTOCOL}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:

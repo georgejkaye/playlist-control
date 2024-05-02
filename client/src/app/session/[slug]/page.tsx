@@ -259,6 +259,7 @@ const QueueAdder = (props: {
 }
 
 let clientId = process.env.NEXT_PUBLIC_SPOTIFY_APP_ID
+let redirectURI = `${process.env.NEXT_PUBLIC_CLIENT_PROTOCOL}://${process.env.NEXT_PUBLIC_CLIENT_HOST}/spotify`
 
 const smallButtonStyle =
   "p-2 bg-accent rounded hover:underline font-2xl font-bold"
@@ -273,7 +274,6 @@ const AdminPanel = (props: {
   const router = useRouter()
   const onClickSpotify = async (e: React.MouseEvent<HTMLButtonElement>) => {
     localStorage.setItem("redirect", props.session.slug)
-    let redirectURI = "http://localhost:3000/spotify"
     const generateRandomString = () => {
       return new Promise<string>((resolve, reject) => {
         crypto.randomBytes(60, (err, buffer) => {
