@@ -23,10 +23,10 @@ services:
       CLIENT_URL: https://localhost:${CLIENT_PORT}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.playlist_client.rule=Host(`${SERVER_HOST}`)"
-      - "traefik.http.routers.playlist_client.tls=true"
-      - "traefik.http.routers.playlist_client.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.playlist_client.loadbalancer.server.port=${SERVER_PORT_A}"
+      - "traefik.http.routers.playlist_server.rule=Host(`${SERVER_HOST}`)"
+      - "traefik.http.routers.playlist_server.tls=true"
+      - "traefik.http.routers.playlist_server.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.playlist_server.loadbalancer.server.port=${SERVER_PORT_A}"
     secrets:
       - spotify_secret
       - secret_key
