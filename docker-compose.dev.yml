@@ -32,7 +32,8 @@ services:
       DB_PASSWORD: /run/secrets/db_password
       DB_NAME: playlist
       SECRET_KEY: /run/secrets/secret_key
-      CLIENT_URL: http://localhost:${CLIENT_PORT}
+      CLIENT_PROTOCOL: ${CLIENT_PROTOCOL}
+      CLIENT_HOST: ${CLIENT_HOST}
     volumes:
       - ./server/src:/app/src
     secrets:
@@ -46,7 +47,11 @@ services:
       dockerfile: Dockerfile.dev
       args:
         CLIENT_PORT: ${CLIENT_PORT}
-        SERVER_URL: "http://server:${SERVER_PORT_A}"
+        SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
+        SERVER_HOST: ${SERVER_HOST}
+        SERVER_PROTOCOL: ${SERVER_PROTOCOL}
+        CLIENT_HOST: ${CLIENT_HOST}
+        CLIENT_PROTOCOL: ${CLIENT_PROTOCOL}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
