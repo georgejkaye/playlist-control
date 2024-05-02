@@ -47,6 +47,7 @@ services:
       CLIENT_PORT: ${CLIENT_PORT}
       SERVER_PORT_A: ${SERVER_PORT_A}
       NEXT_PUBLIC_SERVER_HOST: ${SERVER_HOST}
+      NEXT_PUBLIC_SERVER_PROTOCOL: ${SERVER_PROTOCOL}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.playlist_client.rule=Host(`${CLIENT_HOST}`)"
