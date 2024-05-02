@@ -28,5 +28,6 @@ COPY ./tsconfig.json .
 COPY ./postcss.config.js .
 COPY ./next.config.mjs .
 COPY ./tailwind.config.ts .
+COPY ./public .
 
 CMD yarn dev -p ${CLIENT_PORT}
