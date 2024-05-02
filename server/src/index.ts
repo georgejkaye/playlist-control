@@ -55,7 +55,7 @@ const corsOptions = {
   origin: "*",
   methods: ["GET", "POST"],
 }
-app.use(cors())
+app.use(cors({ origin: "*", methods: ["GET", "POST"] }))
 app.use(express.json())
 app.use(express.urlencoded())
 
@@ -63,7 +63,7 @@ const server = app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`)
 })
 
-const io = new Server(server)
+const io = new Server(server, { cors: corsOptions })
 
 app.get("/", (req, res) => {
   res.send("Hello!")

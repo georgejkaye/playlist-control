@@ -129,10 +129,6 @@ export const AppContextWrapper = (
       setCurrent(current)
       setQueue(queue)
     })
-    socket.on("new_session", (data) => {
-      let sessions = data.map(responseToSessionOverview)
-      setSessions(sessions)
-    })
     socket.on("queue", (data) => {
       let currentTrack = data.current
       let upcomingQueue = data.queue
