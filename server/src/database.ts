@@ -394,7 +394,7 @@ export const getSessionOverviews = async () => {
       session_id, session_host, session_name, session_name_slug,
       playlist.playlist_name, access_token, refresh_token, expires_at
     FROM Session
-    INNER JOIN Playlist
+    LEFT JOIN Playlist
     ON session.playlist_id = playlist.playlist_id
   `
   const query = { text: queryText }
