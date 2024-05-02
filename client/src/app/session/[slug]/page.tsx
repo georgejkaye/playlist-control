@@ -258,7 +258,7 @@ const QueueAdder = (props: {
   )
 }
 
-let clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
+let clientId = process.env.NEXT_PUBLIC_SPOTIFY_APP_ID
 
 const smallButtonStyle =
   "p-2 bg-accent rounded hover:underline font-2xl font-bold"
