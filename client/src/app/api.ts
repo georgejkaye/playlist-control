@@ -62,7 +62,7 @@ export const getQueue = async (
 }
 
 export const postQueue = async (sessionSlug: string, track: Track) => {
-  const endpoint = `/server/${sessionSlug}/queue`
+  const endpoint = `http://server:8000/${sessionSlug}/queue`
   const config = {
     params: {
       track_id: track.id,
@@ -86,7 +86,7 @@ export const login = async (
   setSpotifyUser: SetState<SpotifyUser | undefined>,
   setError: SetState<string>
 ) => {
-  const endpoint = "/server/token"
+  const endpoint = "http://server:8000/token"
   let data = new FormData()
   data.append("username", username)
   data.append("password", password)
@@ -118,7 +118,7 @@ export const postPlaylist = async (
   slug: string,
   playlistId: string
 ) => {
-  const endpoint = `/server/${slug}/auth/spotify/playlist`
+  const endpoint = `http://server:8000/${slug}/auth/spotify/playlist`
   const config = {
     headers: getHeaders(token),
     params: {
@@ -143,7 +143,7 @@ export const postPlaylist = async (
   }
 }
 export const deauthenticateSpotify = async (slug: string, token: string) => {
-  const endpoint = `/server/${slug}/auth/spotify`
+  const endpoint = `http://server:8000/${slug}/auth/spotify`
   const config = {
     headers: getHeaders(token),
   }
@@ -156,7 +156,7 @@ export const deauthenticateSpotify = async (slug: string, token: string) => {
   }
 }
 export const getPlaylists = async (token: string, slug: string) => {
-  const endpoint = `/server/${slug}/auth/spotify/playlists`
+  const endpoint = `http://server:8000/${slug}/auth/spotify/playlists`
   const config = {
     headers: getHeaders(token),
   }
@@ -176,7 +176,7 @@ export const sendAuthCode = async (
   token: string,
   code: string
 ) => {
-  const endpoint = `/server/${slug}/auth/spotify`
+  const endpoint = `http://server:8000/${slug}/auth/spotify`
   const config = {
     headers: getHeaders(token),
   }
@@ -195,7 +195,7 @@ export const sendAuthCode = async (
 }
 
 export const getAuthData = async (token: string) => {
-  const endpoint = `/server/auth/data`
+  const endpoint = `http://server:8000/auth/data`
   const config = {
     headers: getHeaders(token),
   }
@@ -223,7 +223,7 @@ export const createSession = async (
   sessionHost: string,
   password: string
 ) => {
-  const endpoint = `/server/session`
+  const endpoint = `http://server:8000/session`
   try {
     let response = await axios.post(endpoint, {
       name: sessionName,
@@ -242,7 +242,7 @@ export const createSession = async (
 }
 
 export const getSessions = async () => {
-  const endpoint = `/server/sessions`
+  const endpoint = `http://server:8000/sessions`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -260,7 +260,7 @@ export const getSession = async (
   sessionSlug: string,
   token: string | undefined
 ) => {
-  const endpoint = `/server/${sessionSlug}`
+  const endpoint = `http://server:8000/${sessionSlug}`
   const config = {
     headers: getHeaders(token),
   }

@@ -1,13 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/server/:path*",
-        destination: `https://localhost:${process.env.SERVER_PORT_A}/:path*`,
-      },
-    ]
-  },
   output: "standalone",
   images: {
     remotePatterns: [
