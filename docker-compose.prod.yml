@@ -33,6 +33,7 @@ services:
       - db_password
     networks:
       - internal
+      - web
   client:
     build:
       context: client
