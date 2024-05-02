@@ -1,6 +1,5 @@
 networks:
   internal:
-    external: false
 services:
   db:
     image: postgres
@@ -55,7 +54,8 @@ services:
       SERVER_URL: "http://server:${SERVER_PORT_A}"
       NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
       NEXT_PUBLIC_CLIENT_URL: "http://localhost:${CLIENT_PORT}"
-      NEXT_PUBLIC_SERVER_URL: "http://server:${SERVER_PORT_A}"
+      NEXT_PUBLIC_SERVER_HOST: ${SERVER_HOST}
+      NEXT_PUBLIC_SERVER_PROTOCOL: ${SERVER_PROTOCOL}
     depends_on:
       - server
     volumes:

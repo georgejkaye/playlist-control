@@ -21,6 +21,12 @@ services:
       DB_NAME: ${DB_NAME}
       SECRET_KEY: /run/secrets/secret_key
       CLIENT_URL: https://localhost:${CLIENT_PORT}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.playlist_client.rule=Host(`${SERVER_HOST}`)"
+      - "traefik.http.routers.playlist_client.tls=true"
+      - "traefik.http.routers.playlist_client.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.playlist_client.loadbalancer.server.port=${SERVER_PORT_A}"
     secrets:
       - spotify_secret
       - secret_key
@@ -40,6 +46,7 @@ services:
       SERVER_URL: "http://localhost:${SERVER_PORT_A}"
       CLIENT_PORT: ${CLIENT_PORT}
       SERVER_PORT_A: ${SERVER_PORT_A}
+      NEXT_PUBLIC_SERVER_HOST: ${SERVER_HOST}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.playlist_client.rule=Host(`${CLIENT_HOST}`)"

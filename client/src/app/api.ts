@@ -14,11 +14,13 @@ import {
   responseToTrack,
 } from "./structs"
 
+const host = `${process.env.NEXT_PUBLIC_SERVER_PROTOCOL}://${process.env.NEXT_PUBLIC_SERVER_HOST}`
+
 const getHeaders = (token: string | undefined) =>
   !token
-    ? { accept: "application/json" }
+    ? { Accept: "application/json" }
     : {
-        accept: "application/json",
+        Accept: "application/json",
         Authorization: `Bearer ${token}`,
       }
 
@@ -62,7 +64,7 @@ export const getQueue = async (
 }
 
 export const postQueue = async (sessionSlug: string, track: Track) => {
-  const endpoint = `http://server:8000/${sessionSlug}/queue`
+  const endpoint = `${host}/${sessionSlug}/queue`
   const config = {
     params: {
       track_id: track.id,
@@ -86,7 +88,7 @@ export const login = async (
   setSpotifyUser: SetState<SpotifyUser | undefined>,
   setError: SetState<string>
 ) => {
-  const endpoint = "http://server:8000/token"
+  const endpoint = "${host}/token"
   let data = new FormData()
   data.append("username", username)
   data.append("password", password)
@@ -118,7 +120,7 @@ export const postPlaylist = async (
   slug: string,
   playlistId: string
 ) => {
-  const endpoint = `http://server:8000/${slug}/auth/spotify/playlist`
+  const endpoint = `${host}/${slug}/auth/spotify/playlist`
   const config = {
     headers: getHeaders(token),
     params: {
@@ -143,7 +145,7 @@ export const postPlaylist = async (
   }
 }
 export const deauthenticateSpotify = async (slug: string, token: string) => {
-  const endpoint = `http://server:8000/${slug}/auth/spotify`
+  const endpoint = `${host}/${slug}/auth/spotify`
   const config = {
     headers: getHeaders(token),
   }
@@ -156,7 +158,7 @@ export const deauthenticateSpotify = async (slug: string, token: string) => {
   }
 }
 export const getPlaylists = async (token: string, slug: string) => {
-  const endpoint = `http://server:8000/${slug}/auth/spotify/playlists`
+  const endpoint = `${host}/${slug}/auth/spotify/playlists`
   const config = {
     headers: getHeaders(token),
   }
@@ -176,7 +178,7 @@ export const sendAuthCode = async (
   token: string,
   code: string
 ) => {
-  const endpoint = `http://server:8000/${slug}/auth/spotify`
+  const endpoint = `${host}/${slug}/auth/spotify`
   const config = {
     headers: getHeaders(token),
   }
@@ -195,7 +197,7 @@ export const sendAuthCode = async (
 }
 
 export const getAuthData = async (token: string) => {
-  const endpoint = `http://server:8000/auth/data`
+  const endpoint = `${host}/auth/data`
   const config = {
     headers: getHeaders(token),
   }
@@ -223,7 +225,7 @@ export const createSession = async (
   sessionHost: string,
   password: string
 ) => {
-  const endpoint = `http://server:8000/session`
+  const endpoint = `${host}/session`
   try {
     let response = await axios.post(endpoint, {
       name: sessionName,
@@ -242,7 +244,7 @@ export const createSession = async (
 }
 
 export const getSessions = async () => {
-  const endpoint = `http://server:8000/sessions`
+  const endpoint = `${host}/sessions`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -260,7 +262,7 @@ export const getSession = async (
   sessionSlug: string,
   token: string | undefined
 ) => {
-  const endpoint = `http://server:8000/${sessionSlug}`
+  const endpoint = `${host}/${sessionSlug}`
   const config = {
     headers: getHeaders(token),
   }
