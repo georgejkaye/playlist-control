@@ -18,5 +18,9 @@ WORKDIR /app
 
 COPY ./package.json .
 RUN yarn
+COPY ./tsconfig.json .
+COPY ./postcss.config.js .
+COPY ./next.config.mjs .
+COPY ./tailwind.config.ts .
 
 CMD yarn dev -p ${CLIENT_PORT}
