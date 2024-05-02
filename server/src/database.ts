@@ -525,7 +525,7 @@ export const getSession = async (
       session.spotify_user_art,
       session.spotify_id
     FROM Session
-    INNER JOIN (
+    LEFT JOIN (
       SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at)) AS queued_tracks
       FROM queuedtrack
       GROUP BY session_name_slug
@@ -533,7 +533,7 @@ export const getSession = async (
     ON sessionqueued.session_name_slug = session.session_name_slug
     LEFT JOIN Playlist
     ON Session.playlist_id = Playlist.playlist_id
-    WHERE Session.session_name_slug = 'the-big-one'
+    WHERE Session.session_name_slug = $1
   `
   const query = { text: queryText }
   const result = await client.query(query, [value])
