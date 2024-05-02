@@ -10,7 +10,7 @@ services:
       context: server
       dockerfile: Dockerfile.prod
     ports:
-      - "${SERVER_PORT_A}:${SERVER_PORT_A}"
+      - "80:${SERVER_PORT_A}"
     environment:
       SERVER_PORT_A: ${SERVER_PORT_A}
       SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
