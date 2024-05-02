@@ -40,7 +40,7 @@ services:
       dockerfile: Dockerfile.prod
       args:
         CLIENT_PORT: ${CLIENT_PORT}
-        NEXT_PUBLIC_SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
+        SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
         SERVER_HOST: ${SERVER_HOST}
         SERVER_PROTOCOL: ${SERVER_PROTOCOL}
     ports:
