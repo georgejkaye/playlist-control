@@ -6,8 +6,9 @@ import { getQueuedTracks, getSpotifyTokens, updateTokens } from "./database.js"
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
 const SPOTIFY_SECRET = await getSecret(SPOTIFY_SECRET_FILE)
-const CLIENT_URL = process.env.CLIENT_URL || ""
-const SPOTIFY_REDIRECT = `${CLIENT_URL}/spotify`
+const CLIENT_PROTOCOL = process.env.CLIENT_PROTOCOL || ""
+const CLIENT_HOST = process.env.CLIENT_HOST || ""
+const SPOTIFY_REDIRECT = `${CLIENT_PROTOCOL}://${CLIENT_HOST}/spotify`
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
