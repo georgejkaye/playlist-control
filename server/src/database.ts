@@ -558,10 +558,13 @@ export const getSession = async (
           name: row.get("spotify_user"),
           image: row.get("spotify_user_art"),
         }
-    let queued = row.get("queued_tracks").map((track: any) => ({
-      id: track["track_id"],
-      time: track["queued_at"],
-    }))
+    let queuedTracks = row.get("queued_tracks")
+    let queued = !queuedTracks
+      ? []
+      : queuedTracks.map((track: any) => ({
+          id: track["track_id"],
+          time: track["queued_at"],
+        }))
     let tracks = await getSessionPlaylist(sessionSlug)
     let playlist = !playlistId
       ? undefined
