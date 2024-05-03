@@ -273,3 +273,44 @@ export const getSession = async (
     return undefined
   }
 }
+
+export const searchTracks = async (session: Session, searchString: string) => {
+  const endpoint = `${host}/${session.slug}/search`
+  const config = {
+    params: {
+      search: searchString,
+    },
+  }
+  try {
+    let response = await axios.post(endpoint, null, config)
+    let data = response.data
+    if (!data) {
+      return []
+    } else {
+      let tracks = data.map(responseToTrack)
+      return tracks
+    }
+  } catch (e) {
+    return []
+  }
+}
+
+export const requestTrack = async (session: Session, track: Track) => {
+  const endpoint = `${host}/${session.slug}/request`
+  const config = {
+    params: {
+      track: track.id,
+    },
+  }
+  try {
+    let response = await axios.post(endpoint, null, config)
+    let data = response.data
+    if (!data) {
+      return false
+    } else {
+      return true
+    }
+  } catch (e) {
+    return false
+  }
+}

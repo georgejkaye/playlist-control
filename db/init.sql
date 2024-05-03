@@ -93,3 +93,9 @@ CREATE TABLE AlbumTrack (
     CONSTRAINT fk_track_id FOREIGN KEY(track_id) REFERENCES track(track_id) ON DELETE CASCADE,
     UNIQUE (album_id, track_id)
 );
+
+CREATE TABLE Request (
+    track_id TEXT NOT NULL,
+    session_name_slug TEXT NOT NULL,
+    CONSTRAINT fk_session_name FOREIGN KEY(session_name_slug) REFERENCES session(session_name_slug)
+)

@@ -17,6 +17,7 @@ import {
   getSessions,
   getTracks,
   insertPlaylist,
+  insertRequest,
   setPlaylist,
   updateTokens,
   validateSessionSlug,
@@ -34,6 +35,7 @@ import {
   getPlaylists,
   getQueue,
   getSpotifyUser,
+  searchTracks,
 } from "./spotify.js"
 import {
   Listener,
@@ -183,6 +185,31 @@ app.post("/:sessionSlug/queue", async (req, res) => {
       })
       res.status(200).send("Queued successfully")
     }
+  }
+})
+
+app.post("/:sessionSlug/search", async (req, res) => {
+  const query = req.query
+  const searchString = query.search
+  if (typeof searchString !== "string") {
+    res.status(400).send("Query parameters must be string")
+  } else {
+    let tracks = await searchTracks(res.locals["sessionSlug"], searchString)
+    if (!tracks) {
+      res.status(500).send("Could not search tracks")
+    } else {
+      res.status(200).send(tracks)
+    }
+  }
+})
+
+app.post("/:sessionSlug/request", async (req, res) => {
+  const query = req.query
+  const trackId = query.track
+  if (typeof trackId !== "string") {
+    res.status(400).send("Query parameters must be string")
+  } else {
+    await insertRequest(res.locals["sessionSlug"], trackId)
   }
 })
 

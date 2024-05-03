@@ -41,9 +41,11 @@ export const authenticateUser = async (
   return new Promise<boolean>(async (resolve, reject) => {
     let hashedPassword = await getPasswordHash(sessionSlug)
     if (!hashedPassword) {
+      console.log("bleh")
       resolve(false)
     } else {
       let same = await compareWithAdminPassword(password, hashedPassword)
+      console.log("aehgj")
       resolve(same)
     }
   })

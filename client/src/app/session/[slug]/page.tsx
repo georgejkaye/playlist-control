@@ -14,6 +14,8 @@ import {
   getPlaylists,
   postPlaylist,
   login,
+  searchTracks,
+  requestTrack,
 } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -147,6 +149,48 @@ const QueueAdderTrackCard = (props: {
   )
 }
 
+const SearcherTrackCard = (props: {
+  session: Session
+  track: Track
+  setSearching: SetState<boolean>
+}) => {
+  const { queuedTracks } = useContext(AppContext)
+  const [isQueueable, setQueueable] = useState(
+    !queuedTracks.has(props.track.id)
+  )
+  useEffect(() => {
+    setQueueable(!queuedTracks.has(props.track.id))
+  }, [queuedTracks])
+  const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isQueueable) {
+      requestTrack(props.session, props.track)
+      props.setSearching(false)
+    }
+  }
+  return (
+    <div
+      className={`${trackCardStyle} ${
+        !isQueueable ? "text-gray-600" : "hover:bg-gray-700 cursor-pointer"
+      }`}
+      onClick={onClickCard}
+    >
+      <div>
+        <Image
+          className="rounded-lg"
+          width={52}
+          height={52}
+          src={props.track.album.art}
+          alt={`Album art for ${props.track.album.name}`}
+        />
+      </div>
+      <div className="flex-1 my-auto">
+        <div className="text-xl font-bold">{props.track.name}</div>
+        <div>{getMultipleArtistsString(props.track.artists)}</div>
+      </div>
+    </div>
+  )
+}
+
 const QueueingFromCard = (props: { playlist: Playlist }) => {
   return (
     <div className="flex flex-row items-center mb-4 gap-4">
@@ -171,6 +215,34 @@ const defaultTracksToShow = 50
 const bigButtonStyle =
   "rounded-lg bg-gray-700 p-4 my-4 font-bold text-2xl cursor-pointer hover:bg-gray-600"
 
+const RequestTrackCard = (props: { session: Session; searchText: string }) => {
+  const [isRequesting, setRequesting] = useState(false)
+  const [searchResults, setSearchResults] = useState<Track[]>([])
+  const [searchedTracks, setSearchedTracks] = useState<Track[]>([])
+  const onClickRequest = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    let tracks = await searchTracks(props.session, props.searchText)
+    console.log(tracks)
+    setSearchedTracks(tracks)
+  }
+  return (
+    <div className="flex flex-col">
+      <button className={bigButtonStyle} onClick={onClickRequest}>
+        Search all tracks
+      </button>
+      <div>
+        {searchedTracks.map((track) => (
+          <SearcherTrackCard
+            key={track.id}
+            track={track}
+            session={props.session}
+            setSearching={setRequesting}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 interface QueueItem {
   track: Track
   queueable: boolean
@@ -182,7 +254,6 @@ const QueueAdder = (props: {
   setAdding: SetState<boolean>
   tracks: Track[]
 }) => {
-  const { session, setQueue } = useContext(AppContext)
   const [filteredTracks, setFilteredTracks] = useState<Track[]>(
     props.tracks.sort((t1, t2) => t1.name.localeCompare(t2.name))
   )
@@ -215,7 +286,7 @@ const QueueAdder = (props: {
     props.setAdding(!props.isAdding)
   const onClickMore = (e: React.MouseEvent<HTMLDivElement>) =>
     setTracksToShow(tracksToShow + defaultTracksToShow)
-  return !session || !session.playlist ? (
+  return !props.session || !props.session.playlist ? (
     ""
   ) : (
     <div>
@@ -236,6 +307,7 @@ const QueueAdder = (props: {
               onChange={onChangeFilterText}
             />
           </div>
+          <RequestTrackCard session={props.session} searchText={filterText} />
           <div>
             {filteredTracks.slice(0, tracksToShow).map((track) => (
               <QueueAdderTrackCard

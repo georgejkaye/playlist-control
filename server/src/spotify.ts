@@ -166,6 +166,7 @@ const getUrlAndHeaders = async (sessionSlug: string, endpoint: string) => {
 const executeGetRequest = async <T>(
   sessionSlug: string,
   endpoint: string,
+  params: any,
   dataCallback: (data: any) => T
 ) => {
   let { url, headers } = await getUrlAndHeaders(sessionSlug, endpoint)
@@ -173,7 +174,7 @@ const executeGetRequest = async <T>(
     return undefined
   } else {
     try {
-      let response = await doGet(url, { headers })
+      let response = await doGet(url, { headers, params })
       let data = response.data
       return dataCallback(data)
     } catch (e) {
@@ -245,7 +246,7 @@ const executePaginatedRequest = async <T, U>(
 }
 
 export const getSpotifyUser = async (sessionSlug: string) => {
-  return executeGetRequest(sessionSlug, "/me", (data) => {
+  return executeGetRequest(sessionSlug, "/me", {}, (data) => {
     return {
       name: data["display_name"],
       image: data["images"][0]["url"],
@@ -258,6 +259,7 @@ export const getCurrentTrack = async (sessionSlug: string) => {
   return executeGetRequest(
     sessionSlug,
     "/me/player/currently-playing",
+    {},
     (data) => {
       let item = data.item
       if (item) {
@@ -276,6 +278,7 @@ export const getQueue = async (
   let result = await executeGetRequest(
     sessionSlug,
     "/me/player/queue",
+    {},
     (data) => {
       let current = !data.currently_playing
         ? undefined
@@ -327,6 +330,7 @@ export const getPlaylistOverview = async (
   let playlist = await executeGetRequest<PlaylistOverview>(
     sessionSlug,
     `/playlists/${playlistId}`,
+    {},
     (data) => {
       let id = data.id
       let art = data.images[0].url
@@ -420,4 +424,24 @@ export const getSessionObject = async (
     current,
     queue,
   }
+}
+
+export const searchTracks = async (
+  sessionSlug: string,
+  searchString: string
+) => {
+  let result = await executeGetRequest(
+    sessionSlug,
+    "/search",
+    { q: searchString, type: "track" },
+    (data) => {
+      console.log(data)
+      let tracks = data.tracks.items.map(responseToTrack)
+      for (let track of tracks) {
+        console.log(track.name)
+      }
+      return tracks
+    }
+  )
+  return result
 }

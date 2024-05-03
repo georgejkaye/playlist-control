@@ -669,3 +669,11 @@ export const addToQueuedTracks = async (
     return undefined
   }
 }
+
+export const insertRequest = async (sessionSlug: string, trackId: string) => {
+  const query = `
+    INSERT INTO Request (track_id, session_name_slug)
+    VALUES ($1, $1)
+  `
+  client.query(query, [trackId, sessionSlug])
+}
