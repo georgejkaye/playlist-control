@@ -65,9 +65,17 @@ export const refreshTokens = async (
   }
   try {
     let response = await axios.post(SPOTIFY_TOKEN_URL, null, config)
-    let tokens = getTokensFromTokenResponse(now, response)
-    updateTokens(sessionSlug, tokens)
-    return tokens
+    let data = response.data
+    if (data) {
+      let access = data.access_token
+      let expires = data.expires_in
+      let refresh = tokens.refresh
+      let newTokens = { access, expires, refresh }
+      updateTokens(sessionSlug, newTokens)
+      return tokens
+    } else {
+      return undefined
+    }
   } catch (e) {
     let err = e as AxiosError
     console.log("refreshTokens:", err.message)
