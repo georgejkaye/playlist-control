@@ -58,10 +58,11 @@ export const validateSessionSlug = async (sessionSlug: string) => {
   }
 }
 
-export const checkUserExists = async (sessionId: string) => {
-  const queryText = "SELECT session_host FROM Session WHERE session_id = $1"
+export const checkUserExists = async (sessionSlug: string) => {
+  const queryText =
+    "SELECT session_host FROM Session WHERE session_name_slug = $1"
   const query = { text: queryText }
-  const result = await client.query(query, [sessionId])
+  const result = await client.query(query, [sessionSlug])
   if (result.rows.length !== 1) {
     return false
   } else {
@@ -70,13 +71,14 @@ export const checkUserExists = async (sessionId: string) => {
 }
 
 export const getPasswordHash = async (sessionSlug: string) => {
-  const queryText = "SELECT password_hash FROM Session WHERE session_id = $1"
+  const queryText =
+    "SELECT password_hash FROM Session WHERE session_name_slug = $1"
   const query = { text: queryText }
   const result = await client.query(query, [sessionSlug])
   if (result.rows.length !== 1) {
     return undefined
   } else {
-    let hashedPassword: string = result.rows[0].get("user_password_hash")
+    let hashedPassword: string = result.rows[0].get("password_hash")
     return hashedPassword
   }
 }
@@ -291,6 +293,7 @@ export const updateTokens = async (
   sessionSlug: string,
   tokens: SpotifyTokens
 ) => {
+  console.log(`Updating ${sessionSlug} with refresh ${tokens.refresh}`)
   const queryText = `
       UPDATE Session
       SET access_token = $1, refresh_token = $2, expires_at = $3

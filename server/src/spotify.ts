@@ -20,6 +20,7 @@ export interface SpotifyTokens {
 
 const getTokensFromTokenResponse = (now: Date, response: AxiosResponse) => {
   let body = response.data
+  console.log(body)
   let access = body.access_token
   let expires = new Date(now.getTime() + body.expires_in * 1000)
   let refresh = body.refresh_token

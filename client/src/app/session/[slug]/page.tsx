@@ -13,6 +13,7 @@ import {
   deauthenticateSpotify,
   getPlaylists,
   postPlaylist,
+  login,
 } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -319,7 +320,7 @@ const AdminPanel = (props: {
   }
   return (
     <>
-      <div className="flex flex-col items-start ">
+      <div className="flex flex-col items-start gap-2">
         {!props.session.spotify ? (
           <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
             <div>Not authenticated with Spotify</div>
@@ -340,14 +341,93 @@ const AdminPanel = (props: {
             </button>
           </div>
         )}
+        <button className={smallButtonStyle} onClick={onClickLogout}>
+          Logout
+        </button>
       </div>
       <Line />
     </>
   )
 }
 
-const LoginPanel = (props: { session: Session }) => {
-  return <div></div>
+const LoginPanel = (props: {
+  session: Session
+  setToken: SetState<Token | undefined>
+}) => {
+  const { setSpotifyUser, setToken } = useContext(AppContext)
+  const [isLoggingIn, setLoggingIn] = useState(false)
+  const [passwordText, setPasswordText] = useState("")
+  const [isLoading, setLoading] = useState(false)
+  const [errorText, setErrorText] = useState("")
+  const onSubmit = async (password: string) => {
+    setLoading(true)
+    let result = await login(props.session, password)
+    if (result.error || !result.token) {
+      setErrorText(result.error)
+    } else {
+      setSpotifyUser(result.spotify)
+      props.setToken(result.token)
+    }
+    setLoading(false)
+  }
+  const onClickLogin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setLoggingIn(true)
+  }
+  const onClickCancel = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setLoggingIn(false)
+  }
+  const onClickSubmitLogin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    onSubmit(passwordText)
+  }
+  const onPasswordTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordText(e.target.value)
+  }
+  const onPasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      onSubmit(passwordText)
+    }
+  }
+  return (
+    <>
+      <div className="my-4">
+        {!isLoggingIn ? (
+          <button className={smallButtonStyle} onClick={onClickLogin}>
+            Admin login
+          </button>
+        ) : (
+          <div className="flex flex-col desktop:flex-row gap-5 items-start desktop:items-center">
+            {isLoading ? (
+              <Loader />
+            ) : (
+              <>
+                <input
+                  autoFocus
+                  type="password"
+                  placeholder="Session password"
+                  className="w-4/12 flex-1 p-4 text-black rounded"
+                  value={passwordText}
+                  onChange={onPasswordTextChange}
+                  onKeyDown={onPasswordKeyDown}
+                />
+                <div className="flex flex-row gap-5">
+                  <button
+                    className={smallButtonStyle}
+                    onClick={onClickSubmitLogin}
+                  >
+                    Login
+                  </button>
+                  <button className={smallButtonStyle} onClick={onClickCancel}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      <Line />
+    </>
+  )
 }
 
 const CustomPlaylistCard = (props: { onSubmit: (text: string) => void }) => {
@@ -582,7 +662,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
       <Header session={session} />
       <Line />
       {!token || new Date() > token.expires ? (
-        <LoginPanel session={session} />
+        <LoginPanel session={session} setToken={setToken} />
       ) : (
         <AdminPanel
           setLoading={setLoading}

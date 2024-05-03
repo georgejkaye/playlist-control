@@ -8,6 +8,7 @@ import {
   SessionOverview,
   SetState,
   SpotifyUser,
+  Token,
   Track,
   responseToPlaylist,
   responseToSession,
@@ -22,8 +23,8 @@ import { getAuthData } from "./api"
 export const Line = () => <hr className="h-px my-4 bg-lines border-0" />
 
 interface AppData {
-  token: string | undefined
-  setToken: SetState<string | undefined>
+  token: Token | undefined
+  setToken: SetState<Token | undefined>
   spotifyUser: SpotifyUser | undefined
   setSpotifyUser: SetState<SpotifyUser | undefined>
   sessions: SessionOverview[] | undefined
@@ -66,7 +67,7 @@ interface AppContextProps {}
 export const AppContextWrapper = (
   props: React.PropsWithChildren<AppContextProps>
 ) => {
-  const [token, setToken] = useState<string | undefined>(undefined)
+  const [token, setToken] = useState<Token | undefined>(undefined)
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | undefined>(
     undefined
   )
@@ -99,23 +100,6 @@ export const AppContextWrapper = (
     setQueuedTracks,
   }
   useEffect(() => {
-    const initToken = async (token: string) => {
-      let data = await getAuthData(token)
-      if (data) {
-        setToken(token)
-        if (data.user) {
-          setSpotifyUser(data.user)
-        }
-      } else {
-        setToken(undefined)
-        setSpotifyUser(undefined)
-        localStorage.removeItem("token")
-      }
-    }
-    const token = localStorage.getItem("token")
-    if (token !== null) {
-      initToken(token)
-    }
     const onConnect = () => {
       setIsConnected(true)
     }
@@ -155,13 +139,6 @@ export const AppContextWrapper = (
       socket.off("disconnect", onDisconnect)
     }
   }, [])
-  useEffect(() => {
-    if (token) {
-      localStorage.setItem("token", token)
-    } else {
-      localStorage.removeItem("token")
-    }
-  }, [token])
   useEffect(() => {
     if (session) {
       socket.emit("join_session", session.slug)

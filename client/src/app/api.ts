@@ -81,36 +81,28 @@ export const postQueue = async (sessionSlug: string, track: Track) => {
   }
 }
 
-export const login = async (
-  username: string,
-  password: string,
-  setToken: SetState<string | undefined>,
-  setSpotifyUser: SetState<SpotifyUser | undefined>,
-  setError: SetState<string>
-) => {
-  const endpoint = "${host}/token"
+export const login = async (session: Session, password: string) => {
+  const endpoint = `${host}/${session.slug}/token`
   let data = new FormData()
-  data.append("username", username)
   data.append("password", password)
   data.append("grant_type", "")
   data.append("client_id", "")
   data.append("client_secret", "")
-  if (username === "") {
-    setError("Username cannot be empty")
-    return 1
-  } else if (password === "") {
-    setError("Password cannot be empty")
-    return 1
+  if (password === "") {
+    return { error: "Password cannot be empty" }
   } else {
     try {
       let response = await axios.post(endpoint, data)
       let responseData = response.data
-      setToken(responseData.access_token)
-      setSpotifyUser(responseData.user)
-      return 0
+      let token = {
+        token: responseData.access_token,
+        expires: responseData.expires_at,
+      }
+      console.log(token)
+      return { token, spotify: responseData.user }
     } catch (err) {
-      setError("Could not log in...")
-      return 1
+      console.log(err)
+      return { error: "Could not log in..." }
     }
   }
 }

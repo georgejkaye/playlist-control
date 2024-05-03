@@ -147,7 +147,7 @@ app.post("/:sessionSlug/token", multer().single("file"), async (req, res) => {
   let isValid = await authenticateSessionAdmin(sessionSlug, password)
   if (!isValid) {
     res
-      .status(400)
+      .status(401)
       .header({ "WWW-Authenticate": "Bearer" })
       .send("Invalid credentials")
   } else {
