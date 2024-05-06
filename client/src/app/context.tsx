@@ -39,6 +39,8 @@ interface AppData {
   setCurrent: SetState<Track | undefined>
   queuedTracks: Map<string, Date>
   setQueuedTracks: SetState<Map<string, Date>>
+  requestedTracks: Track[]
+  setRequestedTracks: SetState<Track[]>
 }
 
 const defaultAppData: AppData = {
@@ -58,6 +60,8 @@ const defaultAppData: AppData = {
   setCurrent: () => {},
   queuedTracks: new Map(),
   setQueuedTracks: () => {},
+  requestedTracks: [],
+  setRequestedTracks: () => {},
 }
 
 export const AppContext = createContext(defaultAppData)
@@ -79,6 +83,7 @@ export const AppContextWrapper = (
   const [current, setCurrent] = useState<Track | undefined>(undefined)
   const [queue, setQueue] = useState<Track[]>([])
   const [queuedTracks, setQueuedTracks] = useState<Map<string, Date>>(new Map())
+  const [requestedTracks, setRequestedTracks] = useState<Track[]>([])
   const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
   const value: AppData = {
@@ -98,6 +103,8 @@ export const AppContextWrapper = (
     setCurrent,
     queuedTracks,
     setQueuedTracks,
+    requestedTracks,
+    setRequestedTracks,
   }
   useEffect(() => {
     const onConnect = () => {

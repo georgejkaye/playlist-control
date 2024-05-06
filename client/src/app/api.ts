@@ -272,7 +272,8 @@ export const getSession = async (
       let session = responseToSession(data)
       let queued = data.queued
       let queue = data.queue
-      return { session, queued, queue }
+      let requests = data.requests.map(responseToTrack)
+      return { session, queued, queue, requests }
     }
   } catch (e) {
     return undefined
@@ -309,6 +310,33 @@ export const requestTrack = async (session: Session, track: Track) => {
     params: {
       track: track.id,
     },
+  }
+  try {
+    let response = await axios.post(endpoint, null, config)
+    let data = response.data
+    if (!data) {
+      return false
+    } else {
+      return true
+    }
+  } catch (e) {
+    return false
+  }
+}
+
+export const makeDecision = async (
+  token: Token,
+  session: Session,
+  track: Track,
+  decision: boolean
+) => {
+  const endpoint = getEndpoint(`/${session.slug}/auth/decision`)
+  const config = {
+    params: {
+      track: track.id,
+      decision,
+    },
+    headers: getHeaders(token),
   }
   try {
     let response = await axios.post(endpoint, null, config)

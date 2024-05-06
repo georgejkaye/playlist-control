@@ -1,7 +1,12 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios"
 import { getSecret } from "./utils.js"
 import { Playlist, PlaylistOverview, Session, Track } from "./structs.js"
-import { getQueuedTracks, getSpotifyTokens, updateTokens } from "./database.js"
+import {
+  getQueuedTracks,
+  getRequestedTracks,
+  getSpotifyTokens,
+  updateTokens,
+} from "./database.js"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
@@ -244,6 +249,15 @@ const executePaginatedRequest = async <T, U>(
   }
 }
 
+export const getTrack = async (sessionSlug: string, trackId: string) => {
+  return executeGetRequest<Track>(
+    sessionSlug,
+    `/tracks/${trackId}`,
+    {},
+    responseToTrack
+  )
+}
+
 export const getSpotifyUser = async (sessionSlug: string) => {
   return executeGetRequest(sessionSlug, "/me", {}, (data) => {
     return {
@@ -299,7 +313,7 @@ export const addToQueue = async (sessionSlug: string, trackId: string) => {
     endpoint,
     undefined,
     { uri: `spotify:track:${trackId}` },
-    (data) => 1
+    (data) => true
   )
 }
 
@@ -410,15 +424,17 @@ export const getSessionObject = async (
     ? undefined
     : await getPlaylistDetails(sessionSlug, playlistId)
   let { current, queue } = await getQueue(sessionSlug)
-  let queuedTracks = await getQueuedTracks(sessionSlug)
+  let queued = await getQueuedTracks(sessionSlug)
+  let requests = await getRequestedTracks(sessionSlug)
   let user = await getSpotifyUser(sessionSlug)
   return {
     id: sessionId,
     name: sessionName,
     slug: sessionSlug,
     host: sessionHost,
-    playlist: playlist,
-    queued: queuedTracks,
+    playlist,
+    requests,
+    queued,
     spotify: user,
     current,
     queue,

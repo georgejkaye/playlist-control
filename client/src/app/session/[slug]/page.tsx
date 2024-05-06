@@ -16,6 +16,7 @@ import {
   login,
   searchTracks,
   requestTrack,
+  makeDecision,
 } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -78,7 +79,7 @@ const CurrentTrackCard = (props: { currentTrack: Track }) => {
 }
 
 const trackCardStyle =
-  "rounded-lg flex flex-row justify-center my-1 p-1 gap-5 items-center"
+  "rounded-lg flex flex-row justify-center my-1 p-1 gap-5 items-center w-full"
 
 const TrackCard = (props: { track: Track }) => {
   return (
@@ -253,14 +254,18 @@ const QueueAdder = (props: {
             </button>
           </div>
           <div>
-            {filteredTracks.slice(0, tracksToShow).map((track) => (
-              <QueueAdderTrackCard
-                session={props.session}
-                key={track.id}
-                track={track}
-                setAdding={props.setAdding}
-              />
-            ))}
+            {filteredTracks.length === 0
+              ? "No tracks found, press button above to retrieve more"
+              : filteredTracks
+                  .slice(0, tracksToShow)
+                  .map((track) => (
+                    <QueueAdderTrackCard
+                      session={props.session}
+                      key={track.id}
+                      track={track}
+                      setAdding={props.setAdding}
+                    />
+                  ))}
           </div>
           {tracksToShow >= filteredTracks.length ? (
             ""
@@ -271,6 +276,121 @@ const QueueAdder = (props: {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+const RequestedTrackCard = (props: {
+  token: Token
+  session: Session
+  track: Track
+  setExpanded: SetState<boolean>
+}) => {
+  const { queuedTracks, setRequestedTracks } = useContext(AppContext)
+  const [isLoading, setLoading] = useState(false)
+  const [isQueueable, setQueueable] = useState(
+    !queuedTracks.has(props.track.id)
+  )
+  useEffect(() => {
+    setQueueable(!queuedTracks.has(props.track.id))
+  }, [queuedTracks])
+  const onDecision = (decision: boolean) => {
+    setLoading(false)
+    makeDecision(props.token, props.session, props.track, decision)
+    setRequestedTracks((old) =>
+      old.filter((track) => track.id !== props.track.id)
+    )
+    setLoading(true)
+  }
+  const onClickApprove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    onDecision(true)
+  }
+  const onClickReject = (e: React.MouseEvent<HTMLButtonElement>) => {
+    onDecision(false)
+  }
+  return isLoading ? (
+    <div className="flex items-center">
+      <Loader />
+    </div>
+  ) : (
+    <div className="flex flex-col tablet:flex-row w-full">
+      <div className={`${trackCardStyle} flex-1`}>
+        <div>
+          <Image
+            className="rounded-lg"
+            width={52}
+            height={52}
+            src={props.track.album.art}
+            alt={`Album art for ${props.track.album.name}`}
+          />
+        </div>
+        <div className="flex-1 my-auto">
+          <div className="text-xl font-bold">{props.track.name}</div>
+          <div>{getMultipleArtistsString(props.track.artists)}</div>
+        </div>
+      </div>
+      <div className="flex flex-row gap-2 items-center my-2">
+        <button
+          className="p-2 bg-green-700 hover:bg-green-600 rounded-xl"
+          onClick={onClickApprove}
+        >
+          Approve
+        </button>
+        <button
+          className="p-2 bg-red-700 hover:bg-red-600 rounded-xl"
+          onClick={onClickReject}
+        >
+          Reject
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const RequestsPanel = (props: { token: Token; session: Session }) => {
+  const { requestedTracks, setRequestedTracks } = useContext(AppContext)
+  const [isExpanded, setExpanded] = useState(false)
+  const onClickRequests = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setExpanded(!isExpanded)
+  }
+  return requestedTracks.length === 0 ? (
+    ""
+  ) : (
+    <div className="flex w-full flex-col">
+      <Line />
+      <div className="flex flex-col items-start">
+        {!isExpanded ? (
+          ""
+        ) : (
+          <div className="flex w-full flex-col items-start">
+            <h2 className="text-lg font-bold mb-2">Requested tracks</h2>
+            {requestedTracks.map((track) => (
+              <RequestedTrackCard
+                token={props.token}
+                key={track.id}
+                session={props.session}
+                track={track}
+                setExpanded={setExpanded}
+              />
+            ))}
+          </div>
+        )}
+        <button
+          className={`flex flex-row gap-2 ${smallButtonStyle} items-center`}
+          onClick={onClickRequests}
+        >
+          {!isExpanded ? (
+            <>
+              <div>Requested tracks</div>
+              <div className="align-item-end px-2 rounded-xl bg-gray-800">
+                {requestedTracks.length}
+              </div>
+            </>
+          ) : (
+            <div>Close</div>
+          )}
+        </button>
+      </div>
     </div>
   )
 }
@@ -336,7 +456,7 @@ const AdminPanel = (props: {
   }
   return (
     <>
-      <div className="flex flex-col items-start gap-2">
+      <div className="flex flex-col items-start gap-2 w-full">
         {!props.session.spotify ? (
           <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
             <div>Not authenticated with Spotify</div>
@@ -360,6 +480,7 @@ const AdminPanel = (props: {
         <button className={smallButtonStyle} onClick={onClickLogout}>
           Logout
         </button>
+        <RequestsPanel token={props.token} session={props.session} />
       </div>
       <Line />
     </>
@@ -641,6 +762,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
     queue,
     playlist,
     setPlaylist,
+    setRequestedTracks,
   } = useContext(AppContext)
   const router = useRouter()
   const [token, setToken] = useState<Token | undefined>(undefined)

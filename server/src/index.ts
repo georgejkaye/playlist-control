@@ -18,6 +18,7 @@ import {
   getTracks,
   insertPlaylist,
   insertRequest,
+  removeRequest,
   setPlaylist,
   updateTokens,
   validateSessionSlug,
@@ -35,6 +36,7 @@ import {
   getPlaylists,
   getQueue,
   getSpotifyUser,
+  getTrack,
   searchTracks,
 } from "./spotify.js"
 import {
@@ -164,6 +166,23 @@ app.post("/:sessionSlug/token", multer().single("file"), async (req, res) => {
   }
 })
 
+const queueTrack = async (sessionSlug: string, trackId: string) => {
+  let response = await addToQueue(sessionSlug, trackId)
+  if (response) {
+    let queuedAt = await addToQueuedTracks(sessionSlug, trackId)
+    let queue = await getQueue(sessionSlug)
+    io.to(sessionSlug).emit("queued_track", {
+      id: trackId,
+      queued_at: queuedAt,
+      queue: queue.queue,
+      current: queue.current,
+    })
+    return true
+  } else {
+    return false
+  }
+}
+
 app.post("/:sessionSlug/queue", async (req, res) => {
   const query = req.query
   const trackId = query.track_id
@@ -171,18 +190,10 @@ app.post("/:sessionSlug/queue", async (req, res) => {
     res.status(400).send("Query parameters must be string")
   } else {
     let sessionSlug: string = res.locals["sessionSlug"]
-    let response = await addToQueue(sessionSlug, trackId)
+    let response = await queueTrack(sessionSlug, trackId)
     if (!response) {
       res.status(400).send("Could not add track to queue")
     } else {
-      let queuedAt = await addToQueuedTracks(sessionSlug, trackId)
-      let queue = await getQueue(sessionSlug)
-      io.to(sessionSlug).emit("queued_track", {
-        id: trackId,
-        queued_at: queuedAt,
-        queue: queue.queue,
-        current: queue.current,
-      })
       res.status(200).send("Queued successfully")
     }
   }
@@ -209,7 +220,13 @@ app.post("/:sessionSlug/request", async (req, res) => {
   if (typeof trackId !== "string") {
     res.status(400).send("Query parameters must be string")
   } else {
-    await insertRequest(res.locals["sessionSlug"], trackId)
+    let sessionSlug = res.locals["sessionSlug"]
+    let track = await getTrack(sessionSlug, trackId)
+    if (track) {
+      await insertRequest(sessionSlug, track)
+    } else {
+      res.status(404).send("Track not found")
+    }
   }
 })
 
@@ -287,6 +304,21 @@ app.post("/:sessionSlug/auth/spotify/playlist", async (req, res) => {
     } else {
       res.status(404).send("Playlist not found")
     }
+  }
+})
+
+app.post("/:sessionSlug/auth/decision", async (req, res) => {
+  let sessionSlug: string = res.locals["sessionSlug"]
+  let trackId = req.query.track
+  let decision = req.query.decision
+  if (typeof trackId !== "string" || typeof decision !== "string") {
+    res.status(400).send("Query parameters must be string")
+  } else {
+    if (decision === "true") {
+      queueTrack(sessionSlug, trackId)
+    }
+    removeRequest(sessionSlug, trackId)
+    res.status(200).send("Request acknowledged")
   }
 })
 
