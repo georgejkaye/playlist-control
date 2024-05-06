@@ -124,8 +124,13 @@ const QueueAdderTrackCard = (props: {
   }, [queuedTracks])
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isQueueable) {
-      postQueue(props.session.slug, props.track)
-      props.setAdding(false)
+      if (props.track.requiresApproval) {
+        requestTrack(props.session, props.track)
+        props.setAdding(false)
+      } else {
+        postQueue(props.session, props.track)
+        props.setAdding(false)
+      }
     }
   }
   return (
@@ -277,7 +282,7 @@ const smallButtonStyle =
   "p-2 bg-accent rounded hover:underline font-2xl font-bold"
 
 const AdminPanel = (props: {
-  token: string
+  token: Token
   session: Session
   setLoading: SetState<boolean>
   logoutCallback: () => void
@@ -527,7 +532,7 @@ const PlaylistSelector = (props: {
     e: React.MouseEvent<HTMLButtonElement>
   ) => {
     setLoading(true)
-    let playlists = await getPlaylists(props.token.token, props.session.slug)
+    let playlists = await getPlaylists(props.token, props.session.slug)
     setPlaylists(playlists)
     setSelecting(true)
     setLoading(false)
@@ -535,7 +540,7 @@ const PlaylistSelector = (props: {
   const onPlaylistSubmit = async (playlistURL: string) => {
     setLoading(true)
     let { result, error } = await postPlaylist(
-      props.token.token,
+      props.token,
       props.session.slug,
       playlistURL
     )
@@ -645,25 +650,28 @@ const Home = ({ params }: { params: { slug: string } }) => {
     setLoading(true)
     let tokenStorage = localStorage.getItem(`token-${params.slug}`)
     let expiryStorage = localStorage.getItem(`expires-${params.slug}`)
-    const performRequests = async () => {
-      let result = await getSession(params.slug, token?.token)
+    let expires = !expiryStorage ? undefined : new Date(expiryStorage)
+    const performRequests = async (token: Token | undefined) => {
+      let result = await getSession(params.slug, token)
       if (result) {
-        let { session, queued, queue } = result
+        let { session, queued, queue, requests } = result
         setSession(session)
         setQueue(queue)
         setQueuedTracks(new Map(queued.map((obj: any) => [obj.id, obj.time])))
+        setRequestedTracks(requests)
         setPlaylist(session.playlist)
         setLoading(false)
       } else {
         router.push("/")
       }
     }
-    performRequests()
-    let expires = !expiryStorage ? undefined : new Date(expiryStorage)
     if (tokenStorage && expires && new Date() < expires) {
-      setToken({ token: tokenStorage, expires })
+      let token = { token: tokenStorage, expires }
+      setToken(token)
+      performRequests(token)
     } else {
       setToken(undefined)
+      performRequests(undefined)
     }
   }, [])
   return isLoading || !session ? (
@@ -677,7 +685,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
       ) : (
         <AdminPanel
           setLoading={setLoading}
-          token={token.token}
+          token={token}
           session={session}
           setSession={setSession}
           logoutCallback={() => setToken(undefined)}

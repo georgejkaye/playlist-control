@@ -5,6 +5,7 @@ import {
   Session,
   SetState,
   SpotifyUser,
+  Token,
   Track,
   responseToCurrentTrack,
   responseToPlaylist,
@@ -15,13 +16,14 @@ import {
 } from "./structs"
 
 const host = `${process.env.NEXT_PUBLIC_SERVER_PROTOCOL}://${process.env.NEXT_PUBLIC_SERVER_HOST}`
+const getEndpoint = (route: string) => `${host}${route}`
 
-const getHeaders = (token: string | undefined) =>
+const getHeaders = (token: Token | undefined) =>
   !token
     ? { Accept: "application/json" }
     : {
         Accept: "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token.token}`,
       }
 
 export const getData = async (
@@ -63,8 +65,8 @@ export const getQueue = async (
   }
 }
 
-export const postQueue = async (sessionSlug: string, track: Track) => {
-  const endpoint = `${host}/${sessionSlug}/queue`
+export const postQueue = async (session: Session, track: Track) => {
+  const endpoint = getEndpoint(`/${session.slug}/queue`)
   const config = {
     params: {
       track_id: track.id,
@@ -82,7 +84,7 @@ export const postQueue = async (sessionSlug: string, track: Track) => {
 }
 
 export const login = async (session: Session, password: string) => {
-  const endpoint = `${host}/${session.slug}/token`
+  const endpoint = getEndpoint(`/${session.slug}/token`)
   let data = new FormData()
   data.append("password", password)
   data.append("grant_type", "")
@@ -108,11 +110,11 @@ export const login = async (session: Session, password: string) => {
 }
 
 export const postPlaylist = async (
-  token: string,
+  token: Token | undefined,
   slug: string,
   playlistId: string
 ) => {
-  const endpoint = `${host}/${slug}/auth/spotify/playlist`
+  const endpoint = getEndpoint(`/${slug}/auth/spotify/playlist`)
   const config = {
     headers: getHeaders(token),
     params: {
@@ -136,8 +138,11 @@ export const postPlaylist = async (
     }
   }
 }
-export const deauthenticateSpotify = async (slug: string, token: string) => {
-  const endpoint = `${host}/${slug}/auth/spotify`
+export const deauthenticateSpotify = async (
+  slug: string,
+  token: Token | undefined
+) => {
+  const endpoint = getEndpoint(`/${slug}/auth/spotify`)
   const config = {
     headers: getHeaders(token),
   }
@@ -149,8 +154,8 @@ export const deauthenticateSpotify = async (slug: string, token: string) => {
     return undefined
   }
 }
-export const getPlaylists = async (token: string, slug: string) => {
-  const endpoint = `${host}/${slug}/auth/spotify/playlists`
+export const getPlaylists = async (token: Token | undefined, slug: string) => {
+  const endpoint = getEndpoint(`/${slug}/auth/spotify/playlists`)
   const config = {
     headers: getHeaders(token),
   }
@@ -167,10 +172,10 @@ export const getPlaylists = async (token: string, slug: string) => {
 
 export const sendAuthCode = async (
   slug: string,
-  token: string,
+  token: Token | undefined,
   code: string
 ) => {
-  const endpoint = `${host}/${slug}/auth/spotify`
+  const endpoint = getEndpoint(`/${slug}/auth/spotify`)
   const config = {
     headers: getHeaders(token),
   }
@@ -188,8 +193,8 @@ export const sendAuthCode = async (
   }
 }
 
-export const getAuthData = async (token: string) => {
-  const endpoint = `${host}/auth/data`
+export const getAuthData = async (token: Token | undefined) => {
+  const endpoint = getEndpoint(`/auth/data`)
   const config = {
     headers: getHeaders(token),
   }
@@ -217,7 +222,7 @@ export const createSession = async (
   sessionHost: string,
   password: string
 ) => {
-  const endpoint = `${host}/session`
+  const endpoint = getEndpoint(`/session`)
   try {
     let response = await axios.post(endpoint, {
       name: sessionName,
@@ -236,7 +241,7 @@ export const createSession = async (
 }
 
 export const getSessions = async () => {
-  const endpoint = `${host}/sessions`
+  const endpoint = getEndpoint(`/sessions`)
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -252,9 +257,9 @@ export const getSessions = async () => {
 
 export const getSession = async (
   sessionSlug: string,
-  token: string | undefined
+  token: Token | undefined
 ) => {
-  const endpoint = `${host}/${sessionSlug}`
+  const endpoint = getEndpoint(`/${sessionSlug}`)
   const config = {
     headers: getHeaders(token),
   }
@@ -278,7 +283,7 @@ export const searchTracks = async (
   session: Session,
   searchString: string
 ): Promise<Track[]> => {
-  const endpoint = `${host}/${session.slug}/search`
+  const endpoint = getEndpoint(`/${session.slug}/search`)
   const config = {
     params: {
       search: searchString,
@@ -299,7 +304,7 @@ export const searchTracks = async (
 }
 
 export const requestTrack = async (session: Session, track: Track) => {
-  const endpoint = `${host}/${session.slug}/request`
+  const endpoint = getEndpoint(`/${session.slug}/request`)
   const config = {
     params: {
       track: track.id,
