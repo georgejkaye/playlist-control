@@ -100,7 +100,6 @@ export const login = async (session: Session, password: string) => {
         token: responseData.access_token,
         expires: responseData.expires_at,
       }
-      console.log(token)
       return { token, spotify: responseData.user }
     } catch (err) {
       console.log(err)
@@ -172,7 +171,7 @@ export const getPlaylists = async (token: Token | undefined, slug: string) => {
 
 export const sendAuthCode = async (
   slug: string,
-  token: Token | undefined,
+  token: Token,
   code: string
 ) => {
   const endpoint = getEndpoint(`/${slug}/auth/spotify`)
@@ -308,7 +307,7 @@ export const requestTrack = async (session: Session, track: Track) => {
   const endpoint = getEndpoint(`/${session.slug}/queue`)
   const config = {
     params: {
-      track: track.id,
+      track_id: track.id,
     },
   }
   try {

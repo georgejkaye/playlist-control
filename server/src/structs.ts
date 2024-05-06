@@ -10,6 +10,7 @@ export interface SpotifyUser {
 export interface QueuedTrack {
   id: number
   time: Date
+  requested: boolean
 }
 
 export interface Playlist {
@@ -69,6 +70,7 @@ export interface Track {
   duration: number
   queued?: Date
   requested_at?: Date
+  successful_request?: boolean
 }
 
 export interface CurrentTrack {

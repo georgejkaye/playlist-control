@@ -59,6 +59,7 @@ export interface Track {
   duration: number
   queued: Date | undefined
   requiresApproval: boolean
+  requested: boolean
 }
 
 export const tracksEqual = (t1: Track, t2: Track) => t1.name === t2.name
@@ -79,6 +80,7 @@ export const responseToTrack = (response: any, requiresApproval: boolean) => ({
       ? undefined
       : new Date(Date.parse(response["queued_at"])),
   requiresApproval,
+  requested: response["requested"],
 })
 
 export const responseToCurrentTrack = (

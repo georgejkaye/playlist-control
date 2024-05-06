@@ -74,6 +74,7 @@ CREATE TABLE QueuedTrack (
     track_id TEXT PRIMARY KEY,
     queued_at TIMESTAMP WITH TIME ZONE NOT NULL,
     session_name_slug TEXT NOT NULL,
+    requested BOOLEAN NOT NULL,
     CONSTRAINT fk_track_id FOREIGN KEY(track_id) REFERENCES Track(track_id) ON DELETE CASCADE,
     CONSTRAINT fk_session_slug FOREIGN KEY(session_name_slug) REFERENCES Session(session_name_slug) ON DELETE CASCADE
 );
@@ -98,6 +99,7 @@ CREATE TABLE Request (
     track_id TEXT NOT NULL,
     session_name_slug TEXT NOT NULL,
     requested_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    successful BOOLEAN,
     CONSTRAINT fk_track_id FOREIGN KEY(track_id) REFERENCES track(track_id) ON DELETE CASCADE,
     CONSTRAINT fk_session_name FOREIGN KEY(session_name_slug) REFERENCES session(session_name_slug) ON DELETE CASCADE
 )

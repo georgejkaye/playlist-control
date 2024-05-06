@@ -41,6 +41,7 @@ interface AppData {
   setQueuedTracks: SetState<Map<string, Date>>
   requestedTracks: Track[]
   setRequestedTracks: SetState<Track[]>
+  emitLogin: (token: string) => void
 }
 
 const defaultAppData: AppData = {
@@ -62,6 +63,7 @@ const defaultAppData: AppData = {
   setQueuedTracks: () => {},
   requestedTracks: [],
   setRequestedTracks: () => {},
+  emitLogin: (token: string) => {},
 }
 
 export const AppContext = createContext(defaultAppData)
@@ -86,6 +88,9 @@ export const AppContextWrapper = (
   const [requestedTracks, setRequestedTracks] = useState<Track[]>([])
   const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
+  const emitLogin = (token: string) => {
+    socket.emit("token", token)
+  }
   const value: AppData = {
     token,
     setToken,
@@ -105,6 +110,7 @@ export const AppContextWrapper = (
     setQueuedTracks,
     requestedTracks,
     setRequestedTracks,
+    emitLogin,
   }
   useEffect(() => {
     const onConnect = () => {
@@ -136,10 +142,18 @@ export const AppContextWrapper = (
       setPlaylist(session.playlist)
     })
     socket.on("queued_track", (data) => {
-      let { id, queued_at, queue, current } = data
+      let { id, queued_at, queue, current, requested } = data
       setCurrent(current)
       setQueue(queue)
       setQueuedTracks((map) => new Map(map.set(id, new Date(queued_at))))
+    })
+    socket.on("new_request", (data) => {
+      if (session?.slug === data.sessionSlug) {
+        setRequestedTracks((old) => [
+          ...old,
+          responseToTrack(data.track, false),
+        ])
+      }
     })
     return () => {
       socket.off("connect", onConnect)

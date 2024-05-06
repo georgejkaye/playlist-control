@@ -93,6 +93,15 @@ const getSessionFromToken = async (token: string) => {
   }
 }
 
+const authSessionToken = async (sessionSlug: string, token: string) => {
+  let tokenSession = await getSessionFromToken(token)
+  if (sessionSlug === tokenSession) {
+    return true
+  } else {
+    return false
+  }
+}
+
 const authSessionHost = async (
   sessionSlug: string,
   authHeader: string | undefined
@@ -101,12 +110,7 @@ const authSessionHost = async (
     return false
   } else {
     let token = authHeader.split(" ")[1]
-    let tokenSession = await getSessionFromToken(token)
-    if (sessionSlug === tokenSession) {
-      return true
-    } else {
-      return false
-    }
+    return authSessionToken(sessionSlug, token)
   }
 }
 
@@ -133,6 +137,7 @@ app.use("/:sessionSlug", async (req, res, next) => {
 app.get("/:sessionSlug", async (req, res) => {
   let sessionSlugString = res.locals["sessionSlug"]
   let isAdmin = res.locals["isAdmin"]
+  console.log(isAdmin)
   let session = await getSession(
     "session_name_slug",
     sessionSlugString,
@@ -167,10 +172,14 @@ app.post("/:sessionSlug/token", multer().single("file"), async (req, res) => {
   }
 })
 
-const queueTrack = async (sessionSlug: string, trackId: string) => {
+const queueTrack = async (
+  sessionSlug: string,
+  trackId: string,
+  requested: boolean
+) => {
   let response = await addToQueue(sessionSlug, trackId)
   if (response) {
-    let queuedAt = await addToQueuedTracks(sessionSlug, trackId)
+    let queuedAt = await addToQueuedTracks(sessionSlug, trackId, requested)
     let queue = await getQueue(sessionSlug)
     io.to(sessionSlug).emit("queued_track", {
       id: trackId,
@@ -193,14 +202,17 @@ app.post("/:sessionSlug/queue", async (req, res) => {
     let sessionSlug: string = res.locals["sessionSlug"]
     let approvalRequired = await checkApprovalRequired(sessionSlug, trackId)
     if (approvalRequired) {
+      console.log("approval is required")
       let track = await getTrack(sessionSlug, trackId)
       if (track) {
         await insertRequest(sessionSlug, track)
+        io.emit("new_request", { session: sessionSlug, track })
         res.status(200).send("Track requested successfully")
       } else {
         res.status(404).send("Track not found")
       }
     } else {
+      console.log("Approval is not required")
       let response = await queueTrack(sessionSlug, trackId, false)
       if (!response) {
         res.status(400).send("Could not add track to queue")
@@ -338,6 +350,7 @@ const emitData = async (
 const listeners = new Map<number, Listener>()
 const sessionStatuses = new Map<string, PlayingStatus>()
 const sessions = new Map<Session, Listener[]>()
+const admins = new Map<Session, Listener[]>()
 
 const queueChanged = (oldQueue: Track[], newQueue: Track[]) => {
   if (oldQueue.length !== newQueue.length) {
@@ -379,6 +392,18 @@ io.on("connection", async (socket) => {
   console.log(`User #${listener.id} connected`)
   var sessionSlug: string | undefined = undefined
   emitData(socket, sessionSlug)
+  socket.on("token", async (token: string) => {
+    if (sessionSlug) {
+      if (await authSessionToken(sessionSlug, token)) {
+        socket.emit("Valid token")
+        socket.join(`${sessionSlug}-admin`)
+      } else {
+        socket.emit("Invalid token")
+      }
+    } else {
+      socket.emit("No session")
+    }
+  })
   socket.on("join_session", async (newSessionId: string) => {
     console.log(socket.id, "is joining", newSessionId)
     sessionSlug = newSessionId

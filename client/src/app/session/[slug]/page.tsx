@@ -34,6 +34,7 @@ import { Line } from "@/app/context"
 
 import Shield from "@mui/icons-material/Shield"
 import cd from "@/../public/cd.webp"
+import { GppMaybe, VerifiedUser } from "@mui/icons-material"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -82,6 +83,7 @@ const trackCardStyle =
   "rounded-lg flex flex-row justify-center my-1 p-1 gap-5 items-center w-full"
 
 const TrackCard = (props: { track: Track }) => {
+  let { playlist } = useContext(AppContext)
   return (
     <div className={trackCardStyle}>
       <div>
@@ -97,6 +99,11 @@ const TrackCard = (props: { track: Track }) => {
         <div className="text-xl font-bold">{props.track.name}</div>
         <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
+      {playlist?.tracks.some((track) => track.id === props.track.id) ? (
+        <VerifiedUser />
+      ) : (
+        <GppMaybe />
+      )}
     </div>
   )
 }
@@ -125,13 +132,8 @@ const QueueAdderTrackCard = (props: {
   }, [queuedTracks])
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isQueueable) {
-      if (props.track.requiresApproval) {
-        requestTrack(props.session, props.track)
-        props.setAdding(false)
-      } else {
-        postQueue(props.session, props.track)
-        props.setAdding(false)
-      }
+      postQueue(props.session, props.track)
+      props.setAdding(false)
     }
   }
   return (
@@ -155,7 +157,7 @@ const QueueAdderTrackCard = (props: {
         <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
       <div>
-        {props.track.requiresApproval ? <Shield className="mr-2" /> : ""}
+        {!props.track.requiresApproval ? <VerifiedUser /> : <GppMaybe />}
       </div>
     </div>
   )
@@ -295,12 +297,12 @@ const RequestedTrackCard = (props: {
     setQueueable(!queuedTracks.has(props.track.id))
   }, [queuedTracks])
   const onDecision = (decision: boolean) => {
-    setLoading(false)
+    setLoading(true)
     makeDecision(props.token, props.session, props.track, decision)
     setRequestedTracks((old) =>
       old.filter((track) => track.id !== props.track.id)
     )
-    setLoading(true)
+    setLoading(false)
   }
   const onClickApprove = (e: React.MouseEvent<HTMLButtonElement>) => {
     onDecision(true)
@@ -776,6 +778,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
     const performRequests = async (token: Token | undefined) => {
       let result = await getSession(params.slug, token)
       if (result) {
+        console.log(result)
         let { session, queued, queue, requests } = result
         setSession(session)
         setQueue(queue)
@@ -791,6 +794,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
       let token = { token: tokenStorage, expires }
       setToken(token)
       performRequests(token)
+      console.log(token)
     } else {
       setToken(undefined)
       performRequests(undefined)
