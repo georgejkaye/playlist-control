@@ -765,6 +765,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
     playlist,
     setPlaylist,
     setRequestedTracks,
+    emitLogin,
   } = useContext(AppContext)
   const router = useRouter()
   const [token, setToken] = useState<Token | undefined>(undefined)
@@ -794,7 +795,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
       let token = { token: tokenStorage, expires }
       setToken(token)
       performRequests(token)
-      console.log(token)
+      emitLogin(token)
     } else {
       setToken(undefined)
       performRequests(undefined)

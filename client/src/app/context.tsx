@@ -41,7 +41,7 @@ interface AppData {
   setQueuedTracks: SetState<Map<string, Date>>
   requestedTracks: Track[]
   setRequestedTracks: SetState<Track[]>
-  emitLogin: (token: string) => void
+  emitLogin: (token: Token) => void
 }
 
 const defaultAppData: AppData = {
@@ -63,7 +63,7 @@ const defaultAppData: AppData = {
   setQueuedTracks: () => {},
   requestedTracks: [],
   setRequestedTracks: () => {},
-  emitLogin: (token: string) => {},
+  emitLogin: (token: Token) => {},
 }
 
 export const AppContext = createContext(defaultAppData)
@@ -88,8 +88,8 @@ export const AppContextWrapper = (
   const [requestedTracks, setRequestedTracks] = useState<Track[]>([])
   const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
-  const emitLogin = (token: string) => {
-    socket.emit("token", token)
+  const emitLogin = (token: Token) => {
+    socket.emit("token", token.token)
   }
   const value: AppData = {
     token,
