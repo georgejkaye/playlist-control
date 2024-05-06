@@ -20,7 +20,6 @@ export interface SpotifyTokens {
 
 const getTokensFromTokenResponse = (now: Date, response: AxiosResponse) => {
   let body = response.data
-  console.log(body)
   let access = body.access_token
   let expires = new Date(now.getTime() + body.expires_in * 1000)
   let refresh = body.refresh_token
@@ -68,7 +67,7 @@ export const refreshTokens = async (
     let data = response.data
     if (data) {
       let access = data.access_token
-      let expires = data.expires_in
+      let expires = new Date(new Date().getTime() + data.expires_in * 1000)
       let refresh = tokens.refresh
       let newTokens = { access, expires, refresh }
       updateTokens(sessionSlug, newTokens)
@@ -435,11 +434,7 @@ export const searchTracks = async (
     "/search",
     { q: searchString, type: "track" },
     (data) => {
-      console.log(data)
       let tracks = data.tracks.items.map(responseToTrack)
-      for (let track of tracks) {
-        console.log(track.name)
-      }
       return tracks
     }
   )
