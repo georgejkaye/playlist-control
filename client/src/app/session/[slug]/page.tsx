@@ -149,7 +149,7 @@ const QueueAdderTrackCard = (props: {
         <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
       <div>
-        {props.track.requiresApproval ? <Shield className="mr-4" /> : ""}
+        {props.track.requiresApproval ? <Shield className="mr-2" /> : ""}
       </div>
     </div>
   )
