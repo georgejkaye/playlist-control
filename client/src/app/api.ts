@@ -36,11 +36,11 @@ export const getData = async (
     const data = response.data
     const session =
       data["session"] === null ? undefined : responseToSession(data["session"])
-    const tracks = data["tracks"].map(responseToTrack)
+    const tracks = data["tracks"].map((t: any) => responseToTrack(t, false))
     const current = !data["current"]
       ? undefined
-      : responseToCurrentTrack(data["current"])
-    const queue = data["queue"].map(responseToTrack)
+      : responseToCurrentTrack(data["current"], false)
+    const queue = data["queue"].map((t: any) => responseToTrack(t, false))
     setSession(session)
     setTracks(tracks)
     setCurrent(current)
@@ -56,8 +56,8 @@ export const getQueue = async (
   const response = await axios.get(endpoint)
   if (response.status === 200) {
     const data = response.data
-    const current = responseToCurrentTrack(data["current"])
-    const queue = data["queue"].map(responseToTrack)
+    const current = responseToCurrentTrack(data["current"], false)
+    const queue = data["queue"].map((t: boolean) => responseToTrack(t, false))
     setCurrent(current)
     setQueue(queue)
   }
@@ -274,7 +274,10 @@ export const getSession = async (
   }
 }
 
-export const searchTracks = async (session: Session, searchString: string) => {
+export const searchTracks = async (
+  session: Session,
+  searchString: string
+): Promise<Track[]> => {
   const endpoint = `${host}/${session.slug}/search`
   const config = {
     params: {
@@ -287,7 +290,7 @@ export const searchTracks = async (session: Session, searchString: string) => {
     if (!data) {
       return []
     } else {
-      let tracks = data.map(responseToTrack)
+      let tracks = data.map((t: any) => responseToTrack(t, true))
       return tracks
     }
   } catch (e) {

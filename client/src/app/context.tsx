@@ -117,11 +117,11 @@ export const AppContextWrapper = (
       let currentTrack = data.current
       let upcomingQueue = data.queue
       if (currentTrack) {
-        setCurrent(responseToTrack(currentTrack))
+        setCurrent(responseToTrack(currentTrack, false))
       } else {
         setCurrent(undefined)
       }
-      setQueue(upcomingQueue.map(responseToTrack))
+      setQueue(upcomingQueue.map((t: any) => responseToTrack(t, false)))
     })
     socket.on("new_playlist", (data) => {
       let session = responseToSession(data)
