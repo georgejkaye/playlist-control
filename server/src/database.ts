@@ -779,9 +779,33 @@ export const insertRequest = async (sessionSlug: string, track: Track) => {
   client.query(requestQuery, [track.id, sessionSlug])
 }
 
-export const removeRequest = async (sessionSlug: string, trackId: string) => {
+export const updateRequestDecision = async (
+  sessionSlug: string,
+  trackId: string,
+  decision: boolean
+) => {
   const query = `
-    DELETE FROM REQUEST WHERE session_name_slug = $1 AND track_id = $2
+    UPDATE Request SET successful = $3 WHERE session_name_slug = $1 AND track_id = $2
   `
-  client.query(query, [sessionSlug, trackId])
+  client.query(query, [sessionSlug, trackId, decision])
+}
+
+export const checkApprovalRequired = async (
+  sessionSlug: string,
+  trackId: string
+) => {
+  const query = `
+    SELECT session_id FROM session
+    INNER JOIN playlist
+    ON playlist.playlist_id = session.playlist_id
+    INNER JOIN playlisttrack
+    ON playlist.playlist_id = playlisttrack.playlist_id
+    WHERE session_name_slug = $1 AND playlisttrack.track_id = $2
+  `
+  let result = await client.query(query, [sessionSlug, trackId])
+  if (!result) {
+    return true
+  } else {
+    return result.rows.length === 1
+  }
 }

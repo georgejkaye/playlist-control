@@ -305,7 +305,7 @@ export const searchTracks = async (
 }
 
 export const requestTrack = async (session: Session, track: Track) => {
-  const endpoint = getEndpoint(`/${session.slug}/request`)
+  const endpoint = getEndpoint(`/${session.slug}/queue`)
   const config = {
     params: {
       track: track.id,

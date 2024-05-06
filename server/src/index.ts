@@ -18,10 +18,11 @@ import {
   getTracks,
   insertPlaylist,
   insertRequest,
-  removeRequest,
+  updateRequestDecision,
   setPlaylist,
   updateTokens,
   validateSessionSlug,
+  checkApprovalRequired,
 } from "./database.js"
 import {
   authenticateUser as authenticateSessionAdmin,
@@ -190,11 +191,22 @@ app.post("/:sessionSlug/queue", async (req, res) => {
     res.status(400).send("Query parameters must be string")
   } else {
     let sessionSlug: string = res.locals["sessionSlug"]
-    let response = await queueTrack(sessionSlug, trackId)
-    if (!response) {
-      res.status(400).send("Could not add track to queue")
+    let approvalRequired = await checkApprovalRequired(sessionSlug, trackId)
+    if (approvalRequired) {
+      let track = await getTrack(sessionSlug, trackId)
+      if (track) {
+        await insertRequest(sessionSlug, track)
+        res.status(200).send("Track requested successfully")
+      } else {
+        res.status(404).send("Track not found")
+      }
     } else {
-      res.status(200).send("Queued successfully")
+      let response = await queueTrack(sessionSlug, trackId, false)
+      if (!response) {
+        res.status(400).send("Could not add track to queue")
+      } else {
+        res.status(200).send("Queued successfully")
+      }
     }
   }
 })
@@ -210,22 +222,6 @@ app.post("/:sessionSlug/search", async (req, res) => {
       res.status(500).send("Could not search tracks")
     } else {
       res.status(200).send(tracks)
-    }
-  }
-})
-
-app.post("/:sessionSlug/request", async (req, res) => {
-  const query = req.query
-  const trackId = query.track
-  if (typeof trackId !== "string") {
-    res.status(400).send("Query parameters must be string")
-  } else {
-    let sessionSlug = res.locals["sessionSlug"]
-    let track = await getTrack(sessionSlug, trackId)
-    if (track) {
-      await insertRequest(sessionSlug, track)
-    } else {
-      res.status(404).send("Track not found")
     }
   }
 })
@@ -315,10 +311,10 @@ app.post("/:sessionSlug/auth/decision", async (req, res) => {
     res.status(400).send("Query parameters must be string")
   } else {
     if (decision === "true") {
-      queueTrack(sessionSlug, trackId)
+      queueTrack(sessionSlug, trackId, true)
     }
-    removeRequest(sessionSlug, trackId)
-    res.status(200).send("Request acknowledged")
+    updateRequestDecision(sessionSlug, trackId, decision === "true")
+    res.status(200).send("Decision acknowledged")
   }
 })
 
