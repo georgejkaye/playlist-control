@@ -10,6 +10,7 @@ export interface SpotifyUser {
 export interface QueuedTrack {
   id: number
   time: Date
+  requested: boolean
 }
 
 export interface Playlist {
@@ -42,6 +43,7 @@ export interface Session {
   slug: string
   host: string
   playlist: Playlist | undefined
+  requests: Track[]
   queued: QueuedTrack[]
   spotify: SpotifyUser | undefined
   current: Track | undefined
@@ -66,7 +68,9 @@ export interface Track {
   album: Album
   artists: Artist[]
   duration: number
-  queued: Date | undefined
+  queued?: Date
+  requested_at?: Date
+  successful_request?: boolean
 }
 
 export interface CurrentTrack {

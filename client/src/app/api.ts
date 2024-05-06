@@ -5,6 +5,7 @@ import {
   Session,
   SetState,
   SpotifyUser,
+  Token,
   Track,
   responseToCurrentTrack,
   responseToPlaylist,
@@ -15,13 +16,14 @@ import {
 } from "./structs"
 
 const host = `${process.env.NEXT_PUBLIC_SERVER_PROTOCOL}://${process.env.NEXT_PUBLIC_SERVER_HOST}`
+const getEndpoint = (route: string) => `${host}${route}`
 
-const getHeaders = (token: string | undefined) =>
+const getHeaders = (token: Token | undefined) =>
   !token
     ? { Accept: "application/json" }
     : {
         Accept: "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token.token}`,
       }
 
 export const getData = async (
@@ -36,11 +38,11 @@ export const getData = async (
     const data = response.data
     const session =
       data["session"] === null ? undefined : responseToSession(data["session"])
-    const tracks = data["tracks"].map(responseToTrack)
+    const tracks = data["tracks"].map((t: any) => responseToTrack(t, false))
     const current = !data["current"]
       ? undefined
-      : responseToCurrentTrack(data["current"])
-    const queue = data["queue"].map(responseToTrack)
+      : responseToCurrentTrack(data["current"], false)
+    const queue = data["queue"].map((t: any) => responseToTrack(t, false))
     setSession(session)
     setTracks(tracks)
     setCurrent(current)
@@ -56,15 +58,15 @@ export const getQueue = async (
   const response = await axios.get(endpoint)
   if (response.status === 200) {
     const data = response.data
-    const current = responseToCurrentTrack(data["current"])
-    const queue = data["queue"].map(responseToTrack)
+    const current = responseToCurrentTrack(data["current"], false)
+    const queue = data["queue"].map((t: boolean) => responseToTrack(t, false))
     setCurrent(current)
     setQueue(queue)
   }
 }
 
-export const postQueue = async (sessionSlug: string, track: Track) => {
-  const endpoint = `${host}/${sessionSlug}/queue`
+export const postQueue = async (session: Session, track: Track) => {
+  const endpoint = getEndpoint(`/${session.slug}/queue`)
   const config = {
     params: {
       track_id: track.id,
@@ -82,7 +84,7 @@ export const postQueue = async (sessionSlug: string, track: Track) => {
 }
 
 export const login = async (session: Session, password: string) => {
-  const endpoint = `${host}/${session.slug}/token`
+  const endpoint = getEndpoint(`/${session.slug}/token`)
   let data = new FormData()
   data.append("password", password)
   data.append("grant_type", "")
@@ -98,7 +100,6 @@ export const login = async (session: Session, password: string) => {
         token: responseData.access_token,
         expires: responseData.expires_at,
       }
-      console.log(token)
       return { token, spotify: responseData.user }
     } catch (err) {
       console.log(err)
@@ -108,11 +109,11 @@ export const login = async (session: Session, password: string) => {
 }
 
 export const postPlaylist = async (
-  token: string,
+  token: Token | undefined,
   slug: string,
   playlistId: string
 ) => {
-  const endpoint = `${host}/${slug}/auth/spotify/playlist`
+  const endpoint = getEndpoint(`/${slug}/auth/spotify/playlist`)
   const config = {
     headers: getHeaders(token),
     params: {
@@ -136,8 +137,11 @@ export const postPlaylist = async (
     }
   }
 }
-export const deauthenticateSpotify = async (slug: string, token: string) => {
-  const endpoint = `${host}/${slug}/auth/spotify`
+export const deauthenticateSpotify = async (
+  slug: string,
+  token: Token | undefined
+) => {
+  const endpoint = getEndpoint(`/${slug}/auth/spotify`)
   const config = {
     headers: getHeaders(token),
   }
@@ -149,8 +153,8 @@ export const deauthenticateSpotify = async (slug: string, token: string) => {
     return undefined
   }
 }
-export const getPlaylists = async (token: string, slug: string) => {
-  const endpoint = `${host}/${slug}/auth/spotify/playlists`
+export const getPlaylists = async (token: Token | undefined, slug: string) => {
+  const endpoint = getEndpoint(`/${slug}/auth/spotify/playlists`)
   const config = {
     headers: getHeaders(token),
   }
@@ -167,10 +171,10 @@ export const getPlaylists = async (token: string, slug: string) => {
 
 export const sendAuthCode = async (
   slug: string,
-  token: string,
+  token: Token,
   code: string
 ) => {
-  const endpoint = `${host}/${slug}/auth/spotify`
+  const endpoint = getEndpoint(`/${slug}/auth/spotify`)
   const config = {
     headers: getHeaders(token),
   }
@@ -188,8 +192,8 @@ export const sendAuthCode = async (
   }
 }
 
-export const getAuthData = async (token: string) => {
-  const endpoint = `${host}/auth/data`
+export const getAuthData = async (token: Token | undefined) => {
+  const endpoint = getEndpoint(`/auth/data`)
   const config = {
     headers: getHeaders(token),
   }
@@ -217,7 +221,7 @@ export const createSession = async (
   sessionHost: string,
   password: string
 ) => {
-  const endpoint = `${host}/session`
+  const endpoint = getEndpoint(`/session`)
   try {
     let response = await axios.post(endpoint, {
       name: sessionName,
@@ -236,7 +240,7 @@ export const createSession = async (
 }
 
 export const getSessions = async () => {
-  const endpoint = `${host}/sessions`
+  const endpoint = getEndpoint(`/sessions`)
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -252,9 +256,9 @@ export const getSessions = async () => {
 
 export const getSession = async (
   sessionSlug: string,
-  token: string | undefined
+  token: Token | undefined
 ) => {
-  const endpoint = `${host}/${sessionSlug}`
+  const endpoint = getEndpoint(`/${sessionSlug}`)
   const config = {
     headers: getHeaders(token),
   }
@@ -267,9 +271,81 @@ export const getSession = async (
       let session = responseToSession(data)
       let queued = data.queued
       let queue = data.queue
-      return { session, queued, queue }
+      let requests = data.requests.map(responseToTrack)
+      return { session, queued, queue, requests }
     }
   } catch (e) {
     return undefined
+  }
+}
+
+export const searchTracks = async (
+  session: Session,
+  searchString: string
+): Promise<Track[]> => {
+  const endpoint = getEndpoint(`/${session.slug}/search`)
+  const config = {
+    params: {
+      search: searchString,
+    },
+  }
+  try {
+    let response = await axios.post(endpoint, null, config)
+    let data = response.data
+    if (!data) {
+      return []
+    } else {
+      let tracks = data.map((t: any) => responseToTrack(t, true))
+      return tracks
+    }
+  } catch (e) {
+    return []
+  }
+}
+
+export const requestTrack = async (session: Session, track: Track) => {
+  const endpoint = getEndpoint(`/${session.slug}/queue`)
+  const config = {
+    params: {
+      track_id: track.id,
+    },
+  }
+  try {
+    let response = await axios.post(endpoint, null, config)
+    let data = response.data
+    if (!data) {
+      return false
+    } else {
+      return true
+    }
+  } catch (e) {
+    return false
+  }
+}
+
+export const makeDecision = async (
+  token: Token,
+  session: Session,
+  track: Track,
+  decision: boolean
+) => {
+  const endpoint = getEndpoint(`/${session.slug}/auth/decision`)
+  const config = {
+    params: {
+      track: track.id,
+      decision,
+    },
+    headers: getHeaders(token),
+  }
+  try {
+    let response = await axios.post(endpoint, null, config)
+    let data = response.data
+    if (!data) {
+      return false
+    } else {
+      return true
+    }
+  } catch (e) {
+    return false
   }
 }

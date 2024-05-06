@@ -1,7 +1,12 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios"
 import { getSecret } from "./utils.js"
 import { Playlist, PlaylistOverview, Session, Track } from "./structs.js"
-import { getQueuedTracks, getSpotifyTokens, updateTokens } from "./database.js"
+import {
+  getQueuedTracks,
+  getRequestedTracks,
+  getSpotifyTokens,
+  updateTokens,
+} from "./database.js"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
@@ -20,7 +25,6 @@ export interface SpotifyTokens {
 
 const getTokensFromTokenResponse = (now: Date, response: AxiosResponse) => {
   let body = response.data
-  console.log(body)
   let access = body.access_token
   let expires = new Date(now.getTime() + body.expires_in * 1000)
   let refresh = body.refresh_token
@@ -68,7 +72,7 @@ export const refreshTokens = async (
     let data = response.data
     if (data) {
       let access = data.access_token
-      let expires = data.expires_in
+      let expires = new Date(new Date().getTime() + data.expires_in * 1000)
       let refresh = tokens.refresh
       let newTokens = { access, expires, refresh }
       updateTokens(sessionSlug, newTokens)
@@ -166,6 +170,7 @@ const getUrlAndHeaders = async (sessionSlug: string, endpoint: string) => {
 const executeGetRequest = async <T>(
   sessionSlug: string,
   endpoint: string,
+  params: any,
   dataCallback: (data: any) => T
 ) => {
   let { url, headers } = await getUrlAndHeaders(sessionSlug, endpoint)
@@ -173,7 +178,7 @@ const executeGetRequest = async <T>(
     return undefined
   } else {
     try {
-      let response = await doGet(url, { headers })
+      let response = await doGet(url, { headers, params })
       let data = response.data
       return dataCallback(data)
     } catch (e) {
@@ -244,8 +249,17 @@ const executePaginatedRequest = async <T, U>(
   }
 }
 
+export const getTrack = async (sessionSlug: string, trackId: string) => {
+  return executeGetRequest<Track>(
+    sessionSlug,
+    `/tracks/${trackId}`,
+    {},
+    responseToTrack
+  )
+}
+
 export const getSpotifyUser = async (sessionSlug: string) => {
-  return executeGetRequest(sessionSlug, "/me", (data) => {
+  return executeGetRequest(sessionSlug, "/me", {}, (data) => {
     return {
       name: data["display_name"],
       image: data["images"][0]["url"],
@@ -258,6 +272,7 @@ export const getCurrentTrack = async (sessionSlug: string) => {
   return executeGetRequest(
     sessionSlug,
     "/me/player/currently-playing",
+    {},
     (data) => {
       let item = data.item
       if (item) {
@@ -276,6 +291,7 @@ export const getQueue = async (
   let result = await executeGetRequest(
     sessionSlug,
     "/me/player/queue",
+    {},
     (data) => {
       let current = !data.currently_playing
         ? undefined
@@ -297,7 +313,7 @@ export const addToQueue = async (sessionSlug: string, trackId: string) => {
     endpoint,
     undefined,
     { uri: `spotify:track:${trackId}` },
-    (data) => 1
+    (data) => true
   )
 }
 
@@ -327,6 +343,7 @@ export const getPlaylistOverview = async (
   let playlist = await executeGetRequest<PlaylistOverview>(
     sessionSlug,
     `/playlists/${playlistId}`,
+    {},
     (data) => {
       let id = data.id
       let art = data.images[0].url
@@ -407,17 +424,35 @@ export const getSessionObject = async (
     ? undefined
     : await getPlaylistDetails(sessionSlug, playlistId)
   let { current, queue } = await getQueue(sessionSlug)
-  let queuedTracks = await getQueuedTracks(sessionSlug)
+  let queued = await getQueuedTracks(sessionSlug)
+  let requests = await getRequestedTracks(sessionSlug)
   let user = await getSpotifyUser(sessionSlug)
   return {
     id: sessionId,
     name: sessionName,
     slug: sessionSlug,
     host: sessionHost,
-    playlist: playlist,
-    queued: queuedTracks,
+    playlist,
+    requests,
+    queued,
     spotify: user,
     current,
     queue,
   }
+}
+
+export const searchTracks = async (
+  sessionSlug: string,
+  searchString: string
+) => {
+  let result = await executeGetRequest(
+    sessionSlug,
+    "/search",
+    { q: searchString, type: "track" },
+    (data) => {
+      let tracks = data.tracks.items.map(responseToTrack)
+      return tracks
+    }
+  )
+  return result
 }

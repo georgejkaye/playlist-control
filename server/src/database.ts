@@ -85,13 +85,14 @@ export const getPasswordHash = async (sessionSlug: string) => {
 
 export const getQueuedTracks = async (sessionSlug: string) => {
   const queryText =
-    "SELECT track_id, queued_at FROM Track WHERE session_name_slug = $1"
+    "SELECT track_id, queued_at, requested FROM Track WHERE session_name_slug = $1"
   const query = { text: queryText }
   let result = await client.query(query, [sessionSlug])
   let rows = result.rows
   let queueds = rows.map((row) => ({
     id: row.get("track_id"),
     time: row.get("queued_at"),
+    requested: row.get("requested"),
   }))
   return queueds
 }
@@ -204,6 +205,39 @@ const getInsertAlbumArtistsStatement = (
 const mapQueryOverSet = <T>(set: Set<T>, fn: (data: T[]) => string) =>
   fn(Array.from(set))
 
+export const insertTracks = async (
+  tracks: Track[],
+  trackOperation: (track: Track) => void
+) => {
+  let artists = new Set<Artist>()
+  let albums = new Set<Album>()
+  let albumTracks = new Set<{ album: Album; track: Track }>()
+  let artistTracks = new Set<{ artist: Artist; track: Track }>()
+  let albumArtists = new Set<{ album: Album; artist: Artist }>()
+  let uniqueTracks = new Set<Track>()
+  for (let track of tracks) {
+    let album = track.album
+    albums.add(album)
+    for (let artist of album.artists) {
+      artists.add(artist)
+      albumArtists.add({ album, artist })
+    }
+    albumTracks.add({ album, track })
+    for (let artist of track.artists) {
+      artists.add(artist)
+      artistTracks.add({ artist, track })
+    }
+    uniqueTracks.add(track)
+    trackOperation(track)
+  }
+  await client.query(mapQueryOverSet(artists, getInsertArtistsStatement))
+  await client.query(mapQueryOverSet(albums, getInsertAlbumsStatement))
+  await client.query(mapQueryOverSet(uniqueTracks, getInsertTracksStatement))
+  client.query(mapQueryOverSet(albumArtists, getInsertAlbumArtistsStatement))
+  client.query(mapQueryOverSet(artistTracks, getInsertArtistTracksStatement))
+  client.query(mapQueryOverSet(albumTracks, getInsertAlbumTracksStatement))
+}
+
 export const insertPlaylist = async (playlist: Playlist) => {
   const playlistQueryText = `
     INSERT INTO playlist
@@ -222,34 +256,9 @@ export const insertPlaylist = async (playlist: Playlist) => {
     DELETE FROM playlisttrack WHERE playlist_id = $1
   `
   await client.query(playlistTrackQueryText, [playlist.id])
-  let artists = new Set<Artist>()
-  let albums = new Set<Album>()
-  let albumTracks = new Set<{ album: Album; track: Track }>()
-  let artistTracks = new Set<{ artist: Artist; track: Track }>()
-  let albumArtists = new Set<{ album: Album; artist: Artist }>()
-  let tracks = new Set<Track>()
   let playlistTracks = new Set<{ playlist: Playlist; track: Track }>()
-  for (let track of playlist.tracks) {
-    let album = track.album
-    albums.add(album)
-    for (let artist of album.artists) {
-      artists.add(artist)
-      albumArtists.add({ album, artist })
-    }
-    albumTracks.add({ album, track })
-    for (let artist of track.artists) {
-      artists.add(artist)
-      artistTracks.add({ artist, track })
-    }
-    tracks.add(track)
-    playlistTracks.add({ playlist, track })
-  }
-  await client.query(mapQueryOverSet(artists, getInsertArtistsStatement))
-  await client.query(mapQueryOverSet(albums, getInsertAlbumsStatement))
-  await client.query(mapQueryOverSet(tracks, getInsertTracksStatement))
-  client.query(mapQueryOverSet(albumArtists, getInsertAlbumArtistsStatement))
-  client.query(mapQueryOverSet(artistTracks, getInsertArtistTracksStatement))
-  client.query(mapQueryOverSet(albumTracks, getInsertAlbumTracksStatement))
+  let trackOperation = (track: Track) => playlistTracks.add({ playlist, track })
+  await insertTracks(playlist.tracks, trackOperation)
   client.query(
     mapQueryOverSet(playlistTracks, getInsertPlaylistTracksStatement)
   )
@@ -358,6 +367,7 @@ export const createSession = async (
       host: sessionHost,
       playlist: undefined,
       spotify: undefined,
+      requests: [],
       queued: [],
       current: undefined,
       queue: [],
@@ -413,6 +423,92 @@ export const getSessionOverviews = async () => {
     })
   )
   return sessions
+}
+
+export const getRequestedTracks = async (sessionSlug: string) => {
+  const queryText = `
+    SELECT
+      track.track_id, track.track_name,
+      trackartists.artists AS track_artists,
+      album.album_id, album.album_name, album.album_art,
+      albumartists.artists AS album_artists,
+      track.track_duration, requesttracks.requested_at,
+      requesttracks.successful
+    FROM track
+    INNER JOIN albumtrack
+    ON track.track_id = albumtrack.track_id
+    INNER JOIN album
+    ON albumtrack.album_id = album.album_id
+    INNER JOIN (
+      SELECT
+      track_id,
+      json_agg(json_build_object('artist_id', Artist.artist_id, 'artist_name', Artist.artist_name)) AS Artists
+      FROM ArtistTrack
+      INNER JOIN Artist ON Artist.artist_id = ArtistTrack.artist_id
+      GROUP BY track_id
+    ) trackartists
+    ON track.track_id = trackartists.track_id
+    INNER JOIN (
+      SELECT
+        album_id,
+        json_agg(json_build_object('artist_id', Artist.artist_id, 'artist_name', Artist.artist_name)) AS Artists
+      FROM AlbumArtist
+      INNER JOIN Artist ON Artist.artist_id = AlbumArtist.artist_id
+      GROUP BY album_id
+    ) albumartists
+    ON album.album_id = albumartists.album_id
+    INNER JOIN (
+      SELECT *
+      FROM request
+      WHERE session_name_slug = $1
+    ) requesttracks
+    ON requesttracks.track_id = track.track_id
+    WHERE successful IS NULL
+  `
+  const query = { text: queryText }
+  let result = await client.query(query, [sessionSlug])
+  if (!result) {
+    return []
+  } else {
+    let rows = result.rows
+    let tracks = rows.map((row) => {
+      let track_id = row.get("track_id")
+      let track_name = row.get("track_name")
+      let track_artists = row.get("track_artists")
+      let album_id = row.get("album_id")
+      let album_name = row.get("album_name")
+      let album_art = row.get("album_art")
+      let album_artists = row.get("album_artists")
+      let track_duration = row.get("track_duration")
+      let requested_at = new Date(row.get("requested_at"))
+      let successful_request = row.get("successful")
+      let track_artist_objects: Artist[] = track_artists.map((artist: any) => ({
+        id: artist.artist_id,
+        name: artist.artist_name,
+      }))
+      let album_artist_objects: Artist[] = album_artists.map((artist: any) => ({
+        id: artist.artist_id,
+        name: artist.artist_name,
+      }))
+      let album: Album = {
+        id: album_id,
+        name: album_name,
+        artists: album_artist_objects,
+        art: album_art,
+      }
+      let track: Track = {
+        id: track_id,
+        name: track_name,
+        album: album,
+        artists: track_artist_objects,
+        duration: track_duration,
+        requested_at,
+        successful_request,
+      }
+      return track
+    })
+    return tracks
+  }
 }
 
 export const getSessionPlaylist = async (sessionSlug: string) => {
@@ -523,17 +619,24 @@ export const getSession = async (
       playlist.playlist_url,
       playlist.playlist_art,
       sessionqueued.queued_tracks,
+      sessionrequested.requested_tracks,
       session.access_token,
       session.spotify_user,
       session.spotify_user_art,
       session.spotify_id
     FROM Session
     LEFT JOIN (
-      SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at)) AS queued_tracks
+      SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at, 'requested', queuedtrack.requested)) AS queued_tracks
       FROM queuedtrack
       GROUP BY session_name_slug
     ) SessionQueued
     ON sessionqueued.session_name_slug = session.session_name_slug
+    LEFT JOIN (
+      SELECT request.session_name_slug, json_agg(json_build_object('track_id', request.track_id, 'requested_at', request.requested_at)) AS requested_tracks
+      FROM request
+      GROUP BY session_name_slug
+    ) SessionRequested
+    ON SessionRequested.session_name_slug = SessionRequested.session_name_slug
     LEFT JOIN Playlist
     ON Session.playlist_id = Playlist.playlist_id
     WHERE Session.session_name_slug = $1
@@ -569,6 +672,7 @@ export const getSession = async (
           time: track["queued_at"],
         }))
     let tracks = await getSessionPlaylist(sessionSlug)
+    let requests = await getRequestedTracks(sessionSlug)
     let playlist = !playlistId
       ? undefined
       : {
@@ -589,6 +693,7 @@ export const getSession = async (
       slug: sessionSlug,
       playlist,
       queued,
+      requests,
       spotify: spotifyUser,
       current,
       queue,
@@ -653,19 +758,60 @@ export const removeListener = async (listenerId: number) => {
 
 export const addToQueuedTracks = async (
   sessionSlug: string,
-  trackId: string
+  trackId: string,
+  requested: boolean
 ) => {
   const query = `
-    INSERT INTO QueuedTrack (track_id, queued_at, session_name_slug)
-    VALUES ($1, NOW(), $2)
+    INSERT INTO QueuedTrack (track_id, queued_at, session_name_slug, requested)
+    VALUES ($1, NOW(), $2, $3)
     ON CONFLICT (track_id) DO NOTHING
     RETURNING queued_at
   `
-  let response = await client.query(query, [trackId, sessionSlug])
+  let response = await client.query(query, [trackId, sessionSlug, requested])
   let row = response.rows[0]
   try {
     return row.get("queued_at")
   } catch (e) {
     return undefined
+  }
+}
+
+export const insertRequest = async (sessionSlug: string, track: Track) => {
+  await insertTracks([track], () => {})
+  const requestQuery = `
+    INSERT INTO Request (track_id, session_name_slug, requested_at)
+    VALUES ($1, $2, NOW())
+  `
+  client.query(requestQuery, [track.id, sessionSlug])
+}
+
+export const updateRequestDecision = async (
+  sessionSlug: string,
+  trackId: string,
+  decision: boolean
+) => {
+  const query = `
+    UPDATE Request SET successful = $3 WHERE session_name_slug = $1 AND track_id = $2
+  `
+  client.query(query, [sessionSlug, trackId, decision])
+}
+
+export const checkApprovalRequired = async (
+  sessionSlug: string,
+  trackId: string
+) => {
+  const query = `
+    SELECT session_id FROM session
+    INNER JOIN playlist
+    ON playlist.playlist_id = session.playlist_id
+    INNER JOIN playlisttrack
+    ON playlist.playlist_id = playlisttrack.playlist_id
+    WHERE session_name_slug = $1 AND playlisttrack.track_id = $2
+  `
+  let result = await client.query(query, [sessionSlug, trackId])
+  if (!result) {
+    return true
+  } else {
+    return result.rows.length !== 1
   }
 }

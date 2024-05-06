@@ -58,14 +58,18 @@ export interface Track {
   artists: Artist[]
   duration: number
   queued: Date | undefined
+  requiresApproval: boolean
+  requested: boolean
 }
+
+export const tracksEqual = (t1: Track, t2: Track) => t1.name === t2.name
 
 export interface CurrentTrack {
   track: Track
   start: number
 }
 
-export const responseToTrack = (response: any) => ({
+export const responseToTrack = (response: any, requiresApproval: boolean) => ({
   id: response["id"],
   name: response["name"],
   album: responseToAlbum(response["album"]),
@@ -75,10 +79,15 @@ export const responseToTrack = (response: any) => ({
     response["queued_at"] === null
       ? undefined
       : new Date(Date.parse(response["queued_at"])),
+  requiresApproval,
+  requested: response["requested"],
 })
 
-export const responseToCurrentTrack = (response: any) => ({
-  track: responseToTrack(response["track"]),
+export const responseToCurrentTrack = (
+  response: any,
+  requiresApproval: boolean
+) => ({
+  track: responseToTrack(response["track"], requiresApproval),
   start: response["start"],
 })
 
@@ -95,7 +104,7 @@ export const responseToPlaylist = (response: any) => ({
   url: response["url"],
   name: response["name"],
   art: response["art"],
-  tracks: response["tracks"].map(responseToTrack),
+  tracks: response["tracks"].map((t: any) => responseToTrack(t, false)),
 })
 
 export interface PlaylistOverview {
@@ -146,6 +155,6 @@ export const responseToSession = (raw: any): Session => ({
   slug: raw["slug"],
   host: raw["host"],
   playlist: !raw["playlist"] ? undefined : responseToPlaylist(raw["playlist"]),
-  current: !raw["track"] ? undefined : responseToTrack(raw["track"]),
+  current: !raw["track"] ? undefined : responseToTrack(raw["track"], false),
   spotify: !raw["spotify"] ? undefined : responseToSpotifyUser(raw["spotify"]),
 })

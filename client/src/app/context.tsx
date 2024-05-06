@@ -39,6 +39,9 @@ interface AppData {
   setCurrent: SetState<Track | undefined>
   queuedTracks: Map<string, Date>
   setQueuedTracks: SetState<Map<string, Date>>
+  requestedTracks: Track[]
+  setRequestedTracks: SetState<Track[]>
+  emitLogin: (token: Token) => void
 }
 
 const defaultAppData: AppData = {
@@ -58,6 +61,9 @@ const defaultAppData: AppData = {
   setCurrent: () => {},
   queuedTracks: new Map(),
   setQueuedTracks: () => {},
+  requestedTracks: [],
+  setRequestedTracks: () => {},
+  emitLogin: (token: Token) => {},
 }
 
 export const AppContext = createContext(defaultAppData)
@@ -79,8 +85,12 @@ export const AppContextWrapper = (
   const [current, setCurrent] = useState<Track | undefined>(undefined)
   const [queue, setQueue] = useState<Track[]>([])
   const [queuedTracks, setQueuedTracks] = useState<Map<string, Date>>(new Map())
+  const [requestedTracks, setRequestedTracks] = useState<Track[]>([])
   const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
+  const emitLogin = (token: Token) => {
+    socket.emit("token", token.token)
+  }
   const value: AppData = {
     token,
     setToken,
@@ -98,6 +108,9 @@ export const AppContextWrapper = (
     setCurrent,
     queuedTracks,
     setQueuedTracks,
+    requestedTracks,
+    setRequestedTracks,
+    emitLogin,
   }
   useEffect(() => {
     const onConnect = () => {
@@ -117,11 +130,11 @@ export const AppContextWrapper = (
       let currentTrack = data.current
       let upcomingQueue = data.queue
       if (currentTrack) {
-        setCurrent(responseToTrack(currentTrack))
+        setCurrent(responseToTrack(currentTrack, false))
       } else {
         setCurrent(undefined)
       }
-      setQueue(upcomingQueue.map(responseToTrack))
+      setQueue(upcomingQueue.map((t: any) => responseToTrack(t, false)))
     })
     socket.on("new_playlist", (data) => {
       let session = responseToSession(data)
@@ -129,10 +142,18 @@ export const AppContextWrapper = (
       setPlaylist(session.playlist)
     })
     socket.on("queued_track", (data) => {
-      let { id, queued_at, queue, current } = data
+      let { id, queued_at, queue, current, requested } = data
       setCurrent(current)
       setQueue(queue)
       setQueuedTracks((map) => new Map(map.set(id, new Date(queued_at))))
+    })
+    socket.on("new_request", (data) => {
+      if (session?.slug === data.sessionSlug) {
+        setRequestedTracks((old) => [
+          ...old,
+          responseToTrack(data.track, false),
+        ])
+      }
     })
     return () => {
       socket.off("connect", onConnect)
