@@ -14,12 +14,12 @@ services:
     environment:
       SERVER_PORT: ${SERVER_PORT}
       SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
-      SPOTIFY_SECRET: /run/secrets/spotify_secret
+      SPOTIFY_SECRET_FILE: /run/secrets/spotify_secret
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
-      DB_PASSWORD: /run/secrets/db_password
+      DB_PASSWORD_FILE: /run/secrets/db_password
       DB_NAME: ${DB_NAME}
-      SECRET_KEY: /run/secrets/secret_key
+      SECRET_KEY_FILE: /run/secrets/secret_key
       CLIENT_PROTOCOL: ${CLIENT_PROTOCOL}
     labels:
       - "traefik.enable=true"

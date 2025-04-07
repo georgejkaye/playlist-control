@@ -33,8 +33,6 @@ services:
       DB_PASSWORD_FILE: /run/secrets/db_password
       DB_NAME: playlist
       SECRET_KEY_FILE: /run/secrets/secret_key
-      CLIENT_PROTOCOL: http
-      CLIENT_HOST: client
     volumes:
       - ./server/src:/app/src
     secrets:
