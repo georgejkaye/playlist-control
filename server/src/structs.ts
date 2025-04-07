@@ -1,5 +1,4 @@
 import { Socket } from "socket.io"
-import { SpotifyTokens } from "./spotify.js"
 
 export interface SpotifyUser {
   name: string

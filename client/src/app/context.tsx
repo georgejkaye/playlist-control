@@ -3,22 +3,18 @@
 import { createContext, useEffect, useState } from "react"
 import {
   Playlist,
-  QueuedTrack,
   Session,
   SessionOverview,
   SetState,
   SpotifyUser,
   Token,
   Track,
-  responseToPlaylist,
   responseToSession,
-  responseToSessionOverview,
   responseToTrack,
 } from "./structs"
 import TopBar from "./components/bar"
 import { usePathname } from "next/navigation"
-import { socket } from "./socket"
-import { getAuthData } from "./api"
+import { socket } from "./api"
 
 export const Line = () => <hr className="h-px my-4 bg-lines border-0" />
 

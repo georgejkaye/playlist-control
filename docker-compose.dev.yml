@@ -20,20 +20,21 @@ services:
       context: server
       dockerfile: Dockerfile.dev
       args:
-        SERVER_PORT_A: ${SERVER_PORT_A}
+        SERVER_PORT: ${SERVER_PORT}
     ports:
-      - "${SERVER_PORT_A}:${SERVER_PORT_A}"
+      - "${SERVER_PORT}:${SERVER_PORT}"
     environment:
-      SERVER_PORT_A: ${SERVER_PORT_A}
+      SERVER_PORT: ${SERVER_PORT}
       SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
-      SPOTIFY_SECRET: /run/secrets/spotify_secret
+      SPOTIFY_SECRET_FILE: /run/secrets/spotify_secret
+      SERVER_SPOTIFY_REDIRECT: http://localhost:${CLIENT_PORT}/spotify
       DB_HOST: db
       DB_USER: playlist
-      DB_PASSWORD: /run/secrets/db_password
+      DB_PASSWORD_FILE: /run/secrets/db_password
       DB_NAME: playlist
-      SECRET_KEY: /run/secrets/secret_key
-      CLIENT_PROTOCOL: ${CLIENT_PROTOCOL}
-      CLIENT_HOST: ${CLIENT_HOST}
+      SECRET_KEY_FILE: /run/secrets/secret_key
+      CLIENT_PROTOCOL: http
+      CLIENT_HOST: client
     volumes:
       - ./server/src:/app/src
     secrets:
@@ -46,21 +47,14 @@ services:
       context: client
       dockerfile: Dockerfile.dev
       args:
-        CLIENT_PORT: ${CLIENT_PORT}
         SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
-        SERVER_HOST: ${SERVER_HOST}
-        SERVER_PROTOCOL: ${SERVER_PROTOCOL}
-        CLIENT_HOST: ${CLIENT_HOST}
-        CLIENT_PROTOCOL: ${CLIENT_PROTOCOL}
+        SERVER_HOST: http://localhost:${SERVER_PORT}
+        CLIENT_PORT: ${CLIENT_PORT}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      CLIENT_PORT: ${CLIENT_PORT}
-      SERVER_URL: "http://server:${SERVER_PORT_A}"
       SPOTIFY_CLIENT_ID: ${SPOTIFY_APP_ID}
-      NEXT_PUBLIC_CLIENT_URL: "http://localhost:${CLIENT_PORT}"
-      NEXT_PUBLIC_SERVER_HOST: ${SERVER_HOST}
-      NEXT_PUBLIC_SERVER_PROTOCOL: ${SERVER_PROTOCOL}
+      CLIENT_PORT: ${CLIENT_PORT}
     depends_on:
       - server
     volumes:

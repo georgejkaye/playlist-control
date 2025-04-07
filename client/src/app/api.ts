@@ -14,8 +14,11 @@ import {
   responseToSessionOverview,
   responseToTrack,
 } from "./structs"
+import { io } from "socket.io-client"
 
-const host = `${process.env.NEXT_PUBLIC_SERVER_PROTOCOL}://${process.env.NEXT_PUBLIC_SERVER_HOST}`
+const host = process.env.NEXT_PUBLIC_SERVER_HOST || ""
+console.log(host)
+
 const getEndpoint = (route: string) => `${host}${route}`
 
 const getHeaders = (token: Token | undefined) =>
@@ -349,3 +352,5 @@ export const makeDecision = async (
     return false
   }
 }
+
+export const socket = io(host)

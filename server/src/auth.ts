@@ -1,12 +1,13 @@
-import { getSecret } from "./utils.js"
+import { getSecret } from "./utils.ts"
 import bcrypt from "bcryptjs"
-import jwt, { JwtPayload } from "jsonwebtoken"
-import { getPasswordHash } from "./database.js"
+import jwt from "jsonwebtoken"
+import type { JwtPayload } from "jsonwebtoken"
+import { getPasswordHash } from "./database.ts"
 import { randomBytes } from "crypto"
 
 export const tokenExpiresMinutes = 60 * 12
 
-const secretKeyFile = process.env.SECRET_KEY || "api.secret"
+const secretKeyFile = process.env.SECRET_KEY_FILE || "key.secret"
 const secretKey = await getSecret(secretKeyFile)
 const salt = await bcrypt.genSalt()
 

@@ -1,38 +1,36 @@
-import { Client, connect } from "ts-postgres"
-import {
+import { connect, type Client } from "ts-postgres"
+import type {
   Album,
   Artist,
   Playlist,
   Session,
-  SessionOverview,
   SpotifyUser,
   Track,
-} from "./structs.js"
-import { getSecret } from "./utils.js"
+} from "./structs.ts"
+import { getSecret } from "./utils.ts"
 import {
-  SpotifyTokens,
-  getPlaylistDetails,
-  getPlaylistOverview,
+  type SpotifyTokens,
   getQueue,
   getSessionObject,
-  getSessionOverview,
-  getSpotifyUser,
   refreshTokens,
-} from "./spotify.js"
-import { generatePassword, hashPassword } from "./auth.js"
+} from "./spotify.ts"
+import { hashPassword } from "./auth.ts"
 import slugify from "@sindresorhus/slugify"
 
 const DB_HOST = process.env.DB_HOST || "georgejkaye.com"
 const DB_USER = process.env.DB_USER || "playlist"
 const DB_PORT = process.env.DB_PORT || "5432"
 const DB_NAME = process.env.DB_NAME || "playlist"
-const DB_PASSWORD_FILE = process.env.DB_PASSWORD || "db.secret"
+const DB_PASSWORD_FILE = process.env.DB_PASSWORD_FILE || "db.secret"
+
+console.log(`Using ${process.env.DB_PASSWORD_FILE} as password file`)
 
 const DB_PASSWORD = await getSecret(DB_PASSWORD_FILE)
-
 export var connected = false
 
 var client: Client
+
+console.log(DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASSWORD)
 
 const init = async () =>
   (client = await connect({
@@ -626,7 +624,7 @@ export const getSession = async (
       session.spotify_id
     FROM Session
     LEFT JOIN (
-      SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at, 'requested', queuedtrack.requested)) AS queued_tracks
+      SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at)) AS queued_tracks
       FROM queuedtrack
       GROUP BY session_name_slug
     ) SessionQueued

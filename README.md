@@ -6,11 +6,11 @@ Tool for partygoers to contribute to the playlist
 
 Set up the environment variables:
 
-```
+```env
 # .env
 
 CLIENT_PORT=
-SERVER_PORT_A=
+SERVER_PORT=
 
 # Just for deploying with traefik
 CLIENT_HOST=

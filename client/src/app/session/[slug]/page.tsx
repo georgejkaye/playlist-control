@@ -3,9 +3,9 @@
 import React, { useContext, useEffect, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-
-import crypto from "crypto"
+import { useUrl } from "nextjs-current-url"
 import querystring from "query-string"
+import crypto from "crypto"
 
 import {
   postQueue,
@@ -32,7 +32,6 @@ import {
 } from "@/app/structs"
 import { Line } from "@/app/context"
 
-import Shield from "@mui/icons-material/Shield"
 import cd from "@/../public/cd.webp"
 import { GppMaybe, VerifiedUser } from "@mui/icons-material"
 
@@ -398,7 +397,6 @@ const RequestsPanel = (props: { token: Token; session: Session }) => {
 }
 
 let clientId = process.env.NEXT_PUBLIC_SPOTIFY_APP_ID
-let redirectURI = `${process.env.NEXT_PUBLIC_CLIENT_PROTOCOL}://${process.env.NEXT_PUBLIC_CLIENT_HOST}/spotify`
 
 const smallButtonStyle =
   "p-2 bg-accent rounded hover:underline font-2xl font-bold"
@@ -410,6 +408,7 @@ const AdminPanel = (props: {
   logoutCallback: () => void
   setSession: SetState<Session | undefined>
 }) => {
+  const { protocol, hostname, port } = useUrl() ?? {}
   const router = useRouter()
   const onClickSpotify = async (e: React.MouseEvent<HTMLButtonElement>) => {
     localStorage.setItem("redirect", props.session.slug)
@@ -428,13 +427,16 @@ const AdminPanel = (props: {
     localStorage.setItem("state", state)
     let scopes =
       "playlist-read-private user-read-currently-playing user-read-playback-state user-modify-playback-state"
+    let redirectUri = `${protocol}//${hostname}${
+      port && port !== "" ? `:${port}` : ""
+    }/spotify`
     router.push(
       "https://accounts.spotify.com/authorize?" +
         querystring.stringify({
           response_type: "code",
           client_id: clientId,
           scope: scopes,
-          redirect_uri: redirectURI,
+          redirect_uri: redirectUri,
           state: state,
         })
     )
@@ -462,9 +464,11 @@ const AdminPanel = (props: {
         {!props.session.spotify ? (
           <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
             <div>Not authenticated with Spotify</div>
-            <button onClick={onClickSpotify} className={smallButtonStyle}>
-              Authenticate with Spotify
-            </button>
+            {hostname && (
+              <button onClick={onClickSpotify} className={smallButtonStyle}>
+                Authenticate with Spotify
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
