@@ -29,11 +29,11 @@ import {
   Token,
   PlaylistOverview,
   tracksEqual,
+  getDurationString,
 } from "@/app/structs"
 import { Line } from "@/app/context"
 
 import cd from "@/../public/cd.webp"
-import { GppMaybe, VerifiedUser } from "@mui/icons-material"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -78,6 +78,14 @@ const CurrentTrackCard = (props: { currentTrack: Track }) => {
   )
 }
 
+const ReadyToQueueLabel = () => (
+  <div className="bg-green-700 rounded-lg p-2">Ready to queue!</div>
+)
+
+const NeedsApprovalLabel = () => (
+  <div className="bg-orange-700 rounded-lg p-2">Needs approval!</div>
+)
+
 const trackCardStyle =
   "rounded-lg flex flex-row justify-center my-1 p-1 gap-5 items-center w-full"
 
@@ -98,11 +106,7 @@ const TrackCard = (props: { track: Track }) => {
         <div className="text-xl font-bold">{props.track.name}</div>
         <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
-      {playlist?.tracks.some((track) => track.id === props.track.id) ? (
-        <VerifiedUser />
-      ) : (
-        <GppMaybe />
-      )}
+      <div>{getDurationString(props.track.duration)}</div>
     </div>
   )
 }
@@ -156,7 +160,11 @@ const QueueAdderTrackCard = (props: {
         <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
       <div>
-        {!props.track.requiresApproval ? <VerifiedUser /> : <GppMaybe />}
+        {!props.track.requiresApproval ? (
+          <ReadyToQueueLabel />
+        ) : (
+          <NeedsApprovalLabel />
+        )}
       </div>
     </div>
   )
