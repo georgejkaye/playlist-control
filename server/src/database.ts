@@ -23,14 +23,10 @@ const DB_PORT = process.env.DB_PORT || "5432"
 const DB_NAME = process.env.DB_NAME || "playlist"
 const DB_PASSWORD_FILE = process.env.DB_PASSWORD_FILE || "db.secret"
 
-console.log(`Using ${process.env.DB_PASSWORD_FILE} as password file`)
-
 const DB_PASSWORD = await getSecret(DB_PASSWORD_FILE)
 export var connected = false
 
 var client: Client
-
-console.log(DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASSWORD)
 
 const init = async () =>
   (client = await connect({

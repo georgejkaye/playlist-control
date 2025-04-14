@@ -132,7 +132,6 @@ app.use("/:sessionSlug", async (req, res, next) => {
 app.get("/:sessionSlug", async (req, res) => {
   let sessionSlugString = res.locals["sessionSlug"]
   let isAdmin = res.locals["isAdmin"]
-  console.log(isAdmin)
   let session = await getSession(
     "session_name_slug",
     sessionSlugString,
@@ -197,7 +196,6 @@ app.post("/:sessionSlug/queue", async (req, res) => {
     let sessionSlug: string = res.locals["sessionSlug"]
     let approvalRequired = await checkApprovalRequired(sessionSlug, trackId)
     if (approvalRequired) {
-      console.log("approval is required")
       let track = await getTrack(sessionSlug, trackId)
       if (track) {
         await insertRequest(sessionSlug, track)
@@ -207,7 +205,6 @@ app.post("/:sessionSlug/queue", async (req, res) => {
         res.status(404).send("Track not found")
       }
     } else {
-      console.log("Approval is not required")
       let response = await queueTrack(sessionSlug, trackId, false)
       if (!response) {
         res.status(400).send("Could not add track to queue")
