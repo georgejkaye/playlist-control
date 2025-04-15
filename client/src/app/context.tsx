@@ -158,6 +158,11 @@ export const AppContextWrapper = (
     return () => {
       socket.off("connect", onConnect)
       socket.off("disconnect", onDisconnect)
+      socket.off("playback")
+      socket.off("queue")
+      socket.off("new_playlist")
+      socket.off("queued_track")
+      socket.off("new_request")
     }
   }, [])
   useEffect(() => {
