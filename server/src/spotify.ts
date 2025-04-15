@@ -1,19 +1,18 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios"
-import { getSecret } from "./utils.js"
-import { Playlist, PlaylistOverview, Session, Track } from "./structs.js"
+import { getSecret } from "./utils.ts"
+import type { Playlist, PlaylistOverview, Session, Track } from "./structs.ts"
 import {
   getQueuedTracks,
   getRequestedTracks,
   getSpotifyTokens,
   updateTokens,
-} from "./database.js"
+} from "./database.ts"
+import axios from "axios"
+import type { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
-const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET || ""
+const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET_FILE || "spotify.secret"
 const SPOTIFY_SECRET = await getSecret(SPOTIFY_SECRET_FILE)
-const CLIENT_PROTOCOL = process.env.CLIENT_PROTOCOL || ""
-const CLIENT_HOST = process.env.CLIENT_HOST || ""
-const SPOTIFY_REDIRECT = `${CLIENT_PROTOCOL}://${CLIENT_HOST}/spotify`
+const SPOTIFY_REDIRECT = process.env.SERVER_SPOTIFY_REDIRECT || ""
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 

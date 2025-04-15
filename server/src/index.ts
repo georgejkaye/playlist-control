@@ -2,20 +2,16 @@ import express from "express"
 import dotenv from "dotenv"
 import { Server, Socket } from "socket.io"
 import cors from "cors"
-import multer from "multer"
 
 import {
   addSpotifyUserToSession,
   addToQueuedTracks,
-  checkUserExists,
   createSession,
   deleteSession,
   discardTokens,
-  getQueuedTracks,
   getSession,
   getSessionOverviews,
   getSessions,
-  getTracks,
   insertPlaylist,
   insertRequest,
   updateRequestDecision,
@@ -23,52 +19,51 @@ import {
   updateTokens,
   validateSessionSlug,
   checkApprovalRequired,
-} from "./database.js"
+} from "./database.ts"
 import {
   authenticateUser as authenticateSessionAdmin,
   generateToken,
   verifyToken,
-} from "./auth.js"
+} from "./auth.ts"
 import {
   addToQueue,
   exchangeAccessCodeForTokens,
-  getCurrentTrack,
   getPlaylistDetails,
   getPlaylists,
   getQueue,
   getSpotifyUser,
   getTrack,
   searchTracks,
-} from "./spotify.js"
+} from "./spotify.ts"
 import {
-  Listener,
-  PlayingStatus,
-  Session,
-  Track,
+  type Listener,
+  type PlayingStatus,
+  type Session,
+  type Track,
   getNewListener,
-  printListeners,
-} from "./structs.js"
-import { setIntervalAsync } from "set-interval-async"
+} from "./structs.ts"
+import { createServer } from "http"
 
 dotenv.config()
 
-const port = process.env.SERVER_PORT_A || 8000
+const port = process.env.SERVER_PORT || 8000
 
 const app = express()
+const server = createServer(app)
+const io = new Server(server, { cors: { origin: "http://localhost:3000" } })
 
 const corsOptions = {
-  origin: "*",
+  origin: "http://localhost:3000",
   methods: ["GET", "POST"],
 }
-app.use(cors({ origin: "*", methods: ["GET", "POST"] }))
-app.use(express.json())
-app.use(express.urlencoded())
 
-const server = app.listen(port, () => {
+app.use(cors())
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+server.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`)
 })
-
-const io = new Server(server, { cors: corsOptions })
 
 app.get("/", (req, res) => {
   res.send("Hello!")
@@ -137,7 +132,6 @@ app.use("/:sessionSlug", async (req, res, next) => {
 app.get("/:sessionSlug", async (req, res) => {
   let sessionSlugString = res.locals["sessionSlug"]
   let isAdmin = res.locals["isAdmin"]
-  console.log(isAdmin)
   let session = await getSession(
     "session_name_slug",
     sessionSlugString,
@@ -150,7 +144,7 @@ app.get("/:sessionSlug", async (req, res) => {
   }
 })
 
-app.post("/:sessionSlug/token", multer().single("file"), async (req, res) => {
+app.post("/:sessionSlug/token", async (req, res) => {
   const body = req.body
   const sessionSlug = req.params["sessionSlug"]
   let password = body.password
@@ -180,6 +174,7 @@ const queueTrack = async (
   let response = await addToQueue(sessionSlug, trackId)
   if (response) {
     let queuedAt = await addToQueuedTracks(sessionSlug, trackId, requested)
+    await new Promise((r) => setTimeout(r, 1000))
     let queue = await getQueue(sessionSlug)
     io.to(sessionSlug).emit("queued_track", {
       id: trackId,
@@ -202,17 +197,23 @@ app.post("/:sessionSlug/queue", async (req, res) => {
     let sessionSlug: string = res.locals["sessionSlug"]
     let approvalRequired = await checkApprovalRequired(sessionSlug, trackId)
     if (approvalRequired) {
-      console.log("approval is required")
       let track = await getTrack(sessionSlug, trackId)
       if (track) {
-        await insertRequest(sessionSlug, track)
-        io.emit("new_request", { session: sessionSlug, track })
-        res.status(200).send("Track requested successfully")
+        let requestId = await insertRequest(sessionSlug, track)
+        if (requestId != undefined) {
+          io.emit("new_request", {
+            session: sessionSlug,
+            requestId,
+            track,
+          })
+          res.status(200).send("Track requested successfully")
+        } else {
+          res.status(200).send("Track already requested")
+        }
       } else {
         res.status(404).send("Track not found")
       }
     } else {
-      console.log("Approval is not required")
       let response = await queueTrack(sessionSlug, trackId, false)
       if (!response) {
         res.status(400).send("Could not add track to queue")
@@ -383,8 +384,6 @@ const updateSessionStatus = async () => {
     }
   })
 }
-
-// updateSessionStatus()
 
 io.on("connection", async (socket) => {
   let listener = getNewListener(socket)

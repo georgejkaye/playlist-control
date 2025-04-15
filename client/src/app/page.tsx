@@ -5,7 +5,6 @@ import { AppContext } from "./context"
 import { SessionOverview } from "./structs"
 import { createSession, getSessions } from "./api"
 import { useRouter } from "next/navigation"
-import { ColorRing } from "react-loader-spinner"
 import { Loader } from "./loader"
 import { Line } from "./context"
 

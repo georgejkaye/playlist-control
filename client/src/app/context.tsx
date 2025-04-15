@@ -3,22 +3,19 @@
 import { createContext, useEffect, useState } from "react"
 import {
   Playlist,
-  QueuedTrack,
+  RequestedTrack,
   Session,
   SessionOverview,
   SetState,
   SpotifyUser,
   Token,
   Track,
-  responseToPlaylist,
   responseToSession,
-  responseToSessionOverview,
   responseToTrack,
 } from "./structs"
 import TopBar from "./components/bar"
 import { usePathname } from "next/navigation"
-import { socket } from "./socket"
-import { getAuthData } from "./api"
+import { socket } from "./api"
 
 export const Line = () => <hr className="h-px my-4 bg-lines border-0" />
 
@@ -39,8 +36,8 @@ interface AppData {
   setCurrent: SetState<Track | undefined>
   queuedTracks: Map<string, Date>
   setQueuedTracks: SetState<Map<string, Date>>
-  requestedTracks: Track[]
-  setRequestedTracks: SetState<Track[]>
+  requestedTracks: RequestedTrack[]
+  setRequestedTracks: SetState<RequestedTrack[]>
   emitLogin: (token: Token) => void
 }
 
@@ -85,7 +82,7 @@ export const AppContextWrapper = (
   const [current, setCurrent] = useState<Track | undefined>(undefined)
   const [queue, setQueue] = useState<Track[]>([])
   const [queuedTracks, setQueuedTracks] = useState<Map<string, Date>>(new Map())
-  const [requestedTracks, setRequestedTracks] = useState<Track[]>([])
+  const [requestedTracks, setRequestedTracks] = useState<RequestedTrack[]>([])
   const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
   const emitLogin = (token: Token) => {
@@ -151,13 +148,21 @@ export const AppContextWrapper = (
       if (session?.slug === data.sessionSlug) {
         setRequestedTracks((old) => [
           ...old,
-          responseToTrack(data.track, false),
+          {
+            requestId: data.requestId,
+            track: responseToTrack(data.track, false),
+          },
         ])
       }
     })
     return () => {
       socket.off("connect", onConnect)
       socket.off("disconnect", onDisconnect)
+      socket.off("playback")
+      socket.off("queue")
+      socket.off("new_playlist")
+      socket.off("queued_track")
+      socket.off("new_request")
     }
   }, [])
   useEffect(() => {

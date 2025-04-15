@@ -1,5 +1,4 @@
 import { Socket } from "socket.io"
-import { SpotifyTokens } from "./spotify.js"
 
 export interface SpotifyUser {
   name: string
@@ -43,7 +42,7 @@ export interface Session {
   slug: string
   host: string
   playlist: Playlist | undefined
-  requests: Track[]
+  requests: RequestedTrack[]
   queued: QueuedTrack[]
   spotify: SpotifyUser | undefined
   current: Track | undefined
@@ -76,6 +75,11 @@ export interface Track {
 export interface CurrentTrack {
   track: Track
   start: number
+}
+
+export interface RequestedTrack {
+  requestId: number
+  track: Track
 }
 
 export interface Data {

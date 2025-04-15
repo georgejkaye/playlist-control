@@ -14,8 +14,11 @@ import {
   responseToSessionOverview,
   responseToTrack,
 } from "./structs"
+import { io } from "socket.io-client"
 
-const host = `${process.env.NEXT_PUBLIC_SERVER_PROTOCOL}://${process.env.NEXT_PUBLIC_SERVER_HOST}`
+const host = process.env.NEXT_PUBLIC_SERVER_HOST || ""
+console.log(host)
+
 const getEndpoint = (route: string) => `${host}${route}`
 
 const getHeaders = (token: Token | undefined) =>
@@ -85,16 +88,13 @@ export const postQueue = async (session: Session, track: Track) => {
 
 export const login = async (session: Session, password: string) => {
   const endpoint = getEndpoint(`/${session.slug}/token`)
-  let data = new FormData()
-  data.append("password", password)
-  data.append("grant_type", "")
-  data.append("client_id", "")
-  data.append("client_secret", "")
   if (password === "") {
     return { error: "Password cannot be empty" }
   } else {
     try {
-      let response = await axios.post(endpoint, data)
+      let response = await axios.post(endpoint, {
+        password,
+      })
       let responseData = response.data
       let token = {
         token: responseData.access_token,
@@ -349,3 +349,5 @@ export const makeDecision = async (
     return false
   }
 }
+
+export const socket = io(host)

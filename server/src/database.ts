@@ -1,35 +1,29 @@
-import { Client, connect } from "ts-postgres"
-import {
+import { connect, type Client } from "ts-postgres"
+import type {
   Album,
   Artist,
   Playlist,
   Session,
-  SessionOverview,
   SpotifyUser,
   Track,
-} from "./structs.js"
-import { getSecret } from "./utils.js"
+} from "./structs.ts"
+import { getSecret } from "./utils.ts"
 import {
-  SpotifyTokens,
-  getPlaylistDetails,
-  getPlaylistOverview,
+  type SpotifyTokens,
   getQueue,
   getSessionObject,
-  getSessionOverview,
-  getSpotifyUser,
   refreshTokens,
-} from "./spotify.js"
-import { generatePassword, hashPassword } from "./auth.js"
+} from "./spotify.ts"
+import { hashPassword } from "./auth.ts"
 import slugify from "@sindresorhus/slugify"
 
 const DB_HOST = process.env.DB_HOST || "georgejkaye.com"
 const DB_USER = process.env.DB_USER || "playlist"
 const DB_PORT = process.env.DB_PORT || "5432"
 const DB_NAME = process.env.DB_NAME || "playlist"
-const DB_PASSWORD_FILE = process.env.DB_PASSWORD || "db.secret"
+const DB_PASSWORD_FILE = process.env.DB_PASSWORD_FILE || "db.secret"
 
 const DB_PASSWORD = await getSecret(DB_PASSWORD_FILE)
-
 export var connected = false
 
 var client: Client
@@ -428,6 +422,7 @@ export const getSessionOverviews = async () => {
 export const getRequestedTracks = async (sessionSlug: string) => {
   const queryText = `
     SELECT
+      requesttracks.request_id,
       track.track_id, track.track_name,
       trackartists.artists AS track_artists,
       album.album_id, album.album_name, album.album_art,
@@ -472,6 +467,7 @@ export const getRequestedTracks = async (sessionSlug: string) => {
   } else {
     let rows = result.rows
     let tracks = rows.map((row) => {
+      let requestId: number = row.get("request_id")
       let track_id = row.get("track_id")
       let track_name = row.get("track_name")
       let track_artists = row.get("track_artists")
@@ -505,7 +501,7 @@ export const getRequestedTracks = async (sessionSlug: string) => {
         requested_at,
         successful_request,
       }
-      return track
+      return { requestId, track }
     })
     return tracks
   }
@@ -626,7 +622,7 @@ export const getSession = async (
       session.spotify_id
     FROM Session
     LEFT JOIN (
-      SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at, 'requested', queuedtrack.requested)) AS queued_tracks
+      SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at)) AS queued_tracks
       FROM queuedtrack
       GROUP BY session_name_slug
     ) SessionQueued
@@ -781,8 +777,16 @@ export const insertRequest = async (sessionSlug: string, track: Track) => {
   const requestQuery = `
     INSERT INTO Request (track_id, session_name_slug, requested_at)
     VALUES ($1, $2, NOW())
+    ON CONFLICT (track_id) DO NOTHING
+    RETURNING request_id
   `
-  client.query(requestQuery, [track.id, sessionSlug])
+  let response = await client.query(requestQuery, [track.id, sessionSlug])
+  let row = response.rows[0]
+  try {
+    return row.get("request_id")
+  } catch (e) {
+    return undefined
+  }
 }
 
 export const updateRequestDecision = async (

@@ -64,6 +64,11 @@ export interface Track {
 
 export const tracksEqual = (t1: Track, t2: Track) => t1.name === t2.name
 
+export const getDurationString = (duration: number) =>
+  `${Math.floor(duration / 60000)}:${Math.floor((duration % 60000) / 1000)
+    .toString()
+    .padStart(2, "0")}`
+
 export interface CurrentTrack {
   track: Track
   start: number
@@ -158,3 +163,8 @@ export const responseToSession = (raw: any): Session => ({
   current: !raw["track"] ? undefined : responseToTrack(raw["track"], false),
   spotify: !raw["spotify"] ? undefined : responseToSpotifyUser(raw["spotify"]),
 })
+
+export interface RequestedTrack {
+  requestId: number
+  track: Track
+}
