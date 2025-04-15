@@ -422,6 +422,7 @@ export const getSessionOverviews = async () => {
 export const getRequestedTracks = async (sessionSlug: string) => {
   const queryText = `
     SELECT
+      requesttracks.request_id,
       track.track_id, track.track_name,
       trackartists.artists AS track_artists,
       album.album_id, album.album_name, album.album_art,
@@ -466,6 +467,7 @@ export const getRequestedTracks = async (sessionSlug: string) => {
   } else {
     let rows = result.rows
     let tracks = rows.map((row) => {
+      let requestId: number = row.get("request_id")
       let track_id = row.get("track_id")
       let track_name = row.get("track_name")
       let track_artists = row.get("track_artists")
@@ -499,7 +501,7 @@ export const getRequestedTracks = async (sessionSlug: string) => {
         requested_at,
         successful_request,
       }
-      return track
+      return { requestId, track }
     })
     return tracks
   }

@@ -174,6 +174,7 @@ const queueTrack = async (
   let response = await addToQueue(sessionSlug, trackId)
   if (response) {
     let queuedAt = await addToQueuedTracks(sessionSlug, trackId, requested)
+    await new Promise((r) => setTimeout(r, 1000))
     let queue = await getQueue(sessionSlug)
     io.to(sessionSlug).emit("queued_track", {
       id: trackId,
