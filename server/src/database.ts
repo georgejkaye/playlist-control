@@ -775,8 +775,16 @@ export const insertRequest = async (sessionSlug: string, track: Track) => {
   const requestQuery = `
     INSERT INTO Request (track_id, session_name_slug, requested_at)
     VALUES ($1, $2, NOW())
+    ON CONFLICT (track_id) DO NOTHING
+    RETURNING request_id
   `
-  client.query(requestQuery, [track.id, sessionSlug])
+  let response = await client.query(requestQuery, [track.id, sessionSlug])
+  let row = response.rows[0]
+  try {
+    return row.get("request_id")
+  } catch (e) {
+    return undefined
+  }
 }
 
 export const updateRequestDecision = async (

@@ -3,6 +3,7 @@
 import { createContext, useEffect, useState } from "react"
 import {
   Playlist,
+  RequestedTrack,
   Session,
   SessionOverview,
   SetState,
@@ -35,8 +36,8 @@ interface AppData {
   setCurrent: SetState<Track | undefined>
   queuedTracks: Map<string, Date>
   setQueuedTracks: SetState<Map<string, Date>>
-  requestedTracks: Track[]
-  setRequestedTracks: SetState<Track[]>
+  requestedTracks: RequestedTrack[]
+  setRequestedTracks: SetState<RequestedTrack[]>
   emitLogin: (token: Token) => void
 }
 
@@ -81,7 +82,7 @@ export const AppContextWrapper = (
   const [current, setCurrent] = useState<Track | undefined>(undefined)
   const [queue, setQueue] = useState<Track[]>([])
   const [queuedTracks, setQueuedTracks] = useState<Map<string, Date>>(new Map())
-  const [requestedTracks, setRequestedTracks] = useState<Track[]>([])
+  const [requestedTracks, setRequestedTracks] = useState<RequestedTrack[]>([])
   const [isConnected, setIsConnected] = useState(socket.connected)
   const path = usePathname()
   const emitLogin = (token: Token) => {
@@ -147,7 +148,10 @@ export const AppContextWrapper = (
       if (session?.slug === data.sessionSlug) {
         setRequestedTracks((old) => [
           ...old,
-          responseToTrack(data.track, false),
+          {
+            requestId: data.requestId,
+            track: responseToTrack(data.track, false),
+          },
         ])
       }
     })

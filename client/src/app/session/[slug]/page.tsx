@@ -313,7 +313,7 @@ const RequestedTrackCard = (props: {
     setLoading(true)
     makeDecision(props.token, props.session, props.track, decision)
     setRequestedTracks((old) =>
-      old.filter((track) => track.id !== props.track.id)
+      old.filter((track) => track.track.id !== props.track.id)
     )
     setLoading(false)
   }
@@ -382,9 +382,9 @@ const RequestsPanel = (props: { token: Token; session: Session }) => {
             {requestedTracks.map((track) => (
               <RequestedTrackCard
                 token={props.token}
-                key={track.id}
+                key={track.requestId}
                 session={props.session}
-                track={track}
+                track={track.track}
                 setExpanded={setExpanded}
               />
             ))}

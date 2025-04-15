@@ -198,9 +198,17 @@ app.post("/:sessionSlug/queue", async (req, res) => {
     if (approvalRequired) {
       let track = await getTrack(sessionSlug, trackId)
       if (track) {
-        await insertRequest(sessionSlug, track)
-        io.emit("new_request", { session: sessionSlug, track })
-        res.status(200).send("Track requested successfully")
+        let requestId = await insertRequest(sessionSlug, track)
+        if (requestId != undefined) {
+          io.emit("new_request", {
+            session: sessionSlug,
+            requestId,
+            track,
+          })
+          res.status(200).send("Track requested successfully")
+        } else {
+          res.status(200).send("Track already requested")
+        }
       } else {
         res.status(404).send("Track not found")
       }

@@ -96,7 +96,8 @@ CREATE TABLE AlbumTrack (
 );
 
 CREATE TABLE Request (
-    track_id TEXT NOT NULL,
+    request_id SERIAL PRIMARY KEY,
+    track_id TEXT NOT NULL UNIQUE,
     session_name_slug TEXT NOT NULL,
     requested_at TIMESTAMP WITH TIME ZONE NOT NULL,
     successful BOOLEAN,

@@ -163,3 +163,8 @@ export const responseToSession = (raw: any): Session => ({
   current: !raw["track"] ? undefined : responseToTrack(raw["track"], false),
   spotify: !raw["spotify"] ? undefined : responseToSpotifyUser(raw["spotify"]),
 })
+
+export interface RequestedTrack {
+  requestId: number
+  track: Track
+}
