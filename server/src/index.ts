@@ -50,12 +50,7 @@ const port = process.env.SERVER_PORT || 8000
 
 const app = express()
 const server = createServer(app)
-const io = new Server(server, { cors: { origin: "http://localhost:3000" } })
-
-const corsOptions = {
-  origin: "http://localhost:3000",
-  methods: ["GET", "POST"],
-}
+const io = new Server(server, { cors: { origin: "*" } })
 
 app.use(cors())
 app.use(express.json())
