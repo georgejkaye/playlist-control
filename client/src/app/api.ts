@@ -17,7 +17,6 @@ import {
 import { io } from "socket.io-client"
 
 const host = process.env.NEXT_PUBLIC_SERVER_HOST || ""
-console.log(host)
 
 const getEndpoint = (route: string) => `${host}${route}`
 
