@@ -11,5 +11,4 @@ USER node
 RUN yarn
 COPY --chown=node:node . .
 
-RUN yarn build
-CMD [ "node", "src/index.js"]
+CMD [ "node", "--experimental-transform-types", "src/index.ts"]
