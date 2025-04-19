@@ -1,15 +1,13 @@
 import axios, { AxiosError } from "axios"
 import {
   CurrentTrack,
-  PlaylistOverview,
   Session,
   SetState,
-  SpotifyUser,
   Token,
   Track,
   responseToCurrentTrack,
-  responseToPlaylist,
   responseToPlaylistOverview,
+  responseToRequest,
   responseToSession,
   responseToSessionOverview,
   responseToTrack,
@@ -76,10 +74,10 @@ export const postQueue = async (session: Session, track: Track) => {
   }
   try {
     await axios.post(endpoint, null, config)
-  } catch (err) {
-    if (err instanceof AxiosError && err.response) {
-      if (err.response.status !== 400) {
-        throw err
+  } catch (e) {
+    if (e instanceof AxiosError && e.response) {
+      if (e.response.status !== 400) {
+        throw e
       }
     }
   }
@@ -149,6 +147,7 @@ export const deauthenticateSpotify = async (
     let data = response.data
     return responseToSession(data)
   } catch (e) {
+    console.log(e)
     return undefined
   }
 }
@@ -162,8 +161,8 @@ export const getPlaylists = async (token: Token | undefined, slug: string) => {
     let data = response.data
     let playlists = data.map(responseToPlaylistOverview)
     return playlists
-  } catch (err) {
-    console.log("getPlaylists", err)
+  } catch (e) {
+    console.log(e)
     return []
   }
 }
@@ -186,7 +185,7 @@ export const sendAuthCode = async (
       id: data.id,
     }
   } catch (e) {
-    console.log("sendAuthCode", e)
+    console.log(e)
     return undefined
   }
 }
@@ -211,6 +210,7 @@ export const getAuthData = async (token: Token | undefined) => {
       user,
     }
   } catch (e) {
+    console.log(e)
     return undefined
   }
 }
@@ -233,7 +233,7 @@ export const createSession = async (
     let expires: Date = new Date(data.expires)
     return { session, password, token, expires }
   } catch (e) {
-    console.log("createSession", e)
+    console.log(e)
     return undefined
   }
 }
@@ -248,7 +248,8 @@ export const getSessions = async () => {
     } else {
       return data.map(responseToSessionOverview)
     }
-  } catch {
+  } catch (e) {
+    console.log(e)
     return undefined
   }
 }
@@ -270,10 +271,11 @@ export const getSession = async (
       let session = responseToSession(data)
       let queued = data.queued
       let queue = data.queue
-      let requests = data.requests.map(responseToTrack)
+      let requests = data.requests.map(responseToRequest)
       return { session, queued, queue, requests }
     }
   } catch (e) {
+    console.log(e)
     return undefined
   }
 }
@@ -298,6 +300,7 @@ export const searchTracks = async (
       return tracks
     }
   } catch (e) {
+    console.log(e)
     return []
   }
 }
@@ -318,6 +321,7 @@ export const requestTrack = async (session: Session, track: Track) => {
       return true
     }
   } catch (e) {
+    console.log(e)
     return false
   }
 }
@@ -345,6 +349,7 @@ export const makeDecision = async (
       return true
     }
   } catch (e) {
+    console.log(e)
     return false
   }
 }

@@ -168,3 +168,8 @@ export interface RequestedTrack {
   requestId: number
   track: Track
 }
+
+export const responseToRequest = (data: any): RequestedTrack => ({
+  requestId: data["requestId"],
+  track: responseToTrack(data["track"], true),
+})

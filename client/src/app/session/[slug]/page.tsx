@@ -797,7 +797,6 @@ const Home = ({ params }: { params: { slug: string } }) => {
     const performRequests = async (token: Token | undefined) => {
       let result = await getSession(params.slug, token)
       if (result) {
-        console.log(result)
         let { session, queued, queue, requests } = result
         setSession(session)
         setQueue(queue)

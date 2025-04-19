@@ -16,7 +16,6 @@ const SpotifyRedirect = () => {
     const code = params.get("code")
     const token = localStorage.getItem(`token-${redirect}`)
     const expires = localStorage.getItem(`expires-${redirect}`)
-    console.log(redirect, code, token, expires, state)
     localStorage.removeItem("state")
     localStorage.removeItem("redirect")
     if (

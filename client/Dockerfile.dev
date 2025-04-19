@@ -19,4 +19,7 @@ COPY ./tailwind.config.ts .
 RUN mkdir public
 COPY ./public/* public/
 
-CMD ["yarn", "dev", "-p", "${CLIENT_PORT}"]
+ARG CLIENT_PORT
+ENV CLIENT_PORT=${CLIENT_PORT}
+
+CMD yarn dev -p ${CLIENT_PORT}
