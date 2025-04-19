@@ -30,7 +30,7 @@ services:
       SERVER_PORT: ${SERVER_PORT}
       SPOTIFY_APP_ID: ${SPOTIFY_APP_ID}
       SPOTIFY_SECRET_FILE: /run/secrets/spotify_secret
-      SERVER_SPOTIFY_REDIRECT: http://localhost:${CLIENT_PORT}/spotify
+      SPOTIFY_REDIRECT: http://localhost:${CLIENT_PORT}/spotify
       DB_HOST: db
       DB_USER: playlist
       DB_PASSWORD_FILE: /run/secrets/db_password

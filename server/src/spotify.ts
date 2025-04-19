@@ -12,7 +12,7 @@ import type { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios"
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_APP_ID || ""
 const SPOTIFY_SECRET_FILE = process.env.SPOTIFY_SECRET_FILE || "spotify.secret"
 const SPOTIFY_SECRET = await getSecret(SPOTIFY_SECRET_FILE)
-const SPOTIFY_REDIRECT = process.env.SERVER_SPOTIFY_REDIRECT || ""
+const SPOTIFY_REDIRECT = process.env.SPOTIFY_REDIRECT || ""
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 

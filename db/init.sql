@@ -103,4 +103,4 @@ CREATE TABLE Request (
     successful BOOLEAN,
     CONSTRAINT fk_track_id FOREIGN KEY(track_id) REFERENCES track(track_id) ON DELETE CASCADE,
     CONSTRAINT fk_session_name FOREIGN KEY(session_name_slug) REFERENCES session(session_name_slug) ON DELETE CASCADE
-)
+);
