@@ -1,5 +1,5 @@
 # Based on https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
-FROM node:23-alpine-slim AS base
+FROM node:23-slim AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -20,10 +20,10 @@ COPY . .
 
 ARG SERVER_HOST
 ARG SERVER_PROTOCOL
-ENV NEXT_PUBLIC_SERVER_HOST "${SERVER_PROTOCOL}://${SERVER_HOST}"
+ENV NEXT_PUBLIC_SERVER_HOST="${SERVER_PROTOCOL}://${SERVER_HOST}"
 
 ARG SPOTIFY_APP_ID
-ENV NEXT_PUBLIC_SPOTIFY_APP_ID ${SPOTIFY_APP_ID}
+ENV NEXT_PUBLIC_SPOTIFY_APP_ID=${SPOTIFY_APP_ID}
 
 ENV NEXT_SHARP_PATH=/app/node_modules/sharp
 
@@ -51,8 +51,8 @@ EXPOSE 3000
 
 ENV NEXT_SHARP_PATH=/app/node_modules/sharp
 
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME="0.0.0.0"
 ARG CLIENT_PORT
-ENV PORT ${CLIENT_PORT}
+ENV PORT=${CLIENT_PORT}
 
 CMD ["node", "server.js"]
