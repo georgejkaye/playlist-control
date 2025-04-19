@@ -1,5 +1,5 @@
 # Based on https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
-FROM node:18-alpine AS base
+FROM node:23-alpine-slim AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -13,7 +13,7 @@ COPY package.json yarn.lock ./
 RUN yarn --frozen-lockfile
 
 # Rebuild source only when needed
-FROM base as builder
+FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -25,13 +25,15 @@ ENV NEXT_PUBLIC_SERVER_HOST "${SERVER_PROTOCOL}://${SERVER_HOST}"
 ARG SPOTIFY_APP_ID
 ENV NEXT_PUBLIC_SPOTIFY_APP_ID ${SPOTIFY_APP_ID}
 
+ENV NEXT_SHARP_PATH=/app/node_modules/sharp
+
 RUN yarn build
 
 FROM base AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

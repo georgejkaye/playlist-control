@@ -1,10 +1,10 @@
-FROM node:22-alpine
+FROM node:23-alpine-slim
 
 ARG SERVER_HOST
-ENV NEXT_PUBLIC_SERVER_HOST ${SERVER_HOST}
+ENV NEXT_PUBLIC_SERVER_HOST=${SERVER_HOST}
 
 ARG SPOTIFY_APP_ID
-ENV NEXT_PUBLIC_SPOTIFY_APP_ID ${SPOTIFY_APP_ID}
+ENV NEXT_PUBLIC_SPOTIFY_APP_ID=${SPOTIFY_APP_ID}
 
 ENV NEXT_SHARP_PATH=/app/node_modules/sharp
 
@@ -19,4 +19,4 @@ COPY ./tailwind.config.ts .
 RUN mkdir public
 COPY ./public/* public/
 
-CMD yarn dev -p ${CLIENT_PORT}
+CMD ["yarn", "dev", "-p", ${CLIENT_PORT}]
