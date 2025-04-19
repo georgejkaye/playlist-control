@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:23-slim
 
 WORKDIR /app
 COPY ./package.json .
@@ -7,4 +7,4 @@ RUN yarn
 
 RUN mkdir /run/secrets && echo "password" > /run/secrets/db_password
 
-CMD yarn dev
+CMD ["yarn", "dev"]
