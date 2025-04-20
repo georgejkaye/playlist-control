@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useUrl } from "nextjs-current-url"
 import querystring from "query-string"
 import crypto from "crypto"
+import CloseIcon from "@mui/icons-material/Close"
 
 import {
   postQueue,
@@ -15,8 +16,8 @@ import {
   postPlaylist,
   login,
   searchTracks,
-  requestTrack,
   makeDecision,
+  deletePlaylist,
 } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -240,9 +241,7 @@ const QueueAdder = (props: {
     props.setAdding(!props.isAdding)
   const onClickMore = (e: React.MouseEvent<HTMLDivElement>) =>
     setTracksToShow(tracksToShow + defaultTracksToShow)
-  return !props.session || !props.session.playlist ? (
-    ""
-  ) : (
+  return (
     <div>
       <div className={bigButtonStyle} onClick={onClickAdd}>
         {!props.isAdding ? "Add to queue" : "Back"}
@@ -724,6 +723,27 @@ const PlaylistSelector = (props: {
   )
 }
 
+const DeletePlaylistButton = (props: { token: Token; session: Session }) => {
+  const [isLoading, setLoading] = useState(false)
+  const onClickClosePlaylist = async (e: React.MouseEvent<HTMLDivElement>) => {
+    if (props.token) {
+      setLoading(true)
+      await deletePlaylist(props.session, props.token)
+      setLoading(false)
+    }
+  }
+  return isLoading ? (
+    <Loader />
+  ) : (
+    <div
+      className="p-2 bg-red-600 rounded-lg hover:bg-red-400 cursor-pointer"
+      onClick={onClickClosePlaylist}
+    >
+      <CloseIcon />
+    </div>
+  )
+}
+
 const PlaylistPanel = (props: {
   session: Session
   setSession: SetState<Session | undefined>
@@ -741,35 +761,38 @@ const PlaylistPanel = (props: {
           token={props.token}
           setAdding={props.setAdding}
         />
-      ) : props.playlist ? (
-        <div>
-          <div className="flex flex-row items-center mb-4 gap-4">
-            <div>
-              <Image
-                className="rounded-lg mr-4"
-                width={100}
-                height={100}
-                src={props.playlist.art}
-                alt={`Playlist art for ${props.playlist.name}`}
-              />
-            </div>
-            <div>
-              <div>Queueing from</div>
-              <div className="text-2xl font-bold">{props.playlist.name}</div>
-            </div>
-          </div>
-          <QueueAdder
-            token={props.token}
-            session={props.session}
-            isAdding={props.isAdding}
-            setAdding={props.setAdding}
-            tracks={props.playlist.tracks}
-          />
-        </div>
       ) : (
-        "No playlist"
+        props.playlist && (
+          <>
+            <div>
+              <div className="flex flex-row items-center mb-4 gap-4">
+                <div>
+                  <Image
+                    className="rounded-lg mr-4"
+                    width={100}
+                    height={100}
+                    src={props.playlist.art}
+                    alt={`Playlist art for ${props.playlist.name}`}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div>Queueing from</div>
+                  <div className="text-2xl font-bold">
+                    {props.playlist.name}
+                  </div>
+                </div>
+                {props.token && (
+                  <DeletePlaylistButton
+                    token={props.token}
+                    session={props.session}
+                  />
+                )}
+              </div>
+            </div>
+            <Line />
+          </>
+        )
       )}
-      <Line />
     </div>
   )
 }
@@ -848,6 +871,13 @@ const Home = ({ params }: { params: { slug: string } }) => {
           token={token}
           isAdding={isAdding}
           setAdding={setAdding}
+        />
+        <QueueAdder
+          token={token}
+          session={session}
+          isAdding={isAdding}
+          setAdding={setAdding}
+          tracks={playlist ? playlist.tracks : []}
         />
         {isAdding ? "" : <Queue queue={queue} />}
       </div>

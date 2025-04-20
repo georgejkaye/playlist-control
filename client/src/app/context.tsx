@@ -155,12 +155,16 @@ export const AppContextWrapper = (
         ])
       }
     })
+    socket.on("playlist_removed", (data) => {
+      setPlaylist(undefined)
+    })
     return () => {
       socket.off("connect", onConnect)
       socket.off("disconnect", onDisconnect)
       socket.off("playback")
       socket.off("queue")
       socket.off("new_playlist")
+      socket.off("playlist_removed")
       socket.off("queued_track")
       socket.off("new_request")
     }

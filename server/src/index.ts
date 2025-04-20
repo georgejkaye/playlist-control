@@ -19,6 +19,7 @@ import {
   updateTokens,
   validateSessionSlug,
   checkApprovalRequired,
+  removePlaylist,
 } from "./database.ts"
 import {
   authenticateUser as authenticateSessionAdmin,
@@ -312,6 +313,12 @@ app.post("/:sessionSlug/auth/spotify/playlist", async (req, res) => {
       res.status(404).send("Playlist not found")
     }
   }
+})
+
+app.delete("/:sessionSlug/auth/playlist", async (req, res) => {
+  let sessionSlug: string = res.locals["sessionSlug"]
+  await removePlaylist(sessionSlug)
+  io.to(sessionSlug).emit("playlist_removed")
 })
 
 app.post("/:sessionSlug/auth/decision", async (req, res) => {

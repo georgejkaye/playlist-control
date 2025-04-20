@@ -139,6 +139,22 @@ export const postPlaylist = async (
     }
   }
 }
+
+export const deletePlaylist = async (
+  session: Session,
+  token: Token
+) => {
+  const endpoint = getEndpoint(`/${session.slug}/auth/playlist`)
+  const config = {
+    headers:  getHeaders(token)
+  }
+  try {
+    await axios.delete(endpoint, config)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 export const deauthenticateSpotify = async (
   slug: string,
   token: Token | undefined

@@ -733,6 +733,16 @@ export const setPlaylist = async (sessionSlug: string, playlistId: string) => {
   client.query(query, [playlistId, sessionSlug])
 }
 
+export const removePlaylist = async (sessionSlug: string) => {
+  const queryText = `
+    UPDATE Session
+    SET playlist_id = NULL
+    WHERE session_name_slug = $1
+  `
+  const query = { text: queryText }
+  client.query(query, [sessionSlug])
+}
+
 export const addListener = async (sessionSlug: string) => {
   const queryText = `
     INSERT INTO Listener (session_name_slug) VALUES ($1) RETURNING listener_id
