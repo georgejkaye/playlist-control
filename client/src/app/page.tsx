@@ -15,7 +15,7 @@ const SessionCard = (props: { session: SessionOverview }) => {
   }
   return (
     <button
-      className="text-left rounded-xl bg-accent p-4 flex flex-row hover:bg-accent-hover cursor-pointer"
+      className="text-left rounded-lg bg-accent p-4 flex flex-row hover:bg-accent-hover cursor-pointer"
       onClick={onClickSessionCard}
     >
       <div>
@@ -39,7 +39,7 @@ const NewSessionCard = (props: { setMaking: () => void }) => {
   }
   return (
     <button
-      className="rounded-xl w-full p-4 font-bold bg-gray-700 hover:bg-gray-500 cursor-pointer"
+      className="rounded-lg w-full p-4 font-bold bg-gray-700 hover:bg-gray-500 cursor-pointer"
       onClick={onClickNewButton}
     >
       New session
@@ -108,9 +108,9 @@ const MakeSession = (props: { stopMaking: () => void }) => {
       submitSession(name.toString(), host.toString(), password.toString())
     }
   }
-  const boxStyle = "p-2 my-2 rounded-xl w-full tablet:w-full text-black"
+  const boxStyle = "p-2 my-2 rounded-lg w-full tablet:w-full text-black"
   const createSessionButtonStyle =
-    "my-4 p-2 w-48 rounded-xl bg-gray-100 bg-gray-700 hover:bg-gray-500 cursor-pointer"
+    "my-4 p-2 w-48 rounded-lg bg-gray-100 bg-gray-700 hover:bg-gray-500 cursor-pointer"
   const boxDivStyle = "w-full"
   return isLoading ? (
     <Loader />
@@ -170,7 +170,7 @@ const MakeSession = (props: { stopMaking: () => void }) => {
       {error === "" ? (
         ""
       ) : (
-        <div className="p-2 rounded-xl bg-red-600">{error}</div>
+        <div className="p-2 rounded-lg bg-red-600">{error}</div>
       )}
     </div>
   )

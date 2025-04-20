@@ -79,15 +79,15 @@ const CurrentTrackCard = (props: { currentTrack: Track }) => {
 }
 
 const AlreadyQueuedLabel = () => (
-  <div className="bg-gray-700 text-white rounded-lg p-2">Already queued!</div>
+  <div className="bg-gray-700 text-white rounded-lg p-2"></div>
 )
 
 const ReadyToQueueLabel = () => (
-  <div className="bg-green-700 rounded-lg p-2">Ready to queue!</div>
+  <div className="bg-green-700 rounded-lg p-2"></div>
 )
 
 const NeedsApprovalLabel = () => (
-  <div className="bg-orange-700 rounded-lg p-2">Needs approval!</div>
+  <div className="bg-orange-700 rounded-lg p-2"></div>
 )
 
 const trackCardStyle =
@@ -163,7 +163,7 @@ const QueueAdderTrackCard = (props: {
         <div className="text-xl font-bold">{props.track.name}</div>
         <div>{getMultipleArtistsString(props.track.artists)}</div>
       </div>
-      <div>
+      <div className="mx-2">
         {!isQueueable ? (
           <AlreadyQueuedLabel />
         ) : !props.track.requiresApproval ? (
