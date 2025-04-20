@@ -21,6 +21,7 @@ services:
       DB_PASSWORD_FILE: /run/secrets/db_password
       DB_NAME: ${DB_NAME}
       SECRET_KEY_FILE: /run/secrets/secret_key
+      CLIENT_HOST: "${CLIENT_PROTOCOL}://${CLIENT_HOST}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.playlist_server.rule=Host(`${SERVER_HOST}`)"
