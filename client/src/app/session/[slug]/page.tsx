@@ -561,7 +561,7 @@ const LoginPanel = (props: {
                   autoFocus
                   type="password"
                   placeholder="Session password"
-                  className="w-4/12 flex-1 p-4 text-black rounded"
+                  className="md:w-4/12 flex-1 p-4 text-black rounded"
                   value={passwordText}
                   onChange={onPasswordTextChange}
                   onKeyDown={onPasswordKeyDown}
