@@ -191,9 +191,10 @@ app.post("/:sessionSlug/queue", async (req, res) => {
   if (typeof trackId !== "string") {
     res.status(400).send("Query parameters must be string")
   } else {
+    let isAdmin: boolean = res.locals["isAdmin"]
     let sessionSlug: string = res.locals["sessionSlug"]
     let approvalRequired = await checkApprovalRequired(sessionSlug, trackId)
-    if (approvalRequired) {
+    if (approvalRequired && !isAdmin) {
       let track = await getTrack(sessionSlug, trackId)
       if (track) {
         let requestId = await insertRequest(sessionSlug, track)
@@ -211,7 +212,7 @@ app.post("/:sessionSlug/queue", async (req, res) => {
         res.status(404).send("Track not found")
       }
     } else {
-      let response = await queueTrack(sessionSlug, trackId, false)
+      let response = await queueTrack(sessionSlug, trackId, approvalRequired)
       if (!response) {
         res.status(400).send("Could not add track to queue")
       } else {

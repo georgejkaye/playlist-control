@@ -65,9 +65,14 @@ export const getQueue = async (
   }
 }
 
-export const postQueue = async (session: Session, track: Track) => {
+export const postQueue = async (
+  token: Token | undefined,
+  session: Session,
+  track: Track
+) => {
   const endpoint = getEndpoint(`/${session.slug}/queue`)
   const config = {
+    headers: getHeaders(token),
     params: {
       track_id: track.id,
     },

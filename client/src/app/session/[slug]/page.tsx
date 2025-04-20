@@ -126,6 +126,7 @@ const Queue = (props: { queue: Track[] }) => {
 }
 
 const QueueAdderTrackCard = (props: {
+  token?: Token
   session: Session
   track: Track
   setAdding: SetState<boolean>
@@ -139,7 +140,7 @@ const QueueAdderTrackCard = (props: {
   }, [queuedTracks])
   const onClickCard = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isQueueable) {
-      postQueue(props.session, props.track)
+      postQueue(props.token, props.session, props.track)
       props.setAdding(false)
     }
   }
@@ -166,7 +167,7 @@ const QueueAdderTrackCard = (props: {
       <div className="mx-2">
         {!isQueueable ? (
           <AlreadyQueuedLabel />
-        ) : !props.track.requiresApproval ? (
+        ) : !props.track.requiresApproval || props.token ? (
           <ReadyToQueueLabel />
         ) : (
           <NeedsApprovalLabel />
@@ -189,6 +190,7 @@ const sortTracksAlphabetically = (tracks: Track[]) =>
   tracks.sort((t1, t2) => t1.name.localeCompare(t2.name))
 
 const QueueAdder = (props: {
+  token?: Token
   session: Session
   isAdding: boolean
   setAdding: SetState<boolean>
@@ -275,6 +277,7 @@ const QueueAdder = (props: {
                   .slice(0, tracksToShow)
                   .map((track) => (
                     <QueueAdderTrackCard
+                      token={props.token}
                       session={props.session}
                       key={track.id}
                       track={track}
@@ -756,6 +759,7 @@ const PlaylistPanel = (props: {
             </div>
           </div>
           <QueueAdder
+            token={props.token}
             session={props.session}
             isAdding={props.isAdding}
             setAdding={props.setAdding}
