@@ -384,6 +384,7 @@ export const createSession = async (
       queued: [],
       current: undefined,
       queue: [],
+      approvalRequired: false,
     }
   } catch (e) {
     console.log("createSession", e)
@@ -638,7 +639,8 @@ export const getSession = async (
       session.access_token,
       session.spotify_user,
       session.spotify_user_art,
-      session.spotify_id
+      session.spotify_id,
+      session.approval_required
     FROM Session
     LEFT JOIN (
       SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at)) AS queued_tracks
@@ -672,6 +674,7 @@ export const getSession = async (
     let playlistURL = row.get("playlist_url")
     let playlistArt = row.get("playlist_art")
     let spotifyId = row.get("spotify_id")
+    let approvalRequired = row.get("approval_required")
     let spotifyUser = !spotifyId
       ? undefined
       : {
@@ -712,6 +715,7 @@ export const getSession = async (
       spotify: spotifyUser,
       current,
       queue,
+      approvalRequired,
     }
   }
 }

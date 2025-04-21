@@ -47,6 +47,7 @@ export interface Session {
   spotify: SpotifyUser | undefined
   current: Track | undefined
   queue: Track[]
+  approvalRequired: boolean
 }
 
 export interface Artist {

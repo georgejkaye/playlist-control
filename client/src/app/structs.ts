@@ -152,6 +152,7 @@ export interface Session {
   playlist: Playlist | undefined
   current: Track | undefined
   spotify: SpotifyUser | undefined
+  approvalRequired: boolean
 }
 
 export const responseToSession = (raw: any): Session => ({
@@ -162,6 +163,7 @@ export const responseToSession = (raw: any): Session => ({
   playlist: !raw["playlist"] ? undefined : responseToPlaylist(raw["playlist"]),
   current: !raw["track"] ? undefined : responseToTrack(raw["track"], false),
   spotify: !raw["spotify"] ? undefined : responseToSpotifyUser(raw["spotify"]),
+  approvalRequired: raw["approvalRequired"],
 })
 
 export interface RequestedTrack {
