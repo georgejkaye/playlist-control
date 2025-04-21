@@ -158,6 +158,9 @@ export const AppContextWrapper = (
     socket.on("playlist_removed", (data) => {
       setPlaylist(undefined)
     })
+    socket.on("approval_required", (data) => {
+      setSession(responseToSession(data))
+    })
     return () => {
       socket.off("connect", onConnect)
       socket.off("disconnect", onDisconnect)
@@ -167,6 +170,7 @@ export const AppContextWrapper = (
       socket.off("playlist_removed")
       socket.off("queued_track")
       socket.off("new_request")
+      socket.off("approval_required")
     }
   }, [])
   useEffect(() => {

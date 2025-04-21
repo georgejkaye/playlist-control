@@ -18,6 +18,7 @@ import {
   searchTracks,
   makeDecision,
   deletePlaylist,
+  updateApprovalRequired,
 } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -414,8 +415,49 @@ const RequestsPanel = (props: { token: Token; session: Session }) => {
 
 let clientId = process.env.NEXT_PUBLIC_SPOTIFY_APP_ID
 
-const smallButtonStyle =
-  "p-2 bg-accent rounded hover:underline font-2xl font-bold"
+const smallButtonStyle = "p-2 bg-accent rounded font-2xl font-bold"
+
+const PlaybackModePanel = (props: { token: Token; session: Session }) => {
+  const [isLoading, setLoading] = useState(false)
+  const activeButtonStyle = "bg-green-500"
+  const inactiveButtonStyle = "cursor-pointer hover:underline"
+  const onClickApprovalButton = async (isApprovalRequired: boolean) => {
+    setLoading(true)
+    await updateApprovalRequired(props.token, props.session, isApprovalRequired)
+    setLoading(false)
+  }
+  return (
+    <div>
+      {isLoading ? (
+        <Loader />
+      ) : (
+        <div className="flex flex-row gap-4 justify-center align-items-center align-center items-center">
+          <div>Approval required</div>
+          <div
+            className={`${smallButtonStyle} ${
+              props.session.approvalRequired
+                ? activeButtonStyle
+                : inactiveButtonStyle
+            }`}
+            onClick={(e) => onClickApprovalButton(true)}
+          >
+            Yes
+          </div>
+          <div
+            className={`${smallButtonStyle} ${
+              !props.session.approvalRequired
+                ? activeButtonStyle
+                : inactiveButtonStyle
+            }`}
+            onClick={(e) => onClickApprovalButton(false)}
+          >
+            No
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const AdminPanel = (props: {
   token: Token
@@ -499,6 +541,7 @@ const AdminPanel = (props: {
             </button>
           </div>
         )}
+        <PlaybackModePanel token={props.token} session={props.session} />
         <button className={smallButtonStyle} onClick={onClickLogout}>
           Logout
         </button>
@@ -744,7 +787,31 @@ const DeletePlaylistButton = (props: { token: Token; session: Session }) => {
   )
 }
 
-const PlaylistPanel = (props: {
+const QueueingFromPlaylistBox = (props: { playlist: Playlist }) => (
+  <div>
+    <div className="flex flex-row items-center mb-4 gap-4">
+      <div>
+        <Image
+          className="rounded-lg mr-4"
+          width={100}
+          height={100}
+          src={props.playlist.art}
+          alt={`Playlist art for ${props.playlist.name}`}
+        />
+      </div>
+      <div className="flex-1">
+        <div>Queueing from</div>
+        <div className="text-2xl font-bold">{props.playlist.name}</div>
+      </div>
+    </div>
+  </div>
+)
+
+const ApprovalRequiredBox = () => <div>Song approval required</div>
+
+const AnarchyModeBox = () => <div>Anarchy mode enabled</div>
+
+const PlaybackModeBox = (props: {
   session: Session
   setSession: SetState<Session | undefined>
   playlist: Playlist | undefined
@@ -754,45 +821,14 @@ const PlaylistPanel = (props: {
 }) => {
   return (
     <div>
-      {!props.playlist && props.token ? (
-        <PlaylistSelector
-          session={props.session}
-          setSession={props.setSession}
-          token={props.token}
-          setAdding={props.setAdding}
-        />
+      {props.playlist ? (
+        <QueueingFromPlaylistBox playlist={props.playlist} />
+      ) : props.session.approvalRequired ? (
+        <ApprovalRequiredBox />
       ) : (
-        props.playlist && (
-          <>
-            <div>
-              <div className="flex flex-row items-center mb-4 gap-4">
-                <div>
-                  <Image
-                    className="rounded-lg mr-4"
-                    width={100}
-                    height={100}
-                    src={props.playlist.art}
-                    alt={`Playlist art for ${props.playlist.name}`}
-                  />
-                </div>
-                <div className="flex-1">
-                  <div>Queueing from</div>
-                  <div className="text-2xl font-bold">
-                    {props.playlist.name}
-                  </div>
-                </div>
-                {props.token && (
-                  <DeletePlaylistButton
-                    token={props.token}
-                    session={props.session}
-                  />
-                )}
-              </div>
-            </div>
-            <Line />
-          </>
-        )
+        <AnarchyModeBox />
       )}
+      <Line />
     </div>
   )
 }
@@ -863,8 +899,8 @@ const Home = ({ params }: { params: { slug: string } }) => {
         />
       )}
       <div>
-        {!current ? "" : <CurrentTrackCard currentTrack={current} />}
-        <PlaylistPanel
+        {current && <CurrentTrackCard currentTrack={current} />}
+        <PlaybackModeBox
           session={session}
           setSession={setSession}
           playlist={playlist}
