@@ -852,3 +852,15 @@ export const checkApprovalRequired = async (
     return result.rows.length !== 1
   }
 }
+
+export const setSessionApprovalRequired = async (
+  sessionSlug: string,
+  approvalRequired: boolean
+) => {
+  const query = `
+    UPDATE Session
+    SET approval_required = $1
+    WHERE session_name_slug = $2
+  `
+  await client.query(query, [approvalRequired, sessionSlug])
+}
