@@ -28,17 +28,36 @@ export var connected = false
 
 var client: Client
 
-const init = async () =>
-  (client = await connect({
-    host: DB_HOST,
-    port: Number.parseInt(DB_PORT),
-    user: DB_USER,
-    database: DB_NAME,
-    password: DB_PASSWORD,
-  }))
+const connectionAttempts = 10
+
+const init = async () => {
+  for (var i = 0; i < connectionAttempts; i++) {
+    try {
+      client = await connect({
+        host: DB_HOST,
+        port: Number.parseInt(DB_PORT),
+        user: DB_USER,
+        database: DB_NAME,
+        password: DB_PASSWORD,
+      })
+      connected = true
+      console.log(
+        `Successfully connected to db ${DB_NAME}@${DB_HOST} as user ${DB_NAME}`
+      )
+      break
+    } catch {
+      var timeout = Math.pow(1, i) * 1000
+      console.log(
+        `Could not connect to db ${DB_NAME}@${DB_HOST} as user ${DB_NAME}, waiting ${
+          timeout / 1000
+        } seconds...`
+      )
+      await new Promise((r) => setTimeout(r, timeout))
+    }
+  }
+}
 
 init()
-connected = true
 
 export const validateSessionSlug = async (sessionSlug: string) => {
   const queryText =
