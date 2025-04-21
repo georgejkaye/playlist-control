@@ -19,6 +19,7 @@ CREATE TABLE Session (
     expires_at TIMESTAMP WITH TIME ZONE,
     playlist_id TEXT,
     session_start TIMESTAMP WITH TIME ZONE,
+    approval_required BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT fk_playlist_id FOREIGN KEY(playlist_id) REFERENCES playlist(playlist_id) ON DELETE SET NULL
 );
 
