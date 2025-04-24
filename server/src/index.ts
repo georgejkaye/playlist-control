@@ -20,6 +20,7 @@ import {
   validateSessionSlug,
   checkApprovalRequired,
   removePlaylist,
+  setSessionApprovalRequired,
 } from "./database.ts"
 import {
   authenticateUser as authenticateSessionAdmin,
@@ -318,7 +319,8 @@ app.post("/:sessionSlug/auth/spotify/playlist", async (req, res) => {
 app.delete("/:sessionSlug/auth/playlist", async (req, res) => {
   let sessionSlug: string = res.locals["sessionSlug"]
   await removePlaylist(sessionSlug)
-  io.to(sessionSlug).emit("playlist_removed")
+  let session = await getSession("session_name_slug", sessionSlug, false)
+  io.to(sessionSlug).emit("playlist_removed", session)
 })
 
 app.post("/:sessionSlug/auth/decision", async (req, res) => {
@@ -333,6 +335,19 @@ app.post("/:sessionSlug/auth/decision", async (req, res) => {
     }
     updateRequestDecision(sessionSlug, trackId, decision === "true")
     res.status(200).send("Decision acknowledged")
+  }
+})
+
+app.post("/:sessionSlug/auth/approval", async (req, res) => {
+  const sessionSlug: string = res.locals["sessionSlug"]
+  if (typeof req.query.approvalRequired === "string") {
+    const approvalRequired = req.query.approvalRequired === "true"
+    await setSessionApprovalRequired(sessionSlug, approvalRequired)
+    const session = await getSession("session_name_slug", sessionSlug, false)
+    io.to(sessionSlug).emit("approval_required", session)
+    res.status(200).send(session)
+  } else {
+    res.status(400).send("approvalRequired missing")
   }
 })
 

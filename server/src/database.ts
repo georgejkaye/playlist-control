@@ -28,17 +28,36 @@ export var connected = false
 
 var client: Client
 
-const init = async () =>
-  (client = await connect({
-    host: DB_HOST,
-    port: Number.parseInt(DB_PORT),
-    user: DB_USER,
-    database: DB_NAME,
-    password: DB_PASSWORD,
-  }))
+const connectionAttempts = 10
+
+const init = async () => {
+  for (var i = 0; i < connectionAttempts; i++) {
+    try {
+      client = await connect({
+        host: DB_HOST,
+        port: Number.parseInt(DB_PORT),
+        user: DB_USER,
+        database: DB_NAME,
+        password: DB_PASSWORD,
+      })
+      connected = true
+      console.log(
+        `Successfully connected to db ${DB_NAME}@${DB_HOST} as user ${DB_NAME}`
+      )
+      break
+    } catch {
+      var timeout = Math.pow(1, i) * 1000
+      console.log(
+        `Could not connect to db ${DB_NAME}@${DB_HOST} as user ${DB_NAME}, waiting ${
+          timeout / 1000
+        } seconds...`
+      )
+      await new Promise((r) => setTimeout(r, timeout))
+    }
+  }
+}
 
 init()
-connected = true
 
 export const validateSessionSlug = async (sessionSlug: string) => {
   const queryText =
@@ -365,6 +384,7 @@ export const createSession = async (
       queued: [],
       current: undefined,
       queue: [],
+      approvalRequired: false,
     }
   } catch (e) {
     console.log("createSession", e)
@@ -619,7 +639,8 @@ export const getSession = async (
       session.access_token,
       session.spotify_user,
       session.spotify_user_art,
-      session.spotify_id
+      session.spotify_id,
+      session.approval_required
     FROM Session
     LEFT JOIN (
       SELECT queuedtrack.session_name_slug, json_agg(json_build_object('track_id', queuedtrack.track_id, 'queued_at', queuedtrack.queued_at)) AS queued_tracks
@@ -653,6 +674,7 @@ export const getSession = async (
     let playlistURL = row.get("playlist_url")
     let playlistArt = row.get("playlist_art")
     let spotifyId = row.get("spotify_id")
+    let approvalRequired = row.get("approval_required")
     let spotifyUser = !spotifyId
       ? undefined
       : {
@@ -693,6 +715,7 @@ export const getSession = async (
       spotify: spotifyUser,
       current,
       queue,
+      approvalRequired,
     }
   }
 }
@@ -828,4 +851,16 @@ export const checkApprovalRequired = async (
   } else {
     return result.rows.length !== 1
   }
+}
+
+export const setSessionApprovalRequired = async (
+  sessionSlug: string,
+  approvalRequired: boolean
+) => {
+  const query = `
+    UPDATE Session
+    SET approval_required = $1
+    WHERE session_name_slug = $2
+  `
+  await client.query(query, [approvalRequired, sessionSlug])
 }

@@ -18,6 +18,7 @@ import {
   searchTracks,
   makeDecision,
   deletePlaylist,
+  updateApprovalRequired,
 } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -35,6 +36,7 @@ import {
 import { Line } from "@/app/context"
 
 import cd from "@/../public/cd.webp"
+import { setLazyProp } from "next/dist/server/api-utils"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -95,7 +97,6 @@ const trackCardStyle =
   "rounded-lg flex flex-row justify-center my-1 p-1 gap-5 items-center w-full"
 
 const TrackCard = (props: { track: Track }) => {
-  let { playlist } = useContext(AppContext)
   return (
     <div className={trackCardStyle}>
       <div>
@@ -414,8 +415,141 @@ const RequestsPanel = (props: { token: Token; session: Session }) => {
 
 let clientId = process.env.NEXT_PUBLIC_SPOTIFY_APP_ID
 
-const smallButtonStyle =
-  "p-2 bg-accent rounded hover:underline font-2xl font-bold"
+const smallButtonStyle = "p-2 bg-accent rounded font-2xl font-bold"
+
+const PlaylistSelector = (props: { token: Token; session: Session }) => {
+  const [isOpen, setOpen] = useState(false)
+  const [isLoading, setLoading] = useState(false)
+  const [playlists, setPlaylists] = useState<PlaylistOverview[]>([])
+  const [playlistText, setPlaylistText] = useState("")
+  const [errorText, setErrorText] = useState("")
+  const onClickPlaylistButton = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (isOpen) {
+      setOpen(false)
+    } else {
+      setLoading(true)
+      let playlists = await getPlaylists(props.token, props.session.slug)
+      setPlaylists(playlists)
+      setOpen(true)
+      setLoading(false)
+    }
+  }
+  const onPlaylistSubmit = async (playlistURL: string) => {
+    setLoading(true)
+    let { result, error } = await postPlaylist(
+      props.token,
+      props.session.slug,
+      playlistURL
+    )
+    if (error) {
+      setErrorText(error)
+    } else {
+      setOpen(false)
+    }
+    setLoading(false)
+  }
+  const onClickPlaylistCard = (p: PlaylistOverview) => {
+    onPlaylistSubmit(p.id)
+  }
+  const onClickRemovePlaylist = async () => {
+    setLoading(true)
+    await deletePlaylist(props.session, props.token)
+    setLoading(false)
+  }
+  return (
+    <div className="flex flex-col w-full">
+      <div className="flex flex-row gap-4 items-center">
+        <div>Base playlist</div>
+        <button
+          className={`${smallButtonStyle} cursor-pointer hover:underline`}
+          onClick={onClickPlaylistButton}
+        >
+          {isOpen
+            ? "Back"
+            : !props.session.playlist
+            ? "Select playlist"
+            : props.session.playlist.name}
+        </button>
+        {props.session.playlist && (
+          <button
+            className={`p-1 rounded bg-red-700 cursor-pointer hover:underline`}
+            onClick={onClickRemovePlaylist}
+          >
+            <CloseIcon />
+          </button>
+        )}
+      </div>
+      {isOpen &&
+        (isLoading ? (
+          <Loader />
+        ) : (
+          <div className="flex flex-col">
+            <CustomPlaylistCard
+              onSubmit={(text) => onPlaylistSubmit(playlistText)}
+            />
+            {playlists.map((p) => (
+              <PlaylistCard
+                key={p.id}
+                playlist={p}
+                onClickPlaylist={() => onClickPlaylistCard(p)}
+              />
+            ))}
+          </div>
+        ))}
+    </div>
+  )
+}
+
+const PlaybackModePanel = (props: { token: Token; session: Session }) => {
+  const [isLoading, setLoading] = useState(false)
+  const activeButtonStyle = "bg-green-500"
+  const inactiveButtonStyle = "cursor-pointer hover:underline"
+  const onClickApprovalButton = async (isApprovalRequired: boolean) => {
+    setLoading(true)
+    await updateApprovalRequired(props.token, props.session, isApprovalRequired)
+    setLoading(false)
+  }
+  const onClickPlaylistBase = async (hasPlaylistBase: boolean) => {
+    setLoading(true)
+    setLoading(false)
+  }
+  return (
+    <>
+      {isLoading ? (
+        <Loader />
+      ) : (
+        <div className="flex flex-col gap-4 w-full">
+          <div className="flex flex-row gap-4 items-center">
+            <div>Approval required</div>
+            <div
+              className={`${smallButtonStyle} ${
+                props.session.approvalRequired
+                  ? activeButtonStyle
+                  : inactiveButtonStyle
+              }`}
+              onClick={(e) => onClickApprovalButton(true)}
+            >
+              Yes
+            </div>
+            <div
+              className={`${smallButtonStyle} ${
+                !props.session.approvalRequired
+                  ? activeButtonStyle
+                  : inactiveButtonStyle
+              }`}
+              onClick={(e) => onClickApprovalButton(false)}
+            >
+              No
+            </div>
+          </div>
+          <PlaylistSelector session={props.session} token={props.token} />
+        </div>
+      )}
+    </>
+  )
+}
 
 const AdminPanel = (props: {
   token: Token
@@ -476,9 +610,9 @@ const AdminPanel = (props: {
   }
   return (
     <>
-      <div className="flex flex-col items-start gap-2 w-full">
+      <div className="flex flex-col items-start gap-4 w-full">
         {!props.session.spotify ? (
-          <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
+          <div className="flex flex-row items-center desktop:items-center gap-2 desktop:gap-5">
             <div>Not authenticated with Spotify</div>
             {hostname && (
               <button onClick={onClickSpotify} className={smallButtonStyle}>
@@ -487,18 +621,19 @@ const AdminPanel = (props: {
             )}
           </div>
         ) : (
-          <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
+          <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-4">
             <div>
               Authenticated with Spotify as {props.session.spotify.name}
             </div>
             <button
               onClick={onClickDeauthoriseSpotify}
-              className={smallButtonStyle}
+              className={`${smallButtonStyle} hover:underline`}
             >
               Deauthorise
             </button>
           </div>
         )}
+        <PlaybackModePanel token={props.token} session={props.session} />
         <button className={smallButtonStyle} onClick={onClickLogout}>
           Logout
         </button>
@@ -660,69 +795,6 @@ const PlaylistCard = (props: {
   )
 }
 
-const PlaylistSelector = (props: {
-  session: Session
-  setSession: SetState<Session | undefined>
-  token: Token
-  setAdding: SetState<boolean>
-}) => {
-  const [isSelecting, setSelecting] = useState(false)
-  const [isLoading, setLoading] = useState(false)
-  const [playlists, setPlaylists] = useState<PlaylistOverview[]>([])
-  const [playlistText, setPlaylistText] = useState("")
-  const [errorText, setErrorText] = useState("")
-  const onClickSelectPlaylist = async (
-    e: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    setLoading(true)
-    let playlists = await getPlaylists(props.token, props.session.slug)
-    setPlaylists(playlists)
-    setSelecting(true)
-    setLoading(false)
-  }
-  const onPlaylistSubmit = async (playlistURL: string) => {
-    setLoading(true)
-    let { result, error } = await postPlaylist(
-      props.token,
-      props.session.slug,
-      playlistURL
-    )
-    if (error) {
-      setErrorText(error)
-    } else {
-      setSelecting(false)
-    }
-    setLoading(false)
-  }
-  const onClickPlaylistCard = (p: PlaylistOverview) => {
-    onPlaylistSubmit(p.id)
-  }
-  return (
-    <div>
-      {isLoading ? (
-        <Loader />
-      ) : props.token && !isSelecting ? (
-        <button className={smallButtonStyle} onClick={onClickSelectPlaylist}>
-          Select playlist
-        </button>
-      ) : (
-        <div className="flex flex-row flex-wrap">
-          <CustomPlaylistCard
-            onSubmit={(text) => onPlaylistSubmit(playlistText)}
-          />
-          {playlists.map((p) => (
-            <PlaylistCard
-              key={p.id}
-              playlist={p}
-              onClickPlaylist={() => onClickPlaylistCard(p)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 const DeletePlaylistButton = (props: { token: Token; session: Session }) => {
   const [isLoading, setLoading] = useState(false)
   const onClickClosePlaylist = async (e: React.MouseEvent<HTMLDivElement>) => {
@@ -744,55 +816,58 @@ const DeletePlaylistButton = (props: { token: Token; session: Session }) => {
   )
 }
 
-const PlaylistPanel = (props: {
+const QueueingFromPlaylistBox = (props: {
+  approvalRequired: boolean
+  playlist: Playlist
+}) => (
+  <div>
+    <div className="flex flex-row items-center mb-4 gap-4">
+      <div>
+        <Image
+          className="rounded-lg mr-4"
+          width={100}
+          height={100}
+          src={props.playlist.art}
+          alt={`Playlist art for ${props.playlist.name}`}
+        />
+      </div>
+      <div className="flex-1">
+        <div>Queueing from</div>
+        <div className="text-2xl font-bold mb-2">{props.playlist.name}</div>
+        <div className="text-sm">
+          {props.approvalRequired
+            ? "Approval required for other songs"
+            : "Queue up other songs at will"}
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+const ApprovalRequiredBox = () => <div>Song approval required</div>
+
+const AnarchyModeBox = () => <div>Anarchy mode enabled</div>
+
+const PlaybackModeBox = (props: {
   session: Session
   setSession: SetState<Session | undefined>
-  playlist: Playlist | undefined
   token: Token | undefined
   isAdding: boolean
   setAdding: SetState<boolean>
 }) => {
   return (
     <div>
-      {!props.playlist && props.token ? (
-        <PlaylistSelector
-          session={props.session}
-          setSession={props.setSession}
-          token={props.token}
-          setAdding={props.setAdding}
+      {props.session.playlist ? (
+        <QueueingFromPlaylistBox
+          approvalRequired={props.session.approvalRequired}
+          playlist={props.session.playlist}
         />
+      ) : props.session.approvalRequired ? (
+        <ApprovalRequiredBox />
       ) : (
-        props.playlist && (
-          <>
-            <div>
-              <div className="flex flex-row items-center mb-4 gap-4">
-                <div>
-                  <Image
-                    className="rounded-lg mr-4"
-                    width={100}
-                    height={100}
-                    src={props.playlist.art}
-                    alt={`Playlist art for ${props.playlist.name}`}
-                  />
-                </div>
-                <div className="flex-1">
-                  <div>Queueing from</div>
-                  <div className="text-2xl font-bold">
-                    {props.playlist.name}
-                  </div>
-                </div>
-                {props.token && (
-                  <DeletePlaylistButton
-                    token={props.token}
-                    session={props.session}
-                  />
-                )}
-              </div>
-            </div>
-            <Line />
-          </>
-        )
+        <AnarchyModeBox />
       )}
+      <Line />
     </div>
   )
 }
@@ -807,8 +882,6 @@ const Home = ({ params }: { params: { slug: string } }) => {
     queuedTracks,
     setQueuedTracks,
     queue,
-    playlist,
-    setPlaylist,
     setRequestedTracks,
     emitLogin,
   } = useContext(AppContext)
@@ -829,7 +902,6 @@ const Home = ({ params }: { params: { slug: string } }) => {
         setQueue(queue)
         setQueuedTracks(new Map(queued.map((obj: any) => [obj.id, obj.time])))
         setRequestedTracks(requests)
-        setPlaylist(session.playlist)
         setLoading(false)
       } else {
         router.push("/")
@@ -863,11 +935,10 @@ const Home = ({ params }: { params: { slug: string } }) => {
         />
       )}
       <div>
-        {!current ? "" : <CurrentTrackCard currentTrack={current} />}
-        <PlaylistPanel
+        {current && <CurrentTrackCard currentTrack={current} />}
+        <PlaybackModeBox
           session={session}
           setSession={setSession}
-          playlist={playlist}
           token={token}
           isAdding={isAdding}
           setAdding={setAdding}
@@ -877,7 +948,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
           session={session}
           isAdding={isAdding}
           setAdding={setAdding}
-          tracks={playlist ? playlist.tracks : []}
+          tracks={session.playlist ? session.playlist.tracks : []}
         />
         {isAdding ? "" : <Queue queue={queue} />}
       </div>

@@ -140,13 +140,10 @@ export const postPlaylist = async (
   }
 }
 
-export const deletePlaylist = async (
-  session: Session,
-  token: Token
-) => {
+export const deletePlaylist = async (session: Session, token: Token) => {
   const endpoint = getEndpoint(`/${session.slug}/auth/playlist`)
   const config = {
-    headers:  getHeaders(token)
+    headers: getHeaders(token),
   }
   try {
     await axios.delete(endpoint, config)
@@ -372,6 +369,25 @@ export const makeDecision = async (
   } catch (e) {
     console.error(e)
     return false
+  }
+}
+
+export const updateApprovalRequired = async (
+  token: Token,
+  session: Session,
+  approvalRequired: boolean
+) => {
+  const endpoint = getEndpoint(`/${session.slug}/auth/approval`)
+  const config = {
+    params: { approvalRequired },
+    headers: getHeaders(token),
+  }
+  try {
+    let response = await axios.post(endpoint, null, config)
+    return responseToSession(response.data)
+  } catch (e) {
+    console.error(e)
+    return undefined
   }
 }
 
