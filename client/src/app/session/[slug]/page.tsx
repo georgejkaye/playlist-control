@@ -460,44 +460,46 @@ const PlaylistSelector = (props: { token: Token; session: Session }) => {
   }
   return (
     <div className="flex flex-col w-full">
-      <div className="flex flex-row gap-4 items-center">
+      <div className="flex flex-col tablet:flex-row gap-2 tablet:gap-4 tablet:items-center">
         <div>Base playlist</div>
-        <button
-          className={`${smallButtonStyle} cursor-pointer hover:underline`}
-          onClick={onClickPlaylistButton}
-        >
-          {isOpen
-            ? "Back"
-            : !props.session.playlist
-            ? "Select playlist"
-            : props.session.playlist.name}
-        </button>
-        {props.session.playlist && (
+        <div className="flex flex-row gap-4">
           <button
-            className={`p-1 rounded bg-red-700 cursor-pointer hover:underline`}
-            onClick={onClickRemovePlaylist}
+            className={`${smallButtonStyle} cursor-pointer hover:underline`}
+            onClick={onClickPlaylistButton}
           >
-            <CloseIcon />
+            {isOpen
+              ? "Back"
+              : !props.session.playlist
+              ? "Select playlist"
+              : props.session.playlist.name}
           </button>
-        )}
-      </div>
-      {isOpen &&
-        (isLoading ? (
-          <Loader />
-        ) : (
-          <div className="flex flex-col">
-            <CustomPlaylistCard
-              onSubmit={(text) => onPlaylistSubmit(playlistText)}
-            />
-            {playlists.map((p) => (
-              <PlaylistCard
-                key={p.id}
-                playlist={p}
-                onClickPlaylist={() => onClickPlaylistCard(p)}
+          {props.session.playlist && (
+            <button
+              className={`p-1 rounded bg-red-700 cursor-pointer hover:underline`}
+              onClick={onClickRemovePlaylist}
+            >
+              <CloseIcon />
+            </button>
+          )}
+        </div>
+        {isOpen &&
+          (isLoading ? (
+            <Loader />
+          ) : (
+            <div className="flex flex-col">
+              <CustomPlaylistCard
+                onSubmit={(text) => onPlaylistSubmit(playlistText)}
               />
-            ))}
-          </div>
-        ))}
+              {playlists.map((p) => (
+                <PlaylistCard
+                  key={p.id}
+                  playlist={p}
+                  onClickPlaylist={() => onClickPlaylistCard(p)}
+                />
+              ))}
+            </div>
+          ))}
+      </div>
     </div>
   )
 }
@@ -520,28 +522,30 @@ const PlaybackModePanel = (props: { token: Token; session: Session }) => {
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="flex flex-col gap-4 w-full">
-          <div className="flex flex-row gap-4 items-center">
+        <div className="flex flex-col gap-6 tablet:gap-4 w-full">
+          <div className="flex flex-col tablet:flex-row gap-2 tablet:gap-4 tablet:items-center">
             <div>Approval required</div>
-            <div
-              className={`${smallButtonStyle} ${
-                props.session.approvalRequired
-                  ? activeButtonStyle
-                  : inactiveButtonStyle
-              }`}
-              onClick={(e) => onClickApprovalButton(true)}
-            >
-              Yes
-            </div>
-            <div
-              className={`${smallButtonStyle} ${
-                !props.session.approvalRequired
-                  ? activeButtonStyle
-                  : inactiveButtonStyle
-              }`}
-              onClick={(e) => onClickApprovalButton(false)}
-            >
-              No
+            <div className="flex flex-row gap-4">
+              <div
+                className={`${smallButtonStyle} ${
+                  props.session.approvalRequired
+                    ? activeButtonStyle
+                    : inactiveButtonStyle
+                }`}
+                onClick={(e) => onClickApprovalButton(true)}
+              >
+                Yes
+              </div>
+              <div
+                className={`${smallButtonStyle} ${
+                  !props.session.approvalRequired
+                    ? activeButtonStyle
+                    : inactiveButtonStyle
+                }`}
+                onClick={(e) => onClickApprovalButton(false)}
+              >
+                No
+              </div>
             </div>
           </div>
           <PlaylistSelector session={props.session} token={props.token} />
@@ -610,9 +614,9 @@ const AdminPanel = (props: {
   }
   return (
     <>
-      <div className="flex flex-col items-start gap-4 w-full">
+      <div className="flex flex-col items-start gap-6 tablet:gap-4 w-full">
         {!props.session.spotify ? (
-          <div className="flex flex-row items-center desktop:items-center gap-2 desktop:gap-5">
+          <div className="flex flex-row items-center desktop:items-center gap-2 desktop:gap-4">
             <div>Not authenticated with Spotify</div>
             {hostname && (
               <button onClick={onClickSpotify} className={smallButtonStyle}>
@@ -621,7 +625,7 @@ const AdminPanel = (props: {
             )}
           </div>
         ) : (
-          <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-4">
+          <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-2 tablet:gap-4">
             <div>
               Authenticated with Spotify as {props.session.spotify.name}
             </div>
