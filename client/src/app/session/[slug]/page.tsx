@@ -426,32 +426,61 @@ const PlaybackModePanel = (props: { token: Token; session: Session }) => {
     await updateApprovalRequired(props.token, props.session, isApprovalRequired)
     setLoading(false)
   }
+  const onClickPlaylistBase = async (hasPlaylistBase: boolean) => {
+    setLoading(true)
+    setLoading(false)
+  }
   return (
     <div>
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="flex flex-row gap-4 justify-center align-items-center align-center items-center">
-          <div>Approval required</div>
-          <div
-            className={`${smallButtonStyle} ${
-              props.session.approvalRequired
-                ? activeButtonStyle
-                : inactiveButtonStyle
-            }`}
-            onClick={(e) => onClickApprovalButton(true)}
-          >
-            Yes
+        <div>
+          <div className="flex flex-row gap-4 items-center">
+            <div>Approval required</div>
+            <div
+              className={`${smallButtonStyle} ${
+                props.session.approvalRequired
+                  ? activeButtonStyle
+                  : inactiveButtonStyle
+              }`}
+              onClick={(e) => onClickApprovalButton(true)}
+            >
+              Yes
+            </div>
+            <div
+              className={`${smallButtonStyle} ${
+                !props.session.approvalRequired
+                  ? activeButtonStyle
+                  : inactiveButtonStyle
+              }`}
+              onClick={(e) => onClickApprovalButton(false)}
+            >
+              No
+            </div>
           </div>
-          <div
-            className={`${smallButtonStyle} ${
-              !props.session.approvalRequired
-                ? activeButtonStyle
-                : inactiveButtonStyle
-            }`}
-            onClick={(e) => onClickApprovalButton(false)}
-          >
-            No
+          <div className="flex flex-row gap-4 items-center">
+            <div>Use playlist as base</div>
+            <div
+              className={`${smallButtonStyle} ${
+                props.session.playlist !== undefined
+                  ? activeButtonStyle
+                  : inactiveButtonStyle
+              }`}
+              onClick={(e) => onClickPlaylistBase(true)}
+            >
+              Yes
+            </div>
+            <div
+              className={`${smallButtonStyle} ${
+                props.session.playlist === undefined
+                  ? activeButtonStyle
+                  : inactiveButtonStyle
+              }`}
+              onClick={(e) => onClickPlaylistBase(false)}
+            >
+              No
+            </div>
           </div>
         </div>
       )}
