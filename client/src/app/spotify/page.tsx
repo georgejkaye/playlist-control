@@ -18,31 +18,27 @@ const SpotifyRedirect = () => {
     const expires = localStorage.getItem(`expires-${redirect}`)
     localStorage.removeItem("state")
     localStorage.removeItem("redirect")
-    if (
-      !ignore &&
-      redirect &&
-      code &&
-      token &&
-      expires &&
-      state === stateParam
-    ) {
-      const sendSpotifyAuth = async () => {
-        let user = await sendAuthCode(
-          redirect,
-          { token, expires: new Date(expires) },
-          code
-        )
-        if (user) {
-          router.push(`/session/${redirect}`)
-        } else {
-          router.push("/")
+    if (!ignore) {
+      if (redirect && code && token && expires && state === stateParam) {
+        const sendSpotifyAuth = async () => {
+          let user = await sendAuthCode(
+            redirect,
+            { token, expires: new Date(expires) },
+            code
+          )
+          if (user) {
+            router.push(`/session/${redirect}`)
+          } else {
+            console.log("push in auth")
+            router.push("/")
+          }
         }
+        sendSpotifyAuth()
+      } else {
+        router.push("/")
       }
-      sendSpotifyAuth()
-    } else {
-      router.push("/")
+      ignore = true
     }
-    ignore = true
     return () => {
       ignore = true
     }

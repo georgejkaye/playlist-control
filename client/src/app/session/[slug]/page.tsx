@@ -614,7 +614,7 @@ const AdminPanel = (props: {
             </div>
             <button
               onClick={onClickDeauthoriseSpotify}
-              className={smallButtonStyle}
+              className={`${smallButtonStyle} hover:underline`}
             >
               Deauthorise
             </button>
