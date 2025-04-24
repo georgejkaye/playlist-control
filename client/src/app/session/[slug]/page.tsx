@@ -417,6 +417,78 @@ let clientId = process.env.NEXT_PUBLIC_SPOTIFY_APP_ID
 
 const smallButtonStyle = "p-2 bg-accent rounded font-2xl font-bold"
 
+const PlaylistSelector = (props: { token: Token; session: Session }) => {
+  const [isOpen, setOpen] = useState(false)
+  const [isLoading, setLoading] = useState(false)
+  const [playlists, setPlaylists] = useState<PlaylistOverview[]>([])
+  const [playlistText, setPlaylistText] = useState("")
+  const [errorText, setErrorText] = useState("")
+  const onClickPlaylistButton = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (isOpen) {
+      setOpen(false)
+    } else {
+      setLoading(true)
+      let playlists = await getPlaylists(props.token, props.session.slug)
+      setPlaylists(playlists)
+      setOpen(true)
+      setLoading(false)
+    }
+  }
+  const onPlaylistSubmit = async (playlistURL: string) => {
+    setLoading(true)
+    let { result, error } = await postPlaylist(
+      props.token,
+      props.session.slug,
+      playlistURL
+    )
+    if (error) {
+      setErrorText(error)
+    } else {
+      setOpen(false)
+    }
+    setLoading(false)
+  }
+  const onClickPlaylistCard = (p: PlaylistOverview) => {
+    onPlaylistSubmit(p.id)
+  }
+  return (
+    <div className="flex flex-col w-full">
+      <div className="flex flex-row gap-4 items-center">
+        <div>Base playlist</div>
+        <button
+          className={`${smallButtonStyle} cursor-pointer hover:underline`}
+          onClick={onClickPlaylistButton}
+        >
+          {isOpen
+            ? "Back"
+            : !props.session.playlist
+            ? "Select playlist"
+            : props.session.playlist.name}
+        </button>
+      </div>
+      {isOpen &&
+        (isLoading ? (
+          <Loader />
+        ) : (
+          <div className="flex flex-col">
+            <CustomPlaylistCard
+              onSubmit={(text) => onPlaylistSubmit(playlistText)}
+            />
+            {playlists.map((p) => (
+              <PlaylistCard
+                key={p.id}
+                playlist={p}
+                onClickPlaylist={() => onClickPlaylistCard(p)}
+              />
+            ))}
+          </div>
+        ))}
+    </div>
+  )
+}
+
 const PlaybackModePanel = (props: { token: Token; session: Session }) => {
   const [isLoading, setLoading] = useState(false)
   const activeButtonStyle = "bg-green-500"
@@ -431,11 +503,11 @@ const PlaybackModePanel = (props: { token: Token; session: Session }) => {
     setLoading(false)
   }
   return (
-    <div>
+    <>
       {isLoading ? (
         <Loader />
       ) : (
-        <div>
+        <div className="flex flex-col gap-4 w-full">
           <div className="flex flex-row gap-4 items-center">
             <div>Approval required</div>
             <div
@@ -459,32 +531,10 @@ const PlaybackModePanel = (props: { token: Token; session: Session }) => {
               No
             </div>
           </div>
-          <div className="flex flex-row gap-4 items-center">
-            <div>Use playlist as base</div>
-            <div
-              className={`${smallButtonStyle} ${
-                props.session.playlist !== undefined
-                  ? activeButtonStyle
-                  : inactiveButtonStyle
-              }`}
-              onClick={(e) => onClickPlaylistBase(true)}
-            >
-              Yes
-            </div>
-            <div
-              className={`${smallButtonStyle} ${
-                props.session.playlist === undefined
-                  ? activeButtonStyle
-                  : inactiveButtonStyle
-              }`}
-              onClick={(e) => onClickPlaylistBase(false)}
-            >
-              No
-            </div>
-          </div>
+          <PlaylistSelector session={props.session} token={props.token} />
         </div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -547,9 +597,9 @@ const AdminPanel = (props: {
   }
   return (
     <>
-      <div className="flex flex-col items-start gap-2 w-full">
+      <div className="flex flex-col items-start gap-4 w-full">
         {!props.session.spotify ? (
-          <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
+          <div className="flex flex-row items-center desktop:items-center gap-2 desktop:gap-5">
             <div>Not authenticated with Spotify</div>
             {hostname && (
               <button onClick={onClickSpotify} className={smallButtonStyle}>
@@ -558,7 +608,7 @@ const AdminPanel = (props: {
             )}
           </div>
         ) : (
-          <div className="flex flex-col desktop:flex-row items-start desktop:items-center gap-2 desktop:gap-5">
+          <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-4">
             <div>
               Authenticated with Spotify as {props.session.spotify.name}
             </div>
@@ -728,69 +778,6 @@ const PlaylistCard = (props: {
       />
       <div className="font-bold text-xl">{props.playlist.name}</div>
       <div>{props.playlist.tracks} tracks</div>
-    </div>
-  )
-}
-
-const PlaylistSelector = (props: {
-  session: Session
-  setSession: SetState<Session | undefined>
-  token: Token
-  setAdding: SetState<boolean>
-}) => {
-  const [isSelecting, setSelecting] = useState(false)
-  const [isLoading, setLoading] = useState(false)
-  const [playlists, setPlaylists] = useState<PlaylistOverview[]>([])
-  const [playlistText, setPlaylistText] = useState("")
-  const [errorText, setErrorText] = useState("")
-  const onClickSelectPlaylist = async (
-    e: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    setLoading(true)
-    let playlists = await getPlaylists(props.token, props.session.slug)
-    setPlaylists(playlists)
-    setSelecting(true)
-    setLoading(false)
-  }
-  const onPlaylistSubmit = async (playlistURL: string) => {
-    setLoading(true)
-    let { result, error } = await postPlaylist(
-      props.token,
-      props.session.slug,
-      playlistURL
-    )
-    if (error) {
-      setErrorText(error)
-    } else {
-      setSelecting(false)
-    }
-    setLoading(false)
-  }
-  const onClickPlaylistCard = (p: PlaylistOverview) => {
-    onPlaylistSubmit(p.id)
-  }
-  return (
-    <div>
-      {isLoading ? (
-        <Loader />
-      ) : props.token && !isSelecting ? (
-        <button className={smallButtonStyle} onClick={onClickSelectPlaylist}>
-          Select playlist
-        </button>
-      ) : (
-        <div className="flex flex-row flex-wrap">
-          <CustomPlaylistCard
-            onSubmit={(text) => onPlaylistSubmit(playlistText)}
-          />
-          {playlists.map((p) => (
-            <PlaylistCard
-              key={p.id}
-              playlist={p}
-              onClickPlaylist={() => onClickPlaylistCard(p)}
-            />
-          ))}
-        </div>
-      )}
     </div>
   )
 }
