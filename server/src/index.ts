@@ -319,7 +319,8 @@ app.post("/:sessionSlug/auth/spotify/playlist", async (req, res) => {
 app.delete("/:sessionSlug/auth/playlist", async (req, res) => {
   let sessionSlug: string = res.locals["sessionSlug"]
   await removePlaylist(sessionSlug)
-  io.to(sessionSlug).emit("playlist_removed")
+  let session = await getSession("session_name_slug", sessionSlug, false)
+  io.to(sessionSlug).emit("playlist_removed", session)
 })
 
 app.post("/:sessionSlug/auth/decision", async (req, res) => {

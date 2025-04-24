@@ -36,6 +36,7 @@ import {
 import { Line } from "@/app/context"
 
 import cd from "@/../public/cd.webp"
+import { setLazyProp } from "next/dist/server/api-utils"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -96,7 +97,6 @@ const trackCardStyle =
   "rounded-lg flex flex-row justify-center my-1 p-1 gap-5 items-center w-full"
 
 const TrackCard = (props: { track: Track }) => {
-  let { playlist } = useContext(AppContext)
   return (
     <div className={trackCardStyle}>
       <div>
@@ -453,6 +453,11 @@ const PlaylistSelector = (props: { token: Token; session: Session }) => {
   const onClickPlaylistCard = (p: PlaylistOverview) => {
     onPlaylistSubmit(p.id)
   }
+  const onClickRemovePlaylist = async () => {
+    setLoading(true)
+    await deletePlaylist(props.session, props.token)
+    setLoading(false)
+  }
   return (
     <div className="flex flex-col w-full">
       <div className="flex flex-row gap-4 items-center">
@@ -467,6 +472,14 @@ const PlaylistSelector = (props: { token: Token; session: Session }) => {
             ? "Select playlist"
             : props.session.playlist.name}
         </button>
+        {props.session.playlist && (
+          <button
+            className={`p-1 rounded bg-red-700 cursor-pointer hover:underline`}
+            onClick={onClickRemovePlaylist}
+          >
+            <CloseIcon />
+          </button>
+        )}
       </div>
       {isOpen &&
         (isLoading ? (
@@ -803,7 +816,10 @@ const DeletePlaylistButton = (props: { token: Token; session: Session }) => {
   )
 }
 
-const QueueingFromPlaylistBox = (props: { playlist: Playlist }) => (
+const QueueingFromPlaylistBox = (props: {
+  approvalRequired: boolean
+  playlist: Playlist
+}) => (
   <div>
     <div className="flex flex-row items-center mb-4 gap-4">
       <div>
@@ -817,7 +833,12 @@ const QueueingFromPlaylistBox = (props: { playlist: Playlist }) => (
       </div>
       <div className="flex-1">
         <div>Queueing from</div>
-        <div className="text-2xl font-bold">{props.playlist.name}</div>
+        <div className="text-2xl font-bold mb-2">{props.playlist.name}</div>
+        <div className="text-sm">
+          {props.approvalRequired
+            ? "Approval required for other songs"
+            : "Queue up other songs at will"}
+        </div>
       </div>
     </div>
   </div>
@@ -830,15 +851,17 @@ const AnarchyModeBox = () => <div>Anarchy mode enabled</div>
 const PlaybackModeBox = (props: {
   session: Session
   setSession: SetState<Session | undefined>
-  playlist: Playlist | undefined
   token: Token | undefined
   isAdding: boolean
   setAdding: SetState<boolean>
 }) => {
   return (
     <div>
-      {props.playlist ? (
-        <QueueingFromPlaylistBox playlist={props.playlist} />
+      {props.session.playlist ? (
+        <QueueingFromPlaylistBox
+          approvalRequired={props.session.approvalRequired}
+          playlist={props.session.playlist}
+        />
       ) : props.session.approvalRequired ? (
         <ApprovalRequiredBox />
       ) : (
@@ -859,8 +882,6 @@ const Home = ({ params }: { params: { slug: string } }) => {
     queuedTracks,
     setQueuedTracks,
     queue,
-    playlist,
-    setPlaylist,
     setRequestedTracks,
     emitLogin,
   } = useContext(AppContext)
@@ -881,7 +902,6 @@ const Home = ({ params }: { params: { slug: string } }) => {
         setQueue(queue)
         setQueuedTracks(new Map(queued.map((obj: any) => [obj.id, obj.time])))
         setRequestedTracks(requests)
-        setPlaylist(session.playlist)
         setLoading(false)
       } else {
         router.push("/")
@@ -919,7 +939,6 @@ const Home = ({ params }: { params: { slug: string } }) => {
         <PlaybackModeBox
           session={session}
           setSession={setSession}
-          playlist={playlist}
           token={token}
           isAdding={isAdding}
           setAdding={setAdding}
@@ -929,7 +948,7 @@ const Home = ({ params }: { params: { slug: string } }) => {
           session={session}
           isAdding={isAdding}
           setAdding={setAdding}
-          tracks={playlist ? playlist.tracks : []}
+          tracks={session.playlist ? session.playlist.tracks : []}
         />
         {isAdding ? "" : <Queue queue={queue} />}
       </div>

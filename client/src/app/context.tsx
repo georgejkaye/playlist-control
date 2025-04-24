@@ -28,8 +28,6 @@ interface AppData {
   setSessions: SetState<SessionOverview[] | undefined>
   session: Session | undefined
   setSession: SetState<Session | undefined>
-  playlist: Playlist | undefined
-  setPlaylist: SetState<Playlist | undefined>
   queue: Track[]
   setQueue: SetState<Track[]>
   current: Track | undefined
@@ -50,8 +48,6 @@ const defaultAppData: AppData = {
   setSessions: () => {},
   session: undefined,
   setSession: () => {},
-  playlist: undefined,
-  setPlaylist: () => {},
   queue: [],
   setQueue: () => {},
   current: undefined,
@@ -97,8 +93,6 @@ export const AppContextWrapper = (
     setSessions,
     session,
     setSession,
-    playlist,
-    setPlaylist,
     queue,
     setQueue,
     current,
@@ -156,7 +150,7 @@ export const AppContextWrapper = (
       }
     })
     socket.on("playlist_removed", (data) => {
-      setPlaylist(undefined)
+      setSession(responseToSession(data))
     })
     socket.on("approval_required", (data) => {
       setSession(responseToSession(data))
