@@ -20,10 +20,3 @@ jobs:
             cd ${{ vars.PROJECT_ROOT }}
             git pull
             docker compose -f docker-compose.prod.yml up --build -d
-            source .env
-            chmod +x ./db/run.sh
-            ./db/run.sh ./db/data/ $DB_NAME $DB_PORT $DB_USER $DB_NAME
-            rm ./db/data/*
-            git add ./db/data
-            git commit -m "tidy: remove completed db scripts"
-            git push
