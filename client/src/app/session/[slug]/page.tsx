@@ -381,7 +381,10 @@ const RequestsPanel = (props: { token: Token; session: Session }) => {
           ""
         ) : (
           <div className="flex w-full flex-col items-start">
-            <h2 className="text-lg font-bold mb-2">Requested tracks</h2>
+            <div className="flex flex-row">
+              <h2 className="text-lg font-bold mb-2">Requested tracks</h2>
+              <button className={`${smallButtonStyle}}`}>Close</button>
+            </div>
             {requestedTracks.map((track) => (
               <RequestedTrackCard
                 token={props.token}
@@ -482,24 +485,24 @@ const PlaylistSelector = (props: { token: Token; session: Session }) => {
             </button>
           )}
         </div>
-        {isOpen &&
-          (isLoading ? (
-            <Loader />
-          ) : (
-            <div className="flex flex-col">
-              <CustomPlaylistCard
-                onSubmit={(text) => onPlaylistSubmit(playlistText)}
-              />
-              {playlists.map((p) => (
-                <PlaylistCard
-                  key={p.id}
-                  playlist={p}
-                  onClickPlaylist={() => onClickPlaylistCard(p)}
-                />
-              ))}
-            </div>
-          ))}
       </div>
+      {isOpen &&
+        (isLoading ? (
+          <Loader />
+        ) : (
+          <div className="flex flex-col">
+            <CustomPlaylistCard
+              onSubmit={(text) => onPlaylistSubmit(playlistText)}
+            />
+            {playlists.map((p) => (
+              <PlaylistCard
+                key={p.id}
+                playlist={p}
+                onClickPlaylist={() => onClickPlaylistCard(p)}
+              />
+            ))}
+          </div>
+        ))}
     </div>
   )
 }
