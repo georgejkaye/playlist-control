@@ -668,6 +668,11 @@ const LoginPanel = (props: {
     } else {
       setSpotifyUser(result.spotify)
       props.setToken(result.token)
+      localStorage.setItem(`token-${props.session.slug}`, result.token.token)
+      localStorage.setItem(
+        `expires-${props.session.slug}`,
+        result.token.expires
+      )
     }
     setLoading(false)
   }
