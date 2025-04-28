@@ -19,6 +19,7 @@ import {
   makeDecision,
   deletePlaylist,
   updateApprovalRequired,
+  deleteSession,
 } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -32,11 +33,11 @@ import {
   PlaylistOverview,
   tracksEqual,
   getDurationString,
+  dateToLongString,
 } from "@/app/structs"
 import { Line } from "@/app/context"
 
 import cd from "@/../public/cd.webp"
-import { setLazyProp } from "next/dist/server/api-utils"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -567,12 +568,12 @@ const PlaybackModePanel = (props: {
 const AdminPanel = (props: {
   token: Token
   session: Session
-  setLoading: SetState<boolean>
+  setLoadingSession: SetState<boolean>
   logoutCallback: () => void
   setSession: SetState<Session | undefined>
 }) => {
   const { protocol, hostname, port } = useUrl() ?? {}
-  const [isLoading, setLoading] = useState(false)
+  const [isLoadingAdminPanel, setLoadingAdminPanel] = useState(false)
   const router = useRouter()
   const onClickSpotify = async (e: React.MouseEvent<HTMLButtonElement>) => {
     localStorage.setItem("redirect", props.session.slug)
@@ -605,28 +606,55 @@ const AdminPanel = (props: {
         })
     )
   }
+  const onClickCloseSession = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    props.setLoadingSession(true)
+    localStorage.removeItem(`token-${props.session.slug}`)
+    localStorage.removeItem(`expiry-${props.session.slug}`)
+    await deleteSession(props.session, props.token)
+    router.push("/")
+    props.setLoadingSession(false)
+  }
   const onClickLogout = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setLoadingAdminPanel(true)
     localStorage.removeItem(`token-${props.session.slug}`)
     localStorage.removeItem(`expiry-${props.session.slug}`)
     props.logoutCallback()
+    setLoadingAdminPanel(false)
   }
   const onClickDeauthoriseSpotify = async (
     e: React.MouseEvent<HTMLButtonElement>
   ) => {
-    props.setLoading(true)
+    props.setLoadingSession(true)
     const session = await deauthenticateSpotify(props.session.slug, props.token)
     if (session) {
       props.setSession(session)
-      props.setLoading(false)
+      props.setLoadingSession(false)
     } else {
       router.push("/")
+      props.setLoadingSession(false)
     }
   }
-  return isLoading ? (
+  return isLoadingAdminPanel ? (
     <Loader />
   ) : (
     <>
       <div className="flex flex-col items-start gap-6 tablet:gap-4 w-full">
+        <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-2 w-full">
+          <div className="flex-1">Logged in as admin</div>
+          <button className={smallButtonStyle} onClick={onClickLogout}>
+            Logout
+          </button>
+        </div>
+        <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-2 w-full">
+          <div className="flex-1">
+            Session started at {dateToLongString(props.session.start)}
+          </div>
+          <button className={smallButtonStyle} onClick={onClickCloseSession}>
+            Close session
+          </button>
+        </div>
         {!props.session.spotify ? (
           <div className="flex flex-row items-center w-full desktop:items-center gap-2 desktop:gap-4">
             <div className="flex-1">Not authenticated with Spotify</div>
@@ -654,19 +682,12 @@ const AdminPanel = (props: {
             <PlaybackModePanel
               token={props.token}
               session={props.session}
-              setLoading={setLoading}
+              setLoading={setLoadingAdminPanel}
             />
-            <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-2 w-full">
-              <div className="flex-1">Logged in as admin</div>
-              <button className={smallButtonStyle} onClick={onClickLogout}>
-                Logout
-              </button>
-            </div>
             <RequestsPanel token={props.token} session={props.session} />
           </>
         )}
       </div>
-      <Line />
     </>
   )
 }
@@ -959,13 +980,14 @@ const Home = ({ params }: { params: { slug: string } }) => {
         <LoginPanel session={session} setToken={setToken} />
       ) : (
         <AdminPanel
-          setLoading={setLoading}
+          setLoadingSession={setLoading}
           token={token}
           session={session}
           setSession={setSession}
           logoutCallback={() => setToken(undefined)}
         />
       )}
+      <Line />
       <div>
         {current && <CurrentTrackCard currentTrack={current} />}
         <PlaybackModeBox
