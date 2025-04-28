@@ -179,8 +179,7 @@ export const responseToRequest = (data: any): RequestedTrack => ({
 })
 
 export const dateToLongString = (date: Date) =>
-  `${date.getDate().toString().padStart(2, "0")}/${date
-    .getMonth()
+  `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
     .toString()
     .padStart(2, "0")}/${date.getFullYear()} ${date
     .getHours()
