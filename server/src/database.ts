@@ -362,7 +362,7 @@ export const createSession = async (
   const queryText = `
     INSERT INTO Session (session_host, session_name, session_name_slug, password_hash, session_start)
     VALUES ($1, $2, $3, $4, NOW())
-    RETURNING session_id
+    RETURNING session_id, session_start
   `
   const query = { text: queryText }
   try {
@@ -373,9 +373,11 @@ export const createSession = async (
       hashedPassword,
     ])
     let sessionId = result.rows[0].get("session_id")
+    let sessionStart = result.rows[0].get("session_start")
     return {
       id: sessionId,
       name: sessionName,
+      start: new Date(sessionStart),
       slug: sessionSlug,
       host: sessionHost,
       playlist: undefined,
@@ -627,6 +629,7 @@ export const getSession = async (
   const queryText = `
     SELECT
       session.session_name,
+      session.session_start,
       session.session_host,
       session.session_id,
       session.session_name_slug,
@@ -666,6 +669,7 @@ export const getSession = async (
   } else {
     let row = rows[0]
     let sessionName = row.get("session_name")
+    let sessionStart = row.get("session_start")
     let sessionHost = row.get("session_host")
     let sessionId = row.get("session_id")
     let sessionSlug = row.get("session_name_slug")
@@ -706,6 +710,7 @@ export const getSession = async (
       : { current: undefined, queue: [] }
     return {
       name: sessionName,
+      start: new Date(sessionStart),
       id: sessionId,
       host: sessionHost,
       slug: sessionSlug,

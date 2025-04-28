@@ -38,6 +38,7 @@ export interface SessionOverview {
 
 export interface Session {
   id: number
+  start: Date
   name: string
   slug: string
   host: string
