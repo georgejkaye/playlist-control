@@ -772,7 +772,6 @@ const LoginPanel = (props: {
           </div>
         )}
       </div>
-      <Line />
     </>
   )
 }
