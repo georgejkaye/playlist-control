@@ -19,6 +19,7 @@ import {
   makeDecision,
   deletePlaylist,
   updateApprovalRequired,
+  deleteSession,
 } from "@/app/api"
 import { AppContext } from "@/app/context"
 import { Loader } from "@/app/loader"
@@ -32,11 +33,11 @@ import {
   PlaylistOverview,
   tracksEqual,
   getDurationString,
+  dateToLongString,
 } from "@/app/structs"
 import { Line } from "@/app/context"
 
 import cd from "@/../public/cd.webp"
-import { setLazyProp } from "next/dist/server/api-utils"
 
 const Header = (props: { session: Session | undefined }) => {
   return (
@@ -381,7 +382,10 @@ const RequestsPanel = (props: { token: Token; session: Session }) => {
           ""
         ) : (
           <div className="flex w-full flex-col items-start">
-            <h2 className="text-lg font-bold mb-2">Requested tracks</h2>
+            <div className="flex flex-row">
+              <h2 className="text-lg font-bold mb-2">Requested tracks</h2>
+              <button className={`${smallButtonStyle}}`}>Close</button>
+            </div>
             {requestedTracks.map((track) => (
               <RequestedTrackCard
                 token={props.token}
@@ -417,9 +421,12 @@ let clientId = process.env.NEXT_PUBLIC_SPOTIFY_APP_ID
 
 const smallButtonStyle = "p-2 bg-accent rounded font-2xl font-bold"
 
-const PlaylistSelector = (props: { token: Token; session: Session }) => {
+const PlaylistSelector = (props: {
+  token: Token
+  session: Session
+  setLoading: SetState<boolean>
+}) => {
   const [isOpen, setOpen] = useState(false)
-  const [isLoading, setLoading] = useState(false)
   const [playlists, setPlaylists] = useState<PlaylistOverview[]>([])
   const [playlistText, setPlaylistText] = useState("")
   const [errorText, setErrorText] = useState("")
@@ -429,15 +436,18 @@ const PlaylistSelector = (props: { token: Token; session: Session }) => {
     if (isOpen) {
       setOpen(false)
     } else {
-      setLoading(true)
+      // props.setLoading(true)
       let playlists = await getPlaylists(props.token, props.session.slug)
+      console.log(playlists)
       setPlaylists(playlists)
       setOpen(true)
-      setLoading(false)
+      console.log("open is", isOpen)
+      // props.setLoading(false)
+      console.log("open is", isOpen)
     }
   }
   const onPlaylistSubmit = async (playlistURL: string) => {
-    setLoading(true)
+    props.setLoading(true)
     let { result, error } = await postPlaylist(
       props.token,
       props.session.slug,
@@ -448,20 +458,20 @@ const PlaylistSelector = (props: { token: Token; session: Session }) => {
     } else {
       setOpen(false)
     }
-    setLoading(false)
+    props.setLoading(false)
   }
   const onClickPlaylistCard = (p: PlaylistOverview) => {
     onPlaylistSubmit(p.id)
   }
   const onClickRemovePlaylist = async () => {
-    setLoading(true)
+    props.setLoading(true)
     await deletePlaylist(props.session, props.token)
-    setLoading(false)
+    props.setLoading(false)
   }
   return (
     <div className="flex flex-col w-full">
       <div className="flex flex-col tablet:flex-row gap-2 tablet:gap-4 tablet:items-center">
-        <div>Base playlist</div>
+        <div className="flex-1">Base playlist</div>
         <div className="flex flex-row gap-4">
           <button
             className={`${smallButtonStyle} cursor-pointer hover:underline`}
@@ -482,75 +492,75 @@ const PlaylistSelector = (props: { token: Token; session: Session }) => {
             </button>
           )}
         </div>
-        {isOpen &&
-          (isLoading ? (
-            <Loader />
-          ) : (
-            <div className="flex flex-col">
-              <CustomPlaylistCard
-                onSubmit={(text) => onPlaylistSubmit(playlistText)}
-              />
-              {playlists.map((p) => (
-                <PlaylistCard
-                  key={p.id}
-                  playlist={p}
-                  onClickPlaylist={() => onClickPlaylistCard(p)}
-                />
-              ))}
-            </div>
-          ))}
       </div>
+      {isOpen && (
+        <div className="flex flex-col">
+          <CustomPlaylistCard
+            onSubmit={(text) => onPlaylistSubmit(playlistText)}
+          />
+          {playlists.map((p) => (
+            <PlaylistCard
+              key={p.id}
+              playlist={p}
+              onClickPlaylist={() => onClickPlaylistCard(p)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-const PlaybackModePanel = (props: { token: Token; session: Session }) => {
-  const [isLoading, setLoading] = useState(false)
+const PlaybackModePanel = (props: {
+  token: Token
+  session: Session
+  setLoading: SetState<boolean>
+}) => {
   const activeButtonStyle = "bg-green-500"
   const inactiveButtonStyle = "cursor-pointer hover:underline"
   const onClickApprovalButton = async (isApprovalRequired: boolean) => {
-    setLoading(true)
+    props.setLoading(true)
     await updateApprovalRequired(props.token, props.session, isApprovalRequired)
-    setLoading(false)
+    props.setLoading(false)
   }
   const onClickPlaylistBase = async (hasPlaylistBase: boolean) => {
-    setLoading(true)
-    setLoading(false)
+    props.setLoading(true)
+    props.setLoading(false)
   }
   return (
     <>
-      {isLoading ? (
-        <Loader />
-      ) : (
-        <div className="flex flex-col gap-6 tablet:gap-4 w-full">
-          <div className="flex flex-col tablet:flex-row gap-2 tablet:gap-4 tablet:items-center">
-            <div>Approval required</div>
-            <div className="flex flex-row gap-4">
-              <div
-                className={`${smallButtonStyle} ${
-                  props.session.approvalRequired
-                    ? activeButtonStyle
-                    : inactiveButtonStyle
-                }`}
-                onClick={(e) => onClickApprovalButton(true)}
-              >
-                Yes
-              </div>
-              <div
-                className={`${smallButtonStyle} ${
-                  !props.session.approvalRequired
-                    ? activeButtonStyle
-                    : inactiveButtonStyle
-                }`}
-                onClick={(e) => onClickApprovalButton(false)}
-              >
-                No
-              </div>
+      <div className="flex flex-col gap-6 tablet:gap-4 w-full">
+        <div className="flex flex-col tablet:flex-row gap-2 tablet:gap-4 tablet:items-center">
+          <div className="flex-1">Approval required</div>
+          <div className="flex flex-row gap-4">
+            <div
+              className={`${smallButtonStyle} ${
+                props.session.approvalRequired
+                  ? activeButtonStyle
+                  : inactiveButtonStyle
+              }`}
+              onClick={(e) => onClickApprovalButton(true)}
+            >
+              Yes
+            </div>
+            <div
+              className={`${smallButtonStyle} ${
+                !props.session.approvalRequired
+                  ? activeButtonStyle
+                  : inactiveButtonStyle
+              }`}
+              onClick={(e) => onClickApprovalButton(false)}
+            >
+              No
             </div>
           </div>
-          <PlaylistSelector session={props.session} token={props.token} />
         </div>
-      )}
+        <PlaylistSelector
+          session={props.session}
+          token={props.token}
+          setLoading={props.setLoading}
+        />
+      </div>
     </>
   )
 }
@@ -558,11 +568,12 @@ const PlaybackModePanel = (props: { token: Token; session: Session }) => {
 const AdminPanel = (props: {
   token: Token
   session: Session
-  setLoading: SetState<boolean>
+  setLoadingSession: SetState<boolean>
   logoutCallback: () => void
   setSession: SetState<Session | undefined>
 }) => {
   const { protocol, hostname, port } = useUrl() ?? {}
+  const [isLoadingAdminPanel, setLoadingAdminPanel] = useState(false)
   const router = useRouter()
   const onClickSpotify = async (e: React.MouseEvent<HTMLButtonElement>) => {
     localStorage.setItem("redirect", props.session.slug)
@@ -595,29 +606,58 @@ const AdminPanel = (props: {
         })
     )
   }
+  const onClickCloseSession = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    props.setLoadingSession(true)
+    localStorage.removeItem(`token-${props.session.slug}`)
+    localStorage.removeItem(`expiry-${props.session.slug}`)
+    await deleteSession(props.session, props.token)
+    router.push("/")
+    props.setLoadingSession(false)
+  }
   const onClickLogout = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setLoadingAdminPanel(true)
     localStorage.removeItem(`token-${props.session.slug}`)
     localStorage.removeItem(`expiry-${props.session.slug}`)
     props.logoutCallback()
+    setLoadingAdminPanel(false)
   }
   const onClickDeauthoriseSpotify = async (
     e: React.MouseEvent<HTMLButtonElement>
   ) => {
-    props.setLoading(true)
+    props.setLoadingSession(true)
     const session = await deauthenticateSpotify(props.session.slug, props.token)
     if (session) {
       props.setSession(session)
-      props.setLoading(false)
+      props.setLoadingSession(false)
     } else {
       router.push("/")
+      props.setLoadingSession(false)
     }
   }
-  return (
+  return isLoadingAdminPanel ? (
+    <Loader />
+  ) : (
     <>
       <div className="flex flex-col items-start gap-6 tablet:gap-4 w-full">
+        <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-2 w-full">
+          <div className="flex-1">Logged in as admin</div>
+          <button className={smallButtonStyle} onClick={onClickLogout}>
+            Logout
+          </button>
+        </div>
+        <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-2 w-full">
+          <div className="flex-1">
+            Session started at {dateToLongString(props.session.start)}
+          </div>
+          <button className={smallButtonStyle} onClick={onClickCloseSession}>
+            Close session
+          </button>
+        </div>
         {!props.session.spotify ? (
-          <div className="flex flex-row items-center desktop:items-center gap-2 desktop:gap-4">
-            <div>Not authenticated with Spotify</div>
+          <div className="flex flex-row items-center w-full desktop:items-center gap-2 desktop:gap-4">
+            <div className="flex-1">Not authenticated with Spotify</div>
             {hostname && (
               <button onClick={onClickSpotify} className={smallButtonStyle}>
                 Authenticate with Spotify
@@ -625,8 +665,8 @@ const AdminPanel = (props: {
             )}
           </div>
         ) : (
-          <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-2 tablet:gap-4">
-            <div>
+          <div className="flex flex-col tablet:flex-row items-start tablet:items-center gap-2 w-full tablet:gap-4">
+            <div className="flex-1">
               Authenticated with Spotify as {props.session.spotify.name}
             </div>
             <button
@@ -637,13 +677,17 @@ const AdminPanel = (props: {
             </button>
           </div>
         )}
-        <PlaybackModePanel token={props.token} session={props.session} />
-        <button className={smallButtonStyle} onClick={onClickLogout}>
-          Logout
-        </button>
-        <RequestsPanel token={props.token} session={props.session} />
+        {props.session.spotify && (
+          <>
+            <PlaybackModePanel
+              token={props.token}
+              session={props.session}
+              setLoading={setLoadingAdminPanel}
+            />
+            <RequestsPanel token={props.token} session={props.session} />
+          </>
+        )}
       </div>
-      <Line />
     </>
   )
 }
@@ -665,6 +709,11 @@ const LoginPanel = (props: {
     } else {
       setSpotifyUser(result.spotify)
       props.setToken(result.token)
+      localStorage.setItem(`token-${props.session.slug}`, result.token.token)
+      localStorage.setItem(
+        `expires-${props.session.slug}`,
+        result.token.expires
+      )
     }
     setLoading(false)
   }
@@ -931,13 +980,14 @@ const Home = ({ params }: { params: { slug: string } }) => {
         <LoginPanel session={session} setToken={setToken} />
       ) : (
         <AdminPanel
-          setLoading={setLoading}
+          setLoadingSession={setLoading}
           token={token}
           session={session}
           setSession={setSession}
           logoutCallback={() => setToken(undefined)}
         />
       )}
+      <Line />
       <div>
         {current && <CurrentTrackCard currentTrack={current} />}
         <PlaybackModeBox

@@ -147,6 +147,7 @@ export const responseToSessionOverview = (raw: any): SessionOverview => ({
 export interface Session {
   id: string
   name: string
+  start: Date
   slug: string
   host: string
   playlist: Playlist | undefined
@@ -158,6 +159,7 @@ export interface Session {
 export const responseToSession = (raw: any): Session => ({
   id: raw["id"],
   name: raw["name"],
+  start: new Date(raw["start"]),
   slug: raw["slug"],
   host: raw["host"],
   playlist: !raw["playlist"] ? undefined : responseToPlaylist(raw["playlist"]),
@@ -175,3 +177,12 @@ export const responseToRequest = (data: any): RequestedTrack => ({
   requestId: data["requestId"],
   track: responseToTrack(data["track"], true),
 })
+
+export const dateToLongString = (date: Date) =>
+  `${date.getDate().toString().padStart(2, "0")}/${date
+    .getMonth()
+    .toString()
+    .padStart(2, "0")}/${date.getFullYear()} ${date
+    .getHours()
+    .toString()
+    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`
